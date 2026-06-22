@@ -18,6 +18,7 @@ namespace HainanSettlementTool.Excel
                 string.IsNullOrWhiteSpace(options.OutputLedgerName)
                     ? ClosedXmlUtil.DefaultLedgerOutputName(options.BaseLedgerPath, options.Month)
                     : options.OutputLedgerName);
+            FileAccessGuard.RequireWritableWorkbook(outputPath, "输出台账");
             File.Copy(options.BaseLedgerPath, outputPath, true);
 
             var reportPath = Path.Combine(options.OutputDirectory, options.Month + "月台账更新报告.json");

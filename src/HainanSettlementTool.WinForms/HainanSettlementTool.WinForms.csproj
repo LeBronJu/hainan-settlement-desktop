@@ -7,6 +7,9 @@
     <AssemblyName>海南售电结算自动化工具</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Ookii.Dialogs.WinForms" Version="4.0.0" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\HainanSettlementTool.Core\HainanSettlementTool.Core.csproj" />
     <ProjectReference Include="..\HainanSettlementTool.Excel\HainanSettlementTool.Excel.csproj" />
   </ItemGroup>

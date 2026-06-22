@@ -4,12 +4,13 @@ using HainanSettlementTool.Core.Services;
 
 namespace HainanSettlementTool.Excel
 {
-    public sealed class ClosedXmlStage1ExcelGateway : IStage1ExcelGateway
+    public sealed class ClosedXmlStage1ExcelGateway : IStage1ExcelGateway, IStage2ExcelGateway
     {
         private readonly PowerWorkbookReader _powerWorkbookReader = new PowerWorkbookReader();
         private readonly RawDetailReader _rawDetailReader = new RawDetailReader();
         private readonly CustomerCodeReader _customerCodeReader = new CustomerCodeReader();
         private readonly LedgerStage1Updater _ledgerUpdater = new LedgerStage1Updater();
+        private readonly Stage2SettlementGenerator _stage2Generator = new Stage2SettlementGenerator();
 
         public List<PowerRow> ReadPowerRows(string powerPath)
         {
@@ -34,6 +35,11 @@ namespace HainanSettlementTool.Excel
         public Stage1Report UpdateLedger(Stage1Options options)
         {
             return _ledgerUpdater.Update(options, this);
+        }
+
+        public Stage2Report GenerateSettlement(Stage2Options options)
+        {
+            return _stage2Generator.Generate(options);
         }
     }
 }
