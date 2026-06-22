@@ -8,6 +8,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HainanSettlementTool.Excel"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HainanSettlementTool.WinForms", "src\HainanSettlementTool.WinForms\HainanSettlementTool.WinForms.csproj", "{6E7CFC7A-5995-4471-9DA3-95CB600F22A8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HainanSettlementTool.Wpf", "src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj", "{00F4D0E4-3947-434C-A81C-CAA41841AA37}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -26,6 +28,10 @@ Global
 		{6E7CFC7A-5995-4471-9DA3-95CB600F22A8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6E7CFC7A-5995-4471-9DA3-95CB600F22A8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6E7CFC7A-5995-4471-9DA3-95CB600F22A8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{00F4D0E4-3947-434C-A81C-CAA41841AA37}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{00F4D0E4-3947-434C-A81C-CAA41841AA37}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{00F4D0E4-3947-434C-A81C-CAA41841AA37}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{00F4D0E4-3947-434C-A81C-CAA41841AA37}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
