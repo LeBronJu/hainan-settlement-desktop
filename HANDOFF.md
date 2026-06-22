@@ -32,7 +32,7 @@ This repository was split out from the original `csharp/` subdirectory so future
 - UI has been modernized from the first WinForms draft.
 - Month selector is a fixed dropdown from `2026年2月` through `2026年12月`.
 - Input layout alignment bug has been fixed by explicit `TableLayoutPanel` row creation.
-- The app currently implements stage 1 only.
+- The app implements stage 1 and an initial C# stage 2 migration.
 
 ## Stage 1 Current Capability
 
@@ -51,9 +51,35 @@ Outputs:
 Current limitations:
 
 - No direct `.xls` raw-detail cleaning.
-- No stage 2 summary generation.
-- No agent/intermediary split workbook generation.
 - No formula recalculation through Excel automation.
+
+## Stage 2 Current Capability
+
+Inputs:
+
+- Manually reviewed current-month ledger.
+- Previous-month agent split workbook folder.
+- Previous-month intermediary split workbook folder.
+- Previous or corrected summary workbook.
+- Output folder.
+
+Outputs:
+
+- Agent split workbooks under `2026年代理 - 海南`.
+- Intermediary split workbooks under `2026年居间 - 海南`.
+- Monthly agent-fee summary workbook.
+- JSON settlement report.
+
+Validation notes:
+
+- C# stage 2 was smoke-tested against the local stable March 2026 settlement reference folder.
+- C# and the Python baseline matched on ledger-derived counts and totals:
+  - proxy rows: 59
+  - intermediary rows: 7
+  - proxy groups: 16
+  - intermediary groups: 3
+  - proxy total: 4.6098
+  - intermediary total: 2.6526
 
 ## Environment
 
@@ -76,9 +102,9 @@ Expected result: `0 个警告 / 0 个错误`.
 1. Verify the standalone repository builds after clone/restore.
 2. Add sanitized sample workbooks for repeatable stage 1 tests.
 3. Add Core tests around matching and report semantics.
-4. Improve file-lock detection and user-facing workbook errors.
-5. Add a C# release packaging script that copies exe and required DLLs into a clean folder.
-6. Port stage 2 only after stage 1 is validated.
+4. Run broader stage 2 acceptance on working copies for later months.
+5. Add optional Excel automation recalculation if required.
+6. Continue hardening summary/split formatting edge cases as real templates surface.
 
 ## Useful Skills For Future Sessions
 

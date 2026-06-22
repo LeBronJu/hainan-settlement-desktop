@@ -48,7 +48,7 @@ namespace HainanSettlementTool.Core.Services
                 throw new ArgumentException("阶段1要求月份大于1。");
             }
 
-            RequireExistingFile(options.BaseLedgerPath, "基础台账");
+            FileAccessGuard.RequireReadableWorkbook(options.BaseLedgerPath, "基础台账");
             if (string.IsNullOrWhiteSpace(options.PowerPath))
             {
                 throw new ArgumentException("请选择电量处理表，或选择原始零售侧明细让程序生成。");
@@ -61,30 +61,12 @@ namespace HainanSettlementTool.Core.Services
 
             if (!string.IsNullOrWhiteSpace(options.ReferenceLedgerPath))
             {
-                RequireExistingFile(options.ReferenceLedgerPath, "参考台账");
+                FileAccessGuard.RequireReadableWorkbook(options.ReferenceLedgerPath, "参考台账");
             }
 
             if (!string.IsNullOrWhiteSpace(options.RawDetailPath) && !File.Exists(options.RawDetailPath))
             {
                 throw new FileNotFoundException("原始零售侧明细不存在。", options.RawDetailPath);
-            }
-        }
-
-        private static void RequireExistingFile(string path, string label)
-        {
-            if (string.IsNullOrWhiteSpace(path))
-            {
-                throw new ArgumentException("请选择" + label + "。");
-            }
-
-            if (Path.GetFileName(path).StartsWith("~$", StringComparison.Ordinal))
-            {
-                throw new ArgumentException(label + "选到了 Excel 临时文件，请选择正式文件。");
-            }
-
-            if (!File.Exists(path))
-            {
-                throw new FileNotFoundException(label + "不存在。", path);
             }
         }
     }

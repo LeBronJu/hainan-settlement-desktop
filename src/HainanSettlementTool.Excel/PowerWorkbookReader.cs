@@ -44,6 +44,8 @@ namespace HainanSettlementTool.Excel
 
         public void Write(IEnumerable<PowerRow> rows, string outputPath)
         {
+            FileAccessGuard.RequireWritableWorkbook(outputPath, "电量处理表输出文件");
+
             var grouped = rows
                 .Where(row => !string.IsNullOrWhiteSpace(row.Key))
                 .GroupBy(row => row.Key)
