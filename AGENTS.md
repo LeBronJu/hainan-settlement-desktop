@@ -12,7 +12,7 @@ This repository is the standalone C# desktop project for Hainan retail electrici
 
 ## Project Scope
 
-This repository contains only the C# rewrite. The earlier Python project remains in the original repository:
+This repository contains only the C# rewrite. The earlier Python project remains in the original repository and remains the full historical behavior reference:
 
 - `https://github.com/LeBronJu/hainan-settlement-tool`
 
@@ -21,7 +21,8 @@ The C# version is being built as a maintainable Windows desktop app. It should e
 ## Repository Layout
 
 - `HainanSettlementTool.sln`: solution file.
-- `src/HainanSettlementTool.WinForms/`: desktop UI only.
+- `src/HainanSettlementTool.WinForms/`: fallback compatible desktop UI only.
+- `src/HainanSettlementTool.Wpf/`: modern WPF desktop UI shell only.
 - `src/HainanSettlementTool.Core/`: business models, services, and interfaces.
 - `src/HainanSettlementTool.Excel/`: ClosedXML workbook reading/writing.
 - `docs/architecture.md`: layering and migration boundary.
@@ -37,19 +38,27 @@ The C# version is being built as a maintainable Windows desktop app. It should e
 
 ## Current Functional Boundary
 
-Stage 1 currently aims to:
+Stage 1 currently supports:
 
-- Read an existing power workbook, or build one from `.xlsx`/`.csv` raw detail.
+- Read an existing power workbook, or build one from `.xlsx`/`.xls`/`.csv` raw detail.
 - Copy/update the ledger with current month power.
 - Add newly discovered customer names and customer codes where possible.
 - Emit a JSON report.
+- Run "clean power data only" without updating the ledger.
 
-Stage 1 does not yet:
+Stage 2 currently supports:
 
-- Directly clean `.xls` raw detail.
+- Read the manually reviewed current-month ledger.
+- Copy previous-month agent/intermediary split sheets as templates and write current-month input values.
+- Generate the current-month summary workbook from the previous/corrected summary template.
+- Emit a JSON settlement report and a text validation report.
+- Show a detailed preflight confirmation for key changes such as new split entities, new split customers, unit price changes, and tax-rate changes.
+
+Stage 1 and Stage 2 still do not:
+
 - Auto-fill volatile business fields such as负责人 or 项目开发人.
-- Generate summary workbooks.
-- Generate agent/intermediary split workbooks.
+- Change ledger customer names to match summary/payment-account names.
+- Treat irregular January/February 2026 data as generic rules.
 
 ## Business Rules To Preserve
 
@@ -71,4 +80,3 @@ Stage 1 does not yet:
 - Target framework: `.NET Framework 4.7.2`
 - Intended runtime: Windows 7 SP1 and later, with .NET Framework 4.7.2 or newer installed.
 - Development requires Visual Studio Build Tools 2022 or equivalent MSBuild plus .NET Framework 4.7.2 targeting pack.
-

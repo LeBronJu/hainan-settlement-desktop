@@ -62,6 +62,11 @@ namespace HainanSettlementTool.Excel
                         else
                         {
                             targetRow = nextRow++;
+                            if (targetRow <= (worksheet.LastRowUsed()?.RowNumber() ?? targetRow - 1))
+                            {
+                                worksheet.Row(targetRow).InsertRowsAbove(1);
+                            }
+
                             CopyRowTemplate(worksheet, lastDataRow, targetRow, options.Month);
                             worksheet.Cell(targetRow, 1).Value = nextSeq++;
                             worksheet.Cell(targetRow, 3).Value = item.Name;

@@ -1,7 +1,9 @@
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using ClosedXML.Excel;
+using ExcelDataReader;
 using HainanSettlementTool.Core.Services;
 
 namespace HainanSettlementTool.Excel
@@ -16,7 +18,13 @@ namespace HainanSettlementTool.Excel
                 return result;
             }
 
-            if (!string.Equals(Path.GetExtension(rawDetailPath), ".xlsx", System.StringComparison.OrdinalIgnoreCase))
+            var extension = Path.GetExtension(rawDetailPath);
+            if (string.Equals(extension, ".xls", System.StringComparison.OrdinalIgnoreCase))
+            {
+                return ReadXls(rawDetailPath);
+            }
+
+            if (!string.Equals(extension, ".xlsx", System.StringComparison.OrdinalIgnoreCase))
             {
                 return result;
             }
@@ -49,6 +57,80 @@ namespace HainanSettlementTool.Excel
             }
 
             return result;
+        }
+
+        private static Dictionary<string, string> ReadXls(string rawDetailPath)
+        {
+            var namedSheetResult = new Dictionary<string, string>();
+            var firstSheetResult = new Dictionary<string, string>();
+            var foundNamedSheet = false;
+            var isFirstSheet = true;
+
+            using (var stream = File.Open(rawDetailPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (var reader = ExcelReaderFactory.CreateReader(stream))
+            {
+                do
+                {
+                    var isNamedSheet = reader.Name == "零售主体电量" || reader.Name == "零售户号电量";
+                    Dictionary<string, string> target = null;
+                    if (isNamedSheet)
+                    {
+                        target = namedSheetResult;
+                        foundNamedSheet = true;
+                    }
+                    else if (isFirstSheet)
+                    {
+                        target = firstSheetResult;
+                    }
+
+                    if (target != null)
+                    {
+                        ReadCustomerCodesFromSheet(reader, target);
+                    }
+                    else
+                    {
+                        while (reader.Read())
+                        {
+                        }
+                    }
+
+                    isFirstSheet = false;
+                }
+                while (reader.NextResult());
+            }
+
+            return foundNamedSheet ? namedSheetResult : firstSheetResult;
+        }
+
+        private static void ReadCustomerCodesFromSheet(IExcelDataReader reader, Dictionary<string, string> result)
+        {
+            var row = 0;
+            while (reader.Read())
+            {
+                row++;
+                if (row < 4)
+                {
+                    continue;
+                }
+
+                var code = ReaderString(reader, 2);
+                var name = ReaderString(reader, 3);
+                var key = TextUtil.CustomerKey(name);
+                if (key.Length > 0 && code.Length > 0 && !result.ContainsKey(key))
+                {
+                    result[key] = code;
+                }
+            }
+        }
+
+        private static string ReaderString(IExcelDataReader reader, int index)
+        {
+            if (index >= reader.FieldCount)
+            {
+                return string.Empty;
+            }
+
+            return TextUtil.S(System.Convert.ToString(reader.GetValue(index), CultureInfo.CurrentCulture));
         }
     }
 }

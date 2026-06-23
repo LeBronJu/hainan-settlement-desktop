@@ -21,6 +21,7 @@ namespace HainanSettlementTool.Core.Models
 
         public List<string> MissingOwners { get; } = new List<string>();
         public List<string> Warnings { get; } = new List<string>();
+        public List<Stage2CheckIssue> AuditIssues { get; } = new List<Stage2CheckIssue>();
         public List<GroupSettlementTotal> Groups { get; } = new List<GroupSettlementTotal>();
     }
 }

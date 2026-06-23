@@ -41,16 +41,16 @@ foreach ($pattern in $include) {
 }
 
 $readme = @(
-    "海南售电结算自动化工具 - 现代界面测试版",
+    "Hainan Settlement Tool - modern WPF test build",
     "",
-    "运行方式：",
-    "1. 双击 `"海南售电结算自动化工具现代版.exe`"。",
-    "2. 请保持本文件夹内的 dll 和 config 文件完整，不要只复制 exe。",
-    "3. 运行前请关闭正在打开的 Excel 台账或结算结果文件。",
+    "How to run:",
+    "1. Double-click the modern WPF exe file.",
+    "2. Keep all dll and config files in this folder. Do not copy the exe alone.",
+    "3. Close Excel workbooks before running generation.",
     "",
-    "说明：",
-    "- 本版本使用 WPF 现代界面壳，结算逻辑复用已验收的 Core/Excel 项目。",
-    "- 兜底版 WinForms 程序仍由 scripts/package_release.ps1 打包。"
+    "Notes:",
+    "- This build uses the WPF modern shell and the verified Core/Excel settlement logic.",
+    "- The fallback WinForms build is packaged by scripts/package_release.ps1."
 )
 $readme | Set-Content -LiteralPath (Join-Path $packageDir "README.txt") -Encoding UTF8
 

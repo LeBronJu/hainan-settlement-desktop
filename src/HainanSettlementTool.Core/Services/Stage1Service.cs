@@ -20,20 +20,50 @@ namespace HainanSettlementTool.Core.Services
             Validate(options);
             Directory.CreateDirectory(options.OutputDirectory);
 
-            if (!File.Exists(options.PowerPath))
+            if (!string.IsNullOrWhiteSpace(options.RawDetailPath))
             {
-                if (string.IsNullOrWhiteSpace(options.RawDetailPath) || !File.Exists(options.RawDetailPath))
-                {
-                    throw new FileNotFoundException("找不到电量处理表，也没有可清洗的原始零售侧明细。", options.PowerPath);
-                }
-
                 log?.Invoke("正在清洗原始零售侧明细，生成电量处理表。");
-                var rawRows = _excel.ReadRawPowerRows(options.RawDetailPath);
-                _excel.WritePowerWorkbook(rawRows, options.PowerPath);
+                CleanPowerData(options.RawDetailPath, options.PowerPath, log);
+            }
+            else if (!File.Exists(options.PowerPath))
+            {
+                throw new FileNotFoundException("找不到电量处理表，也没有可清洗的原始零售侧明细。", options.PowerPath);
             }
 
             log?.Invoke("正在把电量、新增客户名称和户号导入台账。");
             return _excel.UpdateLedger(options);
+        }
+
+        public PowerCleanReport CleanPowerData(string rawDetailPath, string outputPath, Action<string> log)
+        {
+            ValidateCleanPower(rawDetailPath, outputPath);
+            var outputDirectory = Path.GetDirectoryName(outputPath);
+            if (!string.IsNullOrWhiteSpace(outputDirectory))
+            {
+                Directory.CreateDirectory(outputDirectory);
+            }
+
+            var rawRows = _excel.ReadRawPowerRows(rawDetailPath);
+            _excel.WritePowerWorkbook(rawRows, outputPath);
+            log?.Invoke("电量处理表已生成：" + outputPath);
+
+            var grouped = rawRows
+                .Where(row => !string.IsNullOrWhiteSpace(row.Key))
+                .GroupBy(row => row.Key)
+                .Select(group => new
+                {
+                    Total = group.Sum(row => row.Total)
+                })
+                .ToList();
+
+            return new PowerCleanReport
+            {
+                RawDetailPath = rawDetailPath,
+                OutputPath = outputPath,
+                RawRows = rawRows.Count,
+                PowerRows = grouped.Count,
+                MonthTotal = Math.Round(grouped.Sum(row => row.Total), 4)
+            };
         }
 
         private static void Validate(Stage1Options options)
@@ -67,6 +97,24 @@ namespace HainanSettlementTool.Core.Services
             if (!string.IsNullOrWhiteSpace(options.RawDetailPath) && !File.Exists(options.RawDetailPath))
             {
                 throw new FileNotFoundException("原始零售侧明细不存在。", options.RawDetailPath);
+            }
+        }
+
+        private static void ValidateCleanPower(string rawDetailPath, string outputPath)
+        {
+            if (string.IsNullOrWhiteSpace(rawDetailPath))
+            {
+                throw new ArgumentException("请选择原始零售侧明细。");
+            }
+
+            if (!File.Exists(rawDetailPath))
+            {
+                throw new FileNotFoundException("原始零售侧明细不存在。", rawDetailPath);
+            }
+
+            if (string.IsNullOrWhiteSpace(outputPath))
+            {
+                throw new ArgumentException("请选择输出文件夹，程序会在其中生成电量处理表。");
             }
         }
     }

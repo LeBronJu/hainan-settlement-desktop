@@ -94,7 +94,7 @@ namespace HainanSettlementTool.Wpf
 
         private void BrowseRawDetail_Click(object sender, RoutedEventArgs e)
         {
-            BrowseFile(RawDetailBox, "选择原始零售侧明细", "Excel/CSV|*.xlsx;*.csv|所有文件|*.*");
+            BrowseFile(RawDetailBox, "选择原始零售侧明细", "Excel/CSV|*.xlsx;*.xls;*.csv|Excel 文件|*.xlsx;*.xls|CSV 文件|*.csv|所有文件|*.*");
         }
 
         private void BrowseReferenceLedger_Click(object sender, RoutedEventArgs e)
@@ -232,6 +232,81 @@ namespace HainanSettlementTool.Wpf
             }
         }
 
+        private async void CleanPower_Click(object sender, RoutedEventArgs e)
+        {
+            string rawDetailPath;
+            string outputPath;
+            string outputDirectory;
+            try
+            {
+                rawDetailPath = RawDetailBox.Text.Trim();
+                outputPath = ResolvePowerOutputPath(rawDetailPath);
+                outputDirectory = OutputDirBox.Text.Trim();
+                PowerBox.Text = outputPath;
+                SaveInputs();
+
+                var message = "即将清洗原始零售侧明细并生成电量处理表。\n\n输出文件：\n" + outputPath;
+                if (MessageBox.Show(this, message, "确认清洗电量", MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK)
+                {
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowError(ex);
+                return;
+            }
+
+            SetBusy(true);
+            ResetResults();
+            ResetProgress("正在清洗电量...", "生成电量处理表");
+            SetProgress(10, "检查输入文件");
+            SetStepRunning(0);
+            AddLog("开始清洗电量数据。", "阶段一");
+
+            try
+            {
+                PowerCleanReport report = null;
+                await Task.Run(() =>
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        SetStepDone(0);
+                        SetStepRunning(1);
+                        SetProgress(35, "读取原始零售侧明细");
+                    });
+
+                    var service = new Stage1Service(new ClosedXmlStage1ExcelGateway());
+                    report = service.CleanPowerData(rawDetailPath, outputPath, LogThreadSafe);
+                });
+
+                SetStepDone(1);
+                SetStepDone(2);
+                SetStepDone(3);
+                SetStepDone(4);
+                SetProgress(100, "电量清洗完成");
+                AddLog("电量清洗完成。", "成功");
+                AddLog("电量处理表：" + report.OutputPath, "信息");
+                AddLog("客户数量：" + report.PowerRows + "，合计电量：" + report.MonthTotal.ToString("0.####"), "信息");
+
+                Stage1ResultStatus.Text = "成功";
+                Stage1ResultCount.Text = report.PowerRows + " 个客户";
+                FinishedAtText.Text = DateTime.Now.ToString("HH:mm:ss");
+                ShowCompletion("电量清洗完成", "电量处理表已生成", outputDirectory);
+            }
+            catch (Exception ex)
+            {
+                SetStepFailed();
+                SetProgress(100, "执行失败");
+                AddLog(ex.Message, "错误");
+                ShowError(ex);
+            }
+            finally
+            {
+                SetBusy(false);
+            }
+        }
+
         private async void RunStage2_Click(object sender, RoutedEventArgs e)
         {
             Stage2Options options;
@@ -252,23 +327,46 @@ namespace HainanSettlementTool.Wpf
 
             SetBusy(true);
             ResetResults();
-            ResetProgress("正在执行阶段二...", "生成代理/居间分表和汇总表");
-            SetProgress(10, "检查输入文件");
+            ResetProgress("正在执行阶段二...", "预检上月关键字段变化");
+            SetProgress(8, "检查输入文件");
             SetStepRunning(0);
             AddLog("开始执行阶段二。", "阶段二");
 
             try
             {
+                Stage2PreflightReport preflight = null;
+                await Task.Run(() =>
+                {
+                    Dispatcher.Invoke(() => SetProgress(16, "读取台账并比对上月模板"));
+                    var preflightService = new Stage2Service(new ClosedXmlStage1ExcelGateway());
+                    preflight = preflightService.Analyze(options);
+                });
+
+                SetProgress(24, preflight.HasIssues ? "预检发现需要确认的变化" : "预检完成");
+                if (preflight.HasIssues)
+                {
+                    SetStatus("待确认", "WarningBrush", Color.FromRgb(255, 245, 224));
+                    SetStepNeedsConfirmation(0);
+                    AddLog("阶段二预检发现 " + preflight.Issues.Count + " 条需要确认的变化。", "阶段二");
+                    if (!ConfirmStage2Preflight(preflight))
+                    {
+                        AddLog("已取消阶段二生成。", "阶段二");
+                        ResetProgress("等待执行", "已取消阶段二");
+                        return;
+                    }
+
+                    SetStatus("运行中", "WarningBrush", Color.FromRgb(255, 245, 224));
+                }
+                else
+                {
+                    AddLog("阶段二预检通过，未发现需要确认的变化。", "阶段二");
+                }
+
+                SetStepDone(0);
+                SetProgress(34, "读取人工整理后的台账");
                 Stage2Report report = null;
                 await Task.Run(() =>
                 {
-                    Dispatcher.Invoke(() =>
-                    {
-                        SetStepDone(0);
-                        SetStepRunning(1);
-                        SetProgress(30, "读取人工整理后的台账");
-                    });
-
                     var service = new Stage2Service(new ClosedXmlStage1ExcelGateway());
                     report = service.Run(options, LogThreadSafe);
                 });
@@ -309,9 +407,10 @@ namespace HainanSettlementTool.Wpf
         private Stage1Options CreateStage1Options()
         {
             var powerPath = PowerBox.Text.Trim();
-            if (string.IsNullOrWhiteSpace(powerPath) && !string.IsNullOrWhiteSpace(RawDetailBox.Text))
+            var rawDetailPath = RawDetailBox.Text.Trim();
+            if (!string.IsNullOrWhiteSpace(rawDetailPath))
             {
-                powerPath = Path.Combine(Path.GetDirectoryName(RawDetailBox.Text) ?? string.Empty, "零售侧用户电量数据处理表.xlsx");
+                powerPath = ResolvePowerOutputPath(rawDetailPath);
                 PowerBox.Text = powerPath;
             }
 
@@ -320,11 +419,27 @@ namespace HainanSettlementTool.Wpf
                 Month = SelectedMonth(),
                 BaseLedgerPath = BaseLedgerBox.Text.Trim(),
                 PowerPath = powerPath,
-                RawDetailPath = RawDetailBox.Text.Trim(),
+                RawDetailPath = rawDetailPath,
                 ReferenceLedgerPath = ReferenceLedgerBox.Text.Trim(),
                 OutputDirectory = OutputDirBox.Text.Trim(),
                 CopyReferenceExisting = CopyReferenceExistingCheckBox.IsChecked == true
             };
+        }
+
+        private string ResolvePowerOutputPath(string rawDetailPath)
+        {
+            if (string.IsNullOrWhiteSpace(rawDetailPath))
+            {
+                throw new InvalidOperationException("请选择原始零售侧明细。");
+            }
+
+            var outputDirectory = OutputDirBox.Text.Trim();
+            if (string.IsNullOrWhiteSpace(outputDirectory))
+            {
+                throw new InvalidOperationException("请选择结果输出文件夹。");
+            }
+
+            return Path.Combine(outputDirectory, "零售侧用户电量数据处理表.xlsx");
         }
 
         private Stage2Options CreateStage2Options()
@@ -360,15 +475,33 @@ namespace HainanSettlementTool.Wpf
             return dialog.ShowDialog() == true;
         }
 
+        private bool ConfirmStage2Preflight(Stage2PreflightReport report)
+        {
+            var dialog = new Stage2PreflightWindow(report)
+            {
+                Owner = this
+            };
+            return dialog.ShowDialog() == true;
+        }
+
         private void SetBusy(bool busy)
         {
             RunStage1Button.IsEnabled = !busy;
+            CleanPowerButton.IsEnabled = !busy;
             RunStage2Button.IsEnabled = !busy;
             ClearStage1Button.IsEnabled = !busy;
             ClearStage2Button.IsEnabled = !busy;
-            StatusText.Text = busy ? "运行中" : "就绪";
-            StatusDot.Fill = BrushOf(busy ? "WarningBrush" : "SuccessBrush");
-            StatusPill.Background = busy ? new SolidColorBrush(Color.FromRgb(255, 245, 224)) : new SolidColorBrush(Color.FromRgb(234, 247, 241));
+            SetStatus(
+                busy ? "运行中" : "就绪",
+                busy ? "WarningBrush" : "SuccessBrush",
+                busy ? Color.FromRgb(255, 245, 224) : Color.FromRgb(234, 247, 241));
+        }
+
+        private void SetStatus(string text, string dotBrushKey, Color background)
+        {
+            StatusText.Text = text;
+            StatusDot.Fill = BrushOf(dotBrushKey);
+            StatusPill.Background = new SolidColorBrush(background);
         }
 
         private void ResetProgress(string title, string description)
@@ -403,6 +536,14 @@ namespace HainanSettlementTool.Wpf
             _stepTexts[index].Foreground = BrushOf("AccentBrush");
             _stepStatuses[index].Text = "进行中";
             _stepStatuses[index].Foreground = BrushOf("AccentBrush");
+        }
+
+        private void SetStepNeedsConfirmation(int index)
+        {
+            _stepTexts[index].Text = "●  " + StepName(index);
+            _stepTexts[index].Foreground = BrushOf("WarningBrush");
+            _stepStatuses[index].Text = "待确认";
+            _stepStatuses[index].Foreground = BrushOf("WarningBrush");
         }
 
         private void SetStepDone(int index)

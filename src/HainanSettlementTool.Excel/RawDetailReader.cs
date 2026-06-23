@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
 using ClosedXML.Excel;
+using ExcelDataReader;
 using HainanSettlementTool.Core.Models;
 using HainanSettlementTool.Core.Services;
 
@@ -19,12 +21,17 @@ namespace HainanSettlementTool.Excel
                 return ReadXlsx(rawDetailPath);
             }
 
+            if (extension == ".xls")
+            {
+                return ReadXls(rawDetailPath);
+            }
+
             if (extension == ".csv")
             {
                 return ReadCsv(rawDetailPath);
             }
 
-            throw new NotSupportedException("C# 第一版暂不直接清洗 .xls，请先另存为 .xlsx 或使用已清洗电量表。");
+            throw new NotSupportedException("原始零售侧明细只支持 .xlsx、.xls 或 .csv。");
         }
 
         private static List<PowerRow> ReadXlsx(string path)
@@ -52,6 +59,44 @@ namespace HainanSettlementTool.Excel
                         Peak = ClosedXmlUtil.CellNumber(worksheet.Cell(row, 16)),
                         Flat = ClosedXmlUtil.CellNumber(worksheet.Cell(row, 20)),
                         Valley = ClosedXmlUtil.CellNumber(worksheet.Cell(row, 24))
+                    });
+                }
+
+                return rows;
+            }
+        }
+
+        private static List<PowerRow> ReadXls(string path)
+        {
+            using (var stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (var reader = ExcelReaderFactory.CreateReader(stream))
+            {
+                var rows = new List<PowerRow>();
+                var row = 0;
+                while (reader.Read())
+                {
+                    row++;
+                    if (row < 4)
+                    {
+                        continue;
+                    }
+
+                    var name = ReaderString(reader, 3);
+                    if (string.IsNullOrWhiteSpace(name))
+                    {
+                        continue;
+                    }
+
+                    rows.Add(new PowerRow
+                    {
+                        SourceRow = row,
+                        Name = name,
+                        Key = TextUtil.CustomerKey(name),
+                        Total = ReaderNumber(reader, 8),
+                        Sharp = ReaderNumber(reader, 11),
+                        Peak = ReaderNumber(reader, 15),
+                        Flat = ReaderNumber(reader, 19),
+                        Valley = ReaderNumber(reader, 23)
                     });
                 }
 
@@ -132,6 +177,52 @@ namespace HainanSettlementTool.Excel
 
             result.Add(sb.ToString());
             return result;
+        }
+
+        private static string ReaderString(IExcelDataReader reader, int index)
+        {
+            if (index >= reader.FieldCount)
+            {
+                return string.Empty;
+            }
+
+            return TextUtil.S(Convert.ToString(reader.GetValue(index), CultureInfo.CurrentCulture));
+        }
+
+        private static double ReaderNumber(IExcelDataReader reader, int index)
+        {
+            if (index >= reader.FieldCount)
+            {
+                return 0d;
+            }
+
+            var value = reader.GetValue(index);
+            if (value == null)
+            {
+                return 0d;
+            }
+
+            if (value is double d)
+            {
+                return d;
+            }
+
+            if (value is float f)
+            {
+                return f;
+            }
+
+            if (value is int i)
+            {
+                return i;
+            }
+
+            if (value is decimal m)
+            {
+                return (double)m;
+            }
+
+            return TextUtil.N(Convert.ToString(value, CultureInfo.CurrentCulture));
         }
     }
 }

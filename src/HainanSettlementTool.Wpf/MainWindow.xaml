@@ -156,15 +156,21 @@
                                     </Grid>
 
                                     <CheckBox x:Name="CopyReferenceExistingCheckBox" Content="用参考台账覆盖已有客户 B:AB 列资料（谨慎）" Margin="0,10,0,10" Foreground="#34404A" />
-                                    <DockPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="112" />
+                                            <ColumnDefinition Width="72" />
+                                        </Grid.ColumnDefinitions>
                                         <Button x:Name="RunStage1Button" Style="{StaticResource PrimaryButton}" Click="RunStage1_Click">
                                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                                 <TextBlock Text="&#xE768;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" />
                                                 <TextBlock Text="开始 执行阶段一" Margin="8,0,0,0" VerticalAlignment="Center" />
                                             </StackPanel>
                                         </Button>
-                                        <Button x:Name="ClearStage1Button" DockPanel.Dock="Right" Content="清空" Style="{StaticResource SecondaryButton}" Click="ClearStage1_Click" />
-                                    </DockPanel>
+                                        <Button x:Name="CleanPowerButton" Grid.Column="1" Content="只清洗电量" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" Click="CleanPower_Click" />
+                                        <Button x:Name="ClearStage1Button" Grid.Column="2" Content="清空" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" Click="ClearStage1_Click" />
+                                    </Grid>
                                 </StackPanel>
                             </Grid>
                         </Border>

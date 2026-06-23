@@ -10,9 +10,10 @@ GitHub 仓库：
 
 ## 当前范围
 
-- 已搭建 WinForms / Core / Excel 三层项目结构。
-- 阶段1：电量处理表或原始明细 -> 待整理台账 -> JSON 报告。
-- 阶段2：人工整理后的台账 -> 代理/居间分表、汇总表、JSON 报告。
+- 已搭建 WinForms / WPF / Core / Excel 分层项目结构。
+- 阶段1：电量处理表或 `.xlsx/.xls/.csv` 原始明细 -> 待整理台账 -> JSON 报告。
+- 阶段1补充功能：只清洗电量数据，输出 `零售侧用户电量数据处理表.xlsx`。
+- 阶段2：人工整理后的台账 -> 代理/居间分表、汇总表、JSON 报告、阶段二校验报告。
 - 界面顶部“公共设置”里的结算月份和结果输出文件夹由阶段1、阶段2共用。
 
 ## 项目结构
@@ -20,9 +21,10 @@ GitHub 仓库：
 ```text
 HainanSettlementTool.sln
 src/
-  HainanSettlementTool.WinForms/   # 桌面界面，只负责输入、日志、调用服务
+  HainanSettlementTool.WinForms/   # 兜底兼容界面，只负责输入、日志、调用服务
+  HainanSettlementTool.Wpf/        # 现代界面壳，只负责输入、日志、调用服务
   HainanSettlementTool.Core/       # 业务模型、业务服务、接口
-  HainanSettlementTool.Excel/      # ClosedXML 文件读写实现
+  HainanSettlementTool.Excel/      # ClosedXML / ExcelDataReader 文件读写实现
 docs/
   architecture.md                  # 分层和迁移边界
 ```
@@ -58,16 +60,23 @@ docs/
 
 ## 发布打包
 
-生成 Release 版测试包：
+生成 WinForms 兜底版 Release 测试包：
 
 ```powershell
 .\scripts\package_release.ps1
+```
+
+生成 WPF 现代版 Release 测试包：
+
+```powershell
+.\scripts\package_wpf_release.ps1
 ```
 
 脚本会执行 Release 构建，并在 `dist/` 下生成一个干净目录和 `.zip` 压缩包。测试时请保留目录内所有 `.dll` 和 `.config` 文件，不要只单独复制 exe。
 
 ## 重要限制
 
-- C# 第一版暂不直接清洗 `.xls` 原始明细；请先另存为 `.xlsx`，或使用已清洗的电量处理表。
+- 原始零售侧明细可直接选择 `.xlsx`、`.xls` 或 `.csv`；清洗后的电量处理表仍输出为 `.xlsx`。
 - 阶段2保存时会用 ClosedXML 写入公式缓存；未接入 Excel 自动化。
-- 阶段2按稳定 3 月参考文件夹改为模板驱动生成：分表复制上月 sheet 后只写输入列，汇总表保留模板隐藏列、合并表头、空白和日期显示格式；后续月份仍建议先用工作副本验收。
+- 阶段2按稳定 3 月参考文件夹改为模板驱动生成：分表复制上月 sheet 后只写输入列，汇总表保留模板隐藏列、合并表头、空白和日期显示格式。
+- 阶段2会在生成前提示关键变化，并在生成后写入校验报告；后续月份仍建议先用工作副本验收。
