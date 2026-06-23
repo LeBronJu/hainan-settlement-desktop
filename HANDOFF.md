@@ -16,14 +16,15 @@ The Python project is the historical full-function reference. New C# work should
 ## Current Branch And Worktree
 
 - Current branch: `codex/ui-modernization`
-- This branch contains the modern WPF UI work plus fixes that should also remain in the WinForms fallback UI.
-- The latest changes are not committed yet.
+- This branch contains the Win10/11 WPF UI work plus fixes that should also remain in the Win7/8 WinForms UI.
+- Latest feature commit: `215dd81 Modernize settlement UI and validation flow`.
+- Current product naming convention: call the two desktop entries `Win7/8版` and `Win10/11版`; use Windows-version labels in user-facing docs, package names, and handoffs.
 - Do not add real ledgers, customer data, settlement outputs, screenshots, or finance/payment data to git.
 
-Current uncommitted work includes:
+Latest committed work includes:
 
 - Stage 2 preflight/audit support.
-- WPF modern UI refinements and preflight dialog.
+- Win10/11 WPF UI refinements and preflight dialog.
 - Stage 1 stale-clean-table fix.
 - Stage 1 "clean power data only" action.
 - Direct `.xls` raw-detail support for cleaning and customer-code reading.
@@ -51,7 +52,7 @@ Outputs:
 Recent behavior changes:
 
 - If raw retail detail is selected, Stage 1 always regenerates the cleaned power workbook in the selected output folder. This avoids reusing a stale `零售侧用户电量数据处理表.xlsx` from the raw-source folder.
-- A new "只清洗电量数据" action was added to both WPF and WinForms. It cleans raw retail detail without updating the ledger.
+- A new "只清洗电量数据" action was added to both Win10/11 and Win7/8 versions. It cleans raw retail detail without updating the ledger.
 - Newly inserted ledger rows are inserted above existing footer/formula rows instead of overwriting the first row after the last customer.
 - Raw `.xls` detail is now supported via `ExcelDataReader`. The cleaned workbook output remains `.xlsx`.
 - Customer-code lookup for newly added customers also supports `.xls` raw detail.
@@ -80,7 +81,7 @@ Current behavior:
 - Before generation, Stage 2 analyzes key changes and asks the user to confirm detailed items, not just counts.
 - Preflight items include new agent/intermediary relationship, new customer in a split sheet, profit unit-price change, tax-rate change, and previous template read failures.
 - During generation, Stage 2 audits split-table calculated results against ledger-derived values and writes differences to the validation report.
-- The right-side WPF progress panel and top status indicator are now used during Stage 2 preflight and execution.
+- The right-side Win10/11 progress panel and top status indicator are now used during Stage 2 preflight and execution.
 
 Known limits:
 
@@ -93,12 +94,12 @@ Known limits:
 
 Two desktop entries exist:
 
-- `src/HainanSettlementTool.WinForms`: fallback compatible UI.
-- `src/HainanSettlementTool.Wpf`: modern UI shell on `.NET Framework 4.7.2`.
+- `src/HainanSettlementTool.WinForms`: Win7/8 UI on `.NET Framework 4.7.2`.
+- `src/HainanSettlementTool.Wpf`: Win10/11 UI shell on `.NET Framework 4.7.2`.
 
-The user prefers the WPF modern UI direction, especially the right-side progress display. The left navigation from the earlier design mockup was intentionally not implemented.
+The user prefers the Win10/11 UI direction, especially the right-side progress display. The left navigation from the earlier design mockup was intentionally not implemented.
 
-Minimum-size protection has been added in the WPF design so the main layout should remain visible instead of clipping when resized.
+Minimum-size protection has been added in the Win10/11 design so the main layout should remain visible instead of clipping when resized.
 
 ## Latest Verification
 
@@ -112,8 +113,8 @@ Latest observed result: `0 个警告 / 0 个错误`.
 
 Release packages generated:
 
-- WPF modern build: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Wpf-Release-20260622-155838.zip`
-- WinForms fallback build: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Release-20260622-155855.zip`
+- Win10/11 build: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Wpf-Release-20260622-155838.zip`
+- Win7/8 build: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Release-20260622-155855.zip`
 
 Additional smoke check:
 
@@ -164,10 +165,10 @@ Packaging/docs:
 
 ## Next Steps
 
-1. Ask the user to verify the latest WPF package with a real `.xls` raw retail detail file.
-2. If accepted, commit the current branch intentionally. Suggested commit scope: modern WPF UI, stage 2 validation, stage 1 clean-table fixes, `.xls` raw-detail support, docs.
+1. Ask the user to verify the latest Win10/11 package with a real `.xls` raw retail detail file.
+2. If accepted, commit the current branch intentionally. Suggested commit scope: Win10/11 UI, stage 2 validation, stage 1 clean-table fixes, `.xls` raw-detail support, docs.
 3. Push `codex/ui-modernization` only after the user asks for it.
-4. If the user wants main updated, merge only after confirming which version should be the stable fallback and which branch should remain modern.
+4. If the user wants main updated, merge only after confirming the long-term release strategy for Win7/8 and Win10/11 builds.
 5. Longer-term: add sanitized fixture workbooks and automated regression tests for Stage 1 cleaning and Stage 2 audit/preflight behavior.
 
 ## Suggested Skills For Next Session

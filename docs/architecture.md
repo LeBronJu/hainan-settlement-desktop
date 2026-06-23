@@ -4,7 +4,7 @@
 
 ### HainanSettlementTool.WinForms
 
-负责兜底兼容桌面界面：
+负责 Win7/8 版桌面界面：
 
 - 文件选择
 - 参数输入
@@ -15,7 +15,7 @@
 
 ### HainanSettlementTool.Wpf
 
-负责现代桌面界面壳：
+负责 Win10/11 版桌面界面壳：
 
 - 文件选择
 - 参数输入

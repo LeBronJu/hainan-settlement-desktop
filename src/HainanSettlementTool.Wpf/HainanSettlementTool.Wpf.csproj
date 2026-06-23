@@ -4,7 +4,7 @@
     <TargetFramework>net472</TargetFramework>
     <UseWPF>true</UseWPF>
     <LangVersion>7.3</LangVersion>
-    <AssemblyName>海南售电结算自动化工具现代版</AssemblyName>
+    <AssemblyName>海南售电结算自动化工具Win10-11版</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Ookii.Dialogs.Wpf" Version="4.0.0" />

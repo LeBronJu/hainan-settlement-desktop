@@ -10,7 +10,7 @@ GitHub 仓库：
 
 ## 当前范围
 
-- 已搭建 WinForms / WPF / Core / Excel 分层项目结构。
+- 已搭建 Win7/8版（WinForms）/ Win10/11版（WPF）/ Core / Excel 分层项目结构。
 - 阶段1：电量处理表或 `.xlsx/.xls/.csv` 原始明细 -> 待整理台账 -> JSON 报告。
 - 阶段1补充功能：只清洗电量数据，输出 `零售侧用户电量数据处理表.xlsx`。
 - 阶段2：人工整理后的台账 -> 代理/居间分表、汇总表、JSON 报告、阶段二校验报告。
@@ -21,8 +21,8 @@ GitHub 仓库：
 ```text
 HainanSettlementTool.sln
 src/
-  HainanSettlementTool.WinForms/   # 兜底兼容界面，只负责输入、日志、调用服务
-  HainanSettlementTool.Wpf/        # 现代界面壳，只负责输入、日志、调用服务
+  HainanSettlementTool.WinForms/   # Win7/8版界面，只负责输入、日志、调用服务
+  HainanSettlementTool.Wpf/        # Win10/11版界面，只负责输入、日志、调用服务
   HainanSettlementTool.Core/       # 业务模型、业务服务、接口
   HainanSettlementTool.Excel/      # ClosedXML / ExcelDataReader 文件读写实现
 docs/
@@ -60,13 +60,13 @@ docs/
 
 ## 发布打包
 
-生成 WinForms 兜底版 Release 测试包：
+生成 Win7/8版 Release 测试包：
 
 ```powershell
 .\scripts\package_release.ps1
 ```
 
-生成 WPF 现代版 Release 测试包：
+生成 Win10/11版 Release 测试包：
 
 ```powershell
 .\scripts\package_wpf_release.ps1

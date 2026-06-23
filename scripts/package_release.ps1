@@ -18,7 +18,7 @@ if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
 }
 
 $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
-$packageName = "HainanSettlementTool-$Configuration-$stamp"
+$packageName = "HainanSettlementTool-Win7-8-$Configuration-$stamp"
 $packageDir = Join-Path $OutputRoot $packageName
 $zipPath = Join-Path $OutputRoot "$packageName.zip"
 $publishSource = Join-Path $ProjectRoot "src\HainanSettlementTool.WinForms\bin\$Configuration\net472"
@@ -41,7 +41,7 @@ foreach ($pattern in $include) {
 }
 
 $readme = @(
-    "Hainan Settlement Tool",
+    "Hainan Settlement Tool - Win7/8 test build",
     "",
     "How to run:",
     "1. Make sure .NET Framework 4.7.2 or newer is installed.",

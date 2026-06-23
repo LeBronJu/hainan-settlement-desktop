@@ -18,7 +18,7 @@ if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
 }
 
 $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
-$packageName = "HainanSettlementTool-Wpf-$Configuration-$stamp"
+$packageName = "HainanSettlementTool-Win10-11-$Configuration-$stamp"
 $packageDir = Join-Path $OutputRoot $packageName
 $zipPath = Join-Path $OutputRoot "$packageName.zip"
 $publishSource = Join-Path $ProjectRoot "src\HainanSettlementTool.Wpf\bin\$Configuration\net472"
@@ -41,16 +41,16 @@ foreach ($pattern in $include) {
 }
 
 $readme = @(
-    "Hainan Settlement Tool - modern WPF test build",
+    "Hainan Settlement Tool - Win10/11 test build",
     "",
     "How to run:",
-    "1. Double-click the modern WPF exe file.",
+    "1. Double-click the Win10/11 exe file.",
     "2. Keep all dll and config files in this folder. Do not copy the exe alone.",
     "3. Close Excel workbooks before running generation.",
     "",
     "Notes:",
-    "- This build uses the WPF modern shell and the verified Core/Excel settlement logic.",
-    "- The fallback WinForms build is packaged by scripts/package_release.ps1."
+    "- This build uses the Win10/11 WPF shell and the verified Core/Excel settlement logic.",
+    "- The Win7/8 build is packaged by scripts/package_release.ps1."
 )
 $readme | Set-Content -LiteralPath (Join-Path $packageDir "README.txt") -Encoding UTF8
 

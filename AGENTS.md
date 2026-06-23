@@ -21,8 +21,8 @@ The C# version is being built as a maintainable Windows desktop app. It should e
 ## Repository Layout
 
 - `HainanSettlementTool.sln`: solution file.
-- `src/HainanSettlementTool.WinForms/`: fallback compatible desktop UI only.
-- `src/HainanSettlementTool.Wpf/`: modern WPF desktop UI shell only.
+- `src/HainanSettlementTool.WinForms/`: Win7/8 desktop UI only.
+- `src/HainanSettlementTool.Wpf/`: Win10/11 WPF desktop UI shell only.
 - `src/HainanSettlementTool.Core/`: business models, services, and interfaces.
 - `src/HainanSettlementTool.Excel/`: ClosedXML workbook reading/writing.
 - `docs/architecture.md`: layering and migration boundary.
