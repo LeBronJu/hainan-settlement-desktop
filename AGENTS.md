@@ -26,7 +26,23 @@ The C# version is being built as a maintainable Windows desktop app. It should e
 - `src/HainanSettlementTool.Core/`: business models, services, and interfaces.
 - `src/HainanSettlementTool.Excel/`: ClosedXML workbook reading/writing.
 - `docs/architecture.md`: layering and migration boundary.
+- `CONTEXT.md`: domain vocabulary and settlement rules.
+- `docs/dev-notes/`: architecture reviews, robustness priorities, and one-off technical notes.
 - `HANDOFF.md`: current state for future sessions.
+
+## Agent skills
+
+### Issue tracker
+
+Issues and PRDs are tracked in GitHub Issues for `LeBronJu/hainan-settlement-desktop`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Use the default five-role triage label vocabulary. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+This is a single-context repo. See `docs/agents/domain.md`.
 
 ## Engineering Rules
 

@@ -14,7 +14,6 @@ namespace HainanSettlementTool.Excel
     {
         private const int DataStartRow = 5;
         private const int Year = 2026;
-        private const double AmountTolerance = 0.0001;
         private static readonly Dictionary<string, Tuple<int, string>> PaymentPartyOverrides =
             new Dictionary<string, Tuple<int, string>>
             {
@@ -123,11 +122,7 @@ namespace HainanSettlementTool.Excel
             var unitPrice = GetNumeric(worksheet, ledgerRow, unitPriceColumn);
             var taxRate = GetNumeric(worksheet, ledgerRow, taxRateColumn);
             var ledgerNet = GetNumeric(worksheet, ledgerRow, cachedNetColumn);
-            var gross = Round4(total * ratio * unitPrice);
-            var adjustment = 0d;
-            var adjustedGross = Round4(gross - adjustment);
-            var taxAmount = Round4(adjustedGross / 1.13 * taxRate);
-            var calculatedNet = Round4(adjustedGross - taxAmount);
+            var amounts = Stage2SettlementCalculator.CalculateAmounts(total, ratio, unitPrice, taxRate);
 
             return new DetailSettlementRow
             {
@@ -147,23 +142,19 @@ namespace HainanSettlementTool.Excel
                 UnitPrice = unitPrice,
                 TaxRate = taxRate,
                 LedgerNet = ledgerNet,
-                Gross = gross,
-                Adjustment = adjustment,
-                AdjustedGross = adjustedGross,
-                TaxAmount = taxAmount,
-                CalculatedNet = calculatedNet,
-                ExpectedNet = calculatedNet
+                Gross = amounts.Gross,
+                Adjustment = amounts.Adjustment,
+                AdjustedGross = amounts.AdjustedGross,
+                TaxAmount = amounts.TaxAmount,
+                CalculatedNet = amounts.CalculatedNet,
+                ExpectedNet = amounts.ExpectedNet
             };
         }
 
         private static bool HasSettlementAmount(DetailSettlementRow row)
         {
-            return Math.Abs(row.LedgerNet) > AmountTolerance || Math.Abs(row.CalculatedNet) > AmountTolerance;
-        }
-
-        private static double Round4(double value)
-        {
-            return Math.Round(value, 4);
+            return Math.Abs(row.LedgerNet) > Stage2SettlementCalculator.AmountTolerance
+                || Math.Abs(row.CalculatedNet) > Stage2SettlementCalculator.AmountTolerance;
         }
 
         private static double GetNumeric(IXLWorksheet worksheet, int row, int column)
@@ -349,7 +340,7 @@ namespace HainanSettlementTool.Excel
             double previousValue,
             double currentValue)
         {
-            if (Math.Abs(previousValue - currentValue) <= AmountTolerance)
+            if (Math.Abs(previousValue - currentValue) <= Stage2SettlementCalculator.AmountTolerance)
             {
                 return;
             }
@@ -365,8 +356,8 @@ namespace HainanSettlementTool.Excel
                 LedgerRow = current.LedgerRow,
                 TemplateFile = templatePath,
                 SheetName = previous.SheetName,
-                PreviousValue = fieldName + " 上月：" + FormatNumber(previousValue),
-                CurrentValue = fieldName + " 本月：" + FormatNumber(currentValue),
+                PreviousValue = fieldName + " 上月：" + Stage2SettlementCalculator.FormatAmount(previousValue),
+                CurrentValue = fieldName + " 本月：" + Stage2SettlementCalculator.FormatAmount(currentValue),
                 Message = kind + "费主体“" + entity + "”下的客户“" + current.Customer + "”" + fieldName + "发生变化（上月分表第" + previous.Row + "行，本月台账第" + current.LedgerRow + "行）。",
                 Suggestion = "如果这是本月台账更新后的正常变化，请继续；否则请回到台账检查该客户的" + fieldName + "。"
             });
@@ -661,32 +652,13 @@ namespace HainanSettlementTool.Excel
             string sheetName,
             IList<Stage2CheckIssue> auditIssues)
         {
-            if (Math.Abs(row.LedgerNet - row.CalculatedNet) <= AmountTolerance)
+            var issue = Stage2SettlementCalculator.CreateLedgerDifferenceIssue(row, kind, outputPath, sheetName);
+            if (issue == null)
             {
                 return;
             }
 
-            auditIssues.Add(new Stage2CheckIssue
-            {
-                Severity = "错误",
-                Category = "台账与分表金额不一致",
-                Kind = kind + "费",
-                Customer = row.Customer,
-                Owner = row.Owner,
-                Entity = row.Entity,
-                LedgerRow = row.LedgerRow,
-                TemplateFile = outputPath,
-                SheetName = sheetName,
-                PreviousValue = "台账：" + FormatNumber(row.LedgerNet),
-                CurrentValue = "分表自算：" + FormatNumber(row.CalculatedNet),
-                Message = kind + "费主体“" + row.Entity + "”下的客户“" + row.Customer + "”金额不一致，差额 " + FormatNumber(row.CalculatedNet - row.LedgerNet) + " 万元。",
-                Suggestion = "请检查台账第" + row.LedgerRow + "行的电量、比例、利润单价、税率及公式缓存；当前汇总表采用分表自算结果，如果确认台账正确，请同步检查/修改分表和汇总表。"
-            });
-        }
-
-        private static string FormatNumber(double value)
-        {
-            return value.ToString("0.####");
+            auditIssues.Add(issue);
         }
 
         private static void SetTopTitles(IXLWorksheet worksheet, string kind, string entity, int month, string displayEntity)
