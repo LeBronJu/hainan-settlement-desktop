@@ -50,7 +50,9 @@ This is a single-context repo. See `docs/agents/domain.md`.
 - Core must not reference ClosedXML, WinForms, or file-format implementation details.
 - Excel layer owns workbook reading/writing and template copying.
 - Keep stage boundaries explicit.
-- Do not migrate stage 2 until stage 1 is stable against real working copies or sanitized samples.
+- Keep documentation current. Any behavior, packaging, release, workflow, architecture, or business-rule change must update the relevant docs in the same work session before the work is considered done.
+- At minimum, review `README.md`, `HANDOFF.md`, `CONTEXT.md`, and `docs/architecture.md` when changing user-visible behavior or stage boundaries.
+- For temporary investigations or one-off architecture notes, add or update a dated file under `docs/dev-notes/`.
 
 ## Current Functional Boundary
 
