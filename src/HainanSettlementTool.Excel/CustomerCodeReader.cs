@@ -21,12 +21,18 @@ namespace HainanSettlementTool.Excel
                 return result;
             }
 
-            foreach (var row in _rowReader.Read(rawDetailPath, RawDetailSheetSelection.CustomerCodeSheets)
-                .Where(row => row.Key.Length > 0 && row.CustomerCode.Length > 0))
+            foreach (var group in _rowReader.Read(rawDetailPath, RawDetailSheetSelection.CustomerCodeSheets)
+                .Where(row => row.Key.Length > 0 && row.CustomerCode.Length > 0)
+                .GroupBy(row => row.Key))
             {
-                if (!result.ContainsKey(row.Key))
+                var codes = group
+                    .Select(row => row.CustomerCode)
+                    .Distinct()
+                    .Take(2)
+                    .ToList();
+                if (codes.Count == 1)
                 {
-                    result[row.Key] = row.CustomerCode;
+                    result[group.Key] = codes[0];
                 }
             }
 

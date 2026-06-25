@@ -50,6 +50,43 @@ namespace HainanSettlementTool.Excel.Tests
         }
 
         [TestMethod]
+        public void RawCsvDetailDoesNotChooseBetweenConflictingCustomerCodes()
+        {
+            var root = Path.Combine(Path.GetTempPath(), "HainanSettlementToolTests", Guid.NewGuid().ToString("N"));
+            var path = Path.Combine(root, "raw.csv");
+
+            try
+            {
+                Directory.CreateDirectory(root);
+                File.WriteAllLines(
+                    path,
+                    new[]
+                    {
+                        "header1",
+                        "header2",
+                        "header3",
+                        RawDetailLine("户号001", "测试客户", 1, 2, 3, 4, 5),
+                        RawDetailLine("户号002", "测试客户", 6, 7, 8, 9, 10),
+                        RawDetailLine("稳定户号", "稳定客户", 11, 12, 13, 14, 15),
+                        RawDetailLine("稳定户号", "稳定客户", 16, 17, 18, 19, 20)
+                    },
+                    Encoding.GetEncoding("GB18030"));
+
+                var customerCodes = new ClosedXmlStage1ExcelGateway().ReadCustomerCodes(path);
+
+                Assert.IsFalse(customerCodes.ContainsKey("测试客户"));
+                Assert.AreEqual("稳定户号", customerCodes["稳定客户"]);
+            }
+            finally
+            {
+                if (Directory.Exists(root))
+                {
+                    Directory.Delete(root, true);
+                }
+            }
+        }
+
+        [TestMethod]
         public void RawXlsxDetailKeepsPowerRowsOnFirstSheetAndCustomerCodesOnNamedSheets()
         {
             var root = Path.Combine(Path.GetTempPath(), "HainanSettlementToolTests", Guid.NewGuid().ToString("N"));
