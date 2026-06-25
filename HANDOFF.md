@@ -1,6 +1,6 @@
 # Handoff
 
-Last updated: 2026-06-23
+Last updated: 2026-06-25
 
 ## Project
 
@@ -106,15 +106,23 @@ Minimum-size protection has been added in the Win10/11 design so the main layout
 Debug build command:
 
 ```powershell
-& "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe" "D:\Document\文件处理\hainan-settlement-desktop\HainanSettlementTool.sln" /restore /p:Configuration=Debug /m
+& "C:\Program Files\dotnet\dotnet.exe" msbuild "D:\Document\文件处理\hainan-settlement-desktop\HainanSettlementTool.sln" /restore /p:Configuration=Debug /m
 ```
 
 Latest observed result: `0 个警告 / 0 个错误`.
 
+Packaging scripts now prefer `dotnet msbuild`. If `dotnet` is unavailable, they use `vswhere` to discover MSBuild.exe instead of hard-coding a Visual Studio version path.
+
+Build portability guard:
+
+```powershell
+.\scripts\check_build_portability.ps1
+```
+
 Release packages generated:
 
-- Win10/11 build: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Wpf-Release-20260622-155838.zip`
-- Win7/8 build: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Release-20260622-155855.zip`
+- Win10/11 build: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260625-110040.zip`
+- Win7/8 build: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win7-8-Release-20260625-110030.zip`
 
 Additional smoke check:
 

@@ -39,21 +39,33 @@ docs/
 
 ## 运行环境目标
 
-- 开发：Visual Studio 2022 或具备 .NET Framework 4.7.2 targeting pack 的 MSBuild 环境。
+- 开发：.NET SDK 8 或更高版本；也可使用能解析 SDK-style `.NET Framework 4.7.2` 项目的 Visual Studio / Build Tools。
 - 运行：Windows 7 SP1 及以上，需安装 .NET Framework 4.7.2 或更高版本。
 
 ## 开发环境状态
 
-当前开发机已经安装并验证：
+推荐开发环境：
 
-- .NET SDK 8/9
-- Visual Studio Build Tools 2022
-- .NET Framework 4.7.2 targeting pack / SDK
+- .NET SDK 8 或更高版本
+- .NET Framework 4.7.2 targeting pack / SDK，或 NuGet reference assemblies
+- 可选：Visual Studio / Build Tools。打包脚本会优先使用 `dotnet msbuild`，找不到时再通过 `vswhere` 自动发现 MSBuild.exe
 
 推荐编译命令：
 
 ```powershell
-& "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe" ".\HainanSettlementTool.sln" /restore /p:Configuration=Debug /m
+dotnet msbuild ".\HainanSettlementTool.sln" /restore /p:Configuration=Debug /m
+```
+
+如果当前终端 PATH 还没刷新，可使用完整路径：
+
+```powershell
+& "C:\Program Files\dotnet\dotnet.exe" msbuild ".\HainanSettlementTool.sln" /restore /p:Configuration=Debug /m
+```
+
+检查仓库中是否重新引入固定 Visual Studio / MSBuild 路径：
+
+```powershell
+.\scripts\check_build_portability.ps1
 ```
 
 当前解决方案已编译通过，结果为 `0 个警告 / 0 个错误`。

@@ -72,11 +72,18 @@ Stage 1 and Stage 2 still do not:
 ## Build Command
 
 ```powershell
-& "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe" ".\HainanSettlementTool.sln" /restore /p:Configuration=Debug /m
+dotnet msbuild ".\HainanSettlementTool.sln" /restore /p:Configuration=Debug /m
+```
+
+## Build Portability Check
+
+```powershell
+.\scripts\check_build_portability.ps1
 ```
 
 ## Compatibility Target
 
 - Target framework: `.NET Framework 4.7.2`
 - Intended runtime: Windows 7 SP1 and later, with .NET Framework 4.7.2 or newer installed.
-- Development requires Visual Studio Build Tools 2022 or equivalent MSBuild plus .NET Framework 4.7.2 targeting pack.
+- Development requires .NET SDK 8 or newer, or equivalent MSBuild that can resolve SDK-style .NET Framework projects.
+- Packaging scripts should prefer `dotnet msbuild`; if `dotnet` is unavailable, use `vswhere` to discover MSBuild.exe instead of hard-coding a Visual Studio version path.
