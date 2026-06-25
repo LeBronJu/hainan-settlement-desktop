@@ -128,7 +128,7 @@ dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Release /m
 Observed result:
 
 - Core tests: 6 passed.
-- Excel tests: 3 passed.
+- Excel tests: 3 passed in `v1.0`; current quality branch adds Stage 1 ledger workbook tests and brings Excel tests to 6 passed.
 - Release build passed for Win7/8 and Win10/11.
 - Packaging scripts produced both release zips.
 - Build portability check passed.
@@ -186,7 +186,8 @@ Packaging/docs:
 
 ## Next Steps
 
-1. Use the `v1.0` release packages for final business-side acceptance.
-2. If new bugs appear, reproduce with a copied/sanitized workbook whenever possible.
-3. Next architecture slice, if desired: extract a shared workflow module so Win7/8 and Win10/11 do not duplicate stage execution flow.
-4. Consider adding a sanitized `.xls` fixture later; real `.xls` smoke passed, but the repository still has no committed `.xls` regression fixture.
+1. Finish and review the `codex/stage1-ledger-tests` quality branch.
+2. Use the `v1.0` release packages for final business-side acceptance.
+3. If new bugs appear, reproduce with a copied/sanitized workbook whenever possible.
+4. Next architecture slice, if desired: extract a shared workflow module so Win7/8 and Win10/11 do not duplicate stage execution flow.
+5. Consider adding a sanitized `.xls` fixture later; real `.xls` smoke passed, but the repository still has no committed `.xls` regression fixture.

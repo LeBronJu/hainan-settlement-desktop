@@ -47,6 +47,7 @@ This is a single-context repo. See `docs/agents/domain.md`.
 ## Engineering Rules
 
 - Do not make development changes directly on `main` or `master`. Create a development branch first, using the `codex/` prefix unless the user requests another branch name.
+- If an issue is uncertain, ambiguous, or risky, especially when it may affect settlement correctness, workbook safety, or user-visible business rules, stop and analyze it explicitly for the user. Do not encode a guess; ask the user to decide.
 - UI must not contain Excel parsing, matching, amount calculation, or workbook template rules.
 - Core must not reference ClosedXML, WinForms, or file-format implementation details.
 - Excel layer owns workbook reading/writing and template copying.
