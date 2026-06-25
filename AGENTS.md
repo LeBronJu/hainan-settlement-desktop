@@ -54,6 +54,8 @@ This is a single-context repo. See `docs/agents/domain.md`.
 - Keep stage boundaries explicit.
 - Keep documentation current. Any behavior, packaging, release, workflow, architecture, or business-rule change must update the relevant docs in the same work session before the work is considered done.
 - At minimum, review `README.md`, `HANDOFF.md`, `CONTEXT.md`, and `docs/architecture.md` when changing user-visible behavior or stage boundaries.
+- Before finishing any change, explicitly decide whether docs were affected. If docs changed, say which files were updated; if not, say why no docs were needed.
+- Keep `HANDOFF.md` current when branch state, release status, validation results, or next steps change.
 - For temporary investigations or one-off architecture notes, add or update a dated file under `docs/dev-notes/`.
 
 ## Current Functional Boundary

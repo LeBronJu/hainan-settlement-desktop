@@ -15,14 +15,15 @@ The Python project remains the historical full-function reference. The C# deskto
 
 ## Current Git State
 
-- Current branch: `main`
-- Latest main commit: `b9358e0 Merge branch 'codex/ui-modernization'`
+- Current branch: `codex/stage1-ledger-tests`
+- Latest main commit: `7d43274 Merge branch 'codex/document-branch-rule'`
+- Latest quality branch commit: `38b970f Add stage one ledger workbook tests`
 - Current release tag: `v1.0`
 - Release page: `https://github.com/LeBronJu/hainan-settlement-desktop/releases/tag/v1.0`
 - Win7/8 and Win10/11 entries are both part of `main`; they share Core/Excel logic but remain separate desktop apps.
 - Do not add real ledgers, customer data, settlement outputs, screenshots, or finance/payment data to git.
 
-Use `git status --short --branch` before editing. The expected post-release worktree is clean.
+Use `git status --short --branch` before editing. The expected handoff worktree is clean.
 
 ## Release 1.0
 
@@ -148,6 +149,9 @@ Documentation is now part of the development contract:
 
 - Update relevant docs in the same work session as behavior, packaging, release, workflow, architecture, or business-rule changes.
 - Check `README.md`, `HANDOFF.md`, `CONTEXT.md`, and `docs/architecture.md` before finishing user-visible work.
+- Before finishing a change, record whether docs were affected. If yes, list the updated docs; if no, state why no doc update was needed.
+- Keep this `HANDOFF.md` current whenever branch state, release status, validation results, or next steps change.
+- Use `.github/PULL_REQUEST_TEMPLATE.md` as the merge-time documentation checklist.
 - Put temporary investigations and architecture decisions in dated files under `docs/dev-notes/`.
 
 ## Useful Files
