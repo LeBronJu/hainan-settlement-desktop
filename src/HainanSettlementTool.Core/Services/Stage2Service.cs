@@ -22,6 +22,12 @@ namespace HainanSettlementTool.Core.Services
             return _excel.GenerateSettlement(options);
         }
 
+        public Stage2PreflightReport Analyze(Stage2Options options)
+        {
+            Validate(options);
+            return _excel.AnalyzeSettlement(options);
+        }
+
         private static void Validate(Stage2Options options)
         {
             if (options == null)

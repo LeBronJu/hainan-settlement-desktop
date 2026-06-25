@@ -38,12 +38,28 @@ namespace HainanSettlementTool.Excel
                 throw new InvalidOperationException(options.Month + "月结算明细存在负责人缺失，先不要生成分表/汇总表：" + string.Join("、", missingOwners.Take(10)));
             }
 
-            var totals = BuildSplitFiles(options, proxyRows, interRows);
+            var auditIssues = BuildPreflightIssues(options, proxyRows, interRows);
+            var totals = BuildSplitFiles(options, proxyRows, interRows, auditIssues);
             var warnings = new List<string>();
             var summaryPath = BuildSummary(options, totals, warnings);
-            var report = CreateReport(options, proxyRows, interRows, totals, summaryPath, warnings, missingOwners);
+            var report = CreateReport(options, proxyRows, interRows, totals, summaryPath, warnings, missingOwners, auditIssues);
             WriteReport(options, report);
             WriteWarnings(options, warnings);
+            WriteAuditReport(options, report);
+            return report;
+        }
+
+        public Stage2PreflightReport Analyze(Stage2Options options)
+        {
+            var proxyRows = new List<DetailSettlementRow>();
+            var interRows = new List<DetailSettlementRow>();
+            ReadLedgerRows(options.LedgerPath, options.Month, proxyRows, interRows);
+
+            var report = new Stage2PreflightReport
+            {
+                Month = options.Month
+            };
+            report.Issues.AddRange(BuildPreflightIssues(options, proxyRows, interRows));
             return report;
         }
 
@@ -73,16 +89,16 @@ namespace HainanSettlementTool.Excel
                     var developer = TextUtil.S(worksheet.Cell(row, 8).GetFormattedString());
                     var interName = TextUtil.S(worksheet.Cell(row, 19).GetFormattedString());
 
-                    var interNet = NetAmount(worksheet, row, start, start + 12, start + 7, start + 8, start + 10);
-                    if (!string.IsNullOrWhiteSpace(interName) && interNet != 0)
+                    var interRow = CreateDetailRow(worksheet, row, start, customer, owner, interName, "居间", start + 7, start + 8, start + 10, start + 12);
+                    if (!string.IsNullOrWhiteSpace(interName) && HasSettlementAmount(interRow))
                     {
-                        interRows.Add(CreateDetailRow(worksheet, row, start, customer, owner, interName, "居间", start + 7, start + 8, start + 10, interNet));
+                        interRows.Add(interRow);
                     }
 
-                    var proxyNet = NetAmount(worksheet, row, start, start + 18, start + 13, start + 14, start + 16);
-                    if (!string.IsNullOrWhiteSpace(developer) && proxyNet != 0)
+                    var proxyRow = CreateDetailRow(worksheet, row, start, customer, owner, developer, "代理", start + 13, start + 14, start + 16, start + 18);
+                    if (!string.IsNullOrWhiteSpace(developer) && HasSettlementAmount(proxyRow))
                     {
-                        proxyRows.Add(CreateDetailRow(worksheet, row, start, customer, owner, developer, "代理", start + 13, start + 14, start + 16, proxyNet));
+                        proxyRows.Add(proxyRow);
                     }
                 }
             }
@@ -99,8 +115,15 @@ namespace HainanSettlementTool.Excel
             int ratioColumn,
             int unitPriceColumn,
             int taxRateColumn,
-            double expectedNet)
+            int cachedNetColumn)
         {
+            var total = GetNumeric(worksheet, ledgerRow, start);
+            var ratio = GetNumeric(worksheet, ledgerRow, ratioColumn);
+            var unitPrice = GetNumeric(worksheet, ledgerRow, unitPriceColumn);
+            var taxRate = GetNumeric(worksheet, ledgerRow, taxRateColumn);
+            var ledgerNet = GetNumeric(worksheet, ledgerRow, cachedNetColumn);
+            var amounts = Stage2SettlementCalculator.CalculateAmounts(total, ratio, unitPrice, taxRate);
+
             return new DetailSettlementRow
             {
                 LedgerRow = ledgerRow,
@@ -108,34 +131,30 @@ namespace HainanSettlementTool.Excel
                 Owner = owner,
                 Entity = entity,
                 Kind = kind,
-                Total = GetNumeric(worksheet, ledgerRow, start),
+                Total = total,
                 Sharp = GetNumeric(worksheet, ledgerRow, start + 1),
                 Peak = GetNumeric(worksheet, ledgerRow, start + 2),
                 Flat = GetNumeric(worksheet, ledgerRow, start + 3),
                 Valley = GetNumeric(worksheet, ledgerRow, start + 4),
                 PeakFlat = GetNumeric(worksheet, ledgerRow, start + 5),
                 ValleyFlat = GetNumeric(worksheet, ledgerRow, start + 6),
-                Ratio = GetNumeric(worksheet, ledgerRow, ratioColumn),
-                UnitPrice = GetNumeric(worksheet, ledgerRow, unitPriceColumn),
-                TaxRate = GetNumeric(worksheet, ledgerRow, taxRateColumn),
-                ExpectedNet = expectedNet
+                Ratio = ratio,
+                UnitPrice = unitPrice,
+                TaxRate = taxRate,
+                LedgerNet = ledgerNet,
+                Gross = amounts.Gross,
+                Adjustment = amounts.Adjustment,
+                AdjustedGross = amounts.AdjustedGross,
+                TaxAmount = amounts.TaxAmount,
+                CalculatedNet = amounts.CalculatedNet,
+                ExpectedNet = amounts.ExpectedNet
             };
         }
 
-        private static double NetAmount(IXLWorksheet worksheet, int row, int monthStart, int cachedColumn, int ratioColumn, int unitPriceColumn, int taxColumn)
+        private static bool HasSettlementAmount(DetailSettlementRow row)
         {
-            var cached = GetNumeric(worksheet, row, cachedColumn);
-            if (cached != 0)
-            {
-                return cached;
-            }
-
-            var total = GetNumeric(worksheet, row, monthStart);
-            var ratio = GetNumeric(worksheet, row, ratioColumn);
-            var unitPrice = GetNumeric(worksheet, row, unitPriceColumn);
-            var taxRate = GetNumeric(worksheet, row, taxColumn);
-            var gross = total * ratio * unitPrice;
-            return Math.Round(gross - gross / 1.13 * taxRate, 4);
+            return Math.Abs(row.LedgerNet) > Stage2SettlementCalculator.AmountTolerance
+                || Math.Abs(row.CalculatedNet) > Stage2SettlementCalculator.AmountTolerance;
         }
 
         private static double GetNumeric(IXLWorksheet worksheet, int row, int column)
@@ -178,7 +197,177 @@ namespace HainanSettlementTool.Excel
             throw new InvalidOperationException("未找到 " + month + "月 的台账区块。");
         }
 
-        private static List<GroupSettlementTotal> BuildSplitFiles(Stage2Options options, IList<DetailSettlementRow> proxyRows, IList<DetailSettlementRow> interRows)
+        private static List<Stage2CheckIssue> BuildPreflightIssues(Stage2Options options, IList<DetailSettlementRow> proxyRows, IList<DetailSettlementRow> interRows)
+        {
+            var issues = new List<Stage2CheckIssue>();
+            var templateMap = BuildTemplateIndex(options.ProxyTemplateDirectory, options.IntermediaryTemplateDirectory);
+            var grouped = proxyRows
+                .Select(row => new { Key = Tuple.Create("代理", row.Owner, row.Entity), Row = row })
+                .Concat(interRows.Select(row => new { Key = Tuple.Create("居间", row.Owner, row.Entity), Row = row }))
+                .GroupBy(item => item.Key)
+                .OrderBy(group => group.Key.Item1)
+                .ThenBy(group => group.Key.Item2)
+                .ThenBy(group => group.Key.Item3);
+
+            foreach (var group in grouped)
+            {
+                var kind = group.Key.Item1;
+                var owner = group.Key.Item2;
+                var entity = group.Key.Item3;
+                var templateKey = TemplateKey(kind, owner, entity);
+                string templatePath;
+                if (!templateMap.TryGetValue(templateKey, out templatePath))
+                {
+                    issues.Add(new Stage2CheckIssue
+                    {
+                        Severity = "提示",
+                        Category = "未匹配到上月分表模板",
+                        Kind = kind + "费",
+                        Owner = owner,
+                        Entity = entity,
+                        Message = kind + "费主体“" + entity + "”未在上月分表文件夹中匹配到同名模板。",
+                        Suggestion = "程序会复制同类型模板生成新分表；请确认这是新增关系，或检查负责人文件夹、分表文件名、A2代理名称是否和台账一致。"
+                    });
+                    continue;
+                }
+
+                CompareGroupWithTemplate(options.Month, kind, owner, entity, templatePath, group.Select(item => item.Row).ToList(), issues);
+            }
+
+            return issues;
+        }
+
+        private static void CompareGroupWithTemplate(
+            int month,
+            string kind,
+            string owner,
+            string entity,
+            string templatePath,
+            IList<DetailSettlementRow> currentRows,
+            IList<Stage2CheckIssue> issues)
+        {
+            try
+            {
+                using (var workbook = new XLWorkbook(templatePath))
+                {
+                    var previousSheet = PreviousMonthSheet(workbook, month, month + "月") ?? LastMonthSheet(workbook);
+                    var previousRows = ReadPreviousDetails(previousSheet);
+                    foreach (var row in currentRows)
+                    {
+                        PreviousDetailRow previous;
+                        if (!previousRows.TryGetValue(NormalizeName(row.Customer), out previous))
+                        {
+                            issues.Add(new Stage2CheckIssue
+                            {
+                                Severity = "提示",
+                                Category = "客户本月新增到分表",
+                                Kind = kind + "费",
+                                Customer = row.Customer,
+                                Owner = owner,
+                                Entity = entity,
+                                LedgerRow = row.LedgerRow,
+                                TemplateFile = templatePath,
+                                SheetName = previousSheet.Name,
+                                Message = kind + "费主体“" + entity + "”下的客户“" + row.Customer + "”在上月分表未找到。",
+                                Suggestion = "如果这是本月新增客户，可以继续；否则请检查台账客户名称和上月分表客户名称是否一致。"
+                            });
+                            continue;
+                        }
+
+                        AddValueChangeIssue(issues, kind, owner, entity, row, previous, templatePath, "电量比例", previous.Ratio, row.Ratio);
+                        AddValueChangeIssue(issues, kind, owner, entity, row, previous, templatePath, "利润单价", previous.UnitPrice, row.UnitPrice);
+                        AddValueChangeIssue(issues, kind, owner, entity, row, previous, templatePath, "税率", previous.TaxRate, row.TaxRate);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                issues.Add(new Stage2CheckIssue
+                {
+                    Severity = "提示",
+                    Category = "上月分表预检失败",
+                    Kind = kind + "费",
+                    Owner = owner,
+                    Entity = entity,
+                    TemplateFile = templatePath,
+                    Message = "读取上月分表模板失败：" + ex.Message,
+                    Suggestion = "程序仍可继续生成；请确认该分表文件没有损坏，且包含上月明细和合计行。"
+                });
+            }
+        }
+
+        private static Dictionary<string, PreviousDetailRow> ReadPreviousDetails(IXLWorksheet worksheet)
+        {
+            var result = new Dictionary<string, PreviousDetailRow>();
+            var totalRow = FindTotalRow(worksheet, DataStartRow);
+            for (var row = DataStartRow; row < totalRow; row++)
+            {
+                var customer = TextUtil.S(worksheet.Cell(row, 2).GetFormattedString());
+                if (string.IsNullOrWhiteSpace(customer))
+                {
+                    continue;
+                }
+
+                var key = NormalizeName(customer);
+                if (result.ContainsKey(key))
+                {
+                    continue;
+                }
+
+                result[key] = new PreviousDetailRow
+                {
+                    Customer = customer,
+                    Row = row,
+                    SheetName = worksheet.Name,
+                    Ratio = GetNumeric(worksheet, row, 10),
+                    UnitPrice = GetNumeric(worksheet, row, 11),
+                    TaxRate = GetNumeric(worksheet, row, 17)
+                };
+            }
+
+            return result;
+        }
+
+        private static void AddValueChangeIssue(
+            IList<Stage2CheckIssue> issues,
+            string kind,
+            string owner,
+            string entity,
+            DetailSettlementRow current,
+            PreviousDetailRow previous,
+            string templatePath,
+            string fieldName,
+            double previousValue,
+            double currentValue)
+        {
+            if (Math.Abs(previousValue - currentValue) <= Stage2SettlementCalculator.AmountTolerance)
+            {
+                return;
+            }
+
+            issues.Add(new Stage2CheckIssue
+            {
+                Severity = "确认",
+                Category = "关键字段较上月变化",
+                Kind = kind + "费",
+                Customer = current.Customer,
+                Owner = owner,
+                Entity = entity,
+                LedgerRow = current.LedgerRow,
+                TemplateFile = templatePath,
+                SheetName = previous.SheetName,
+                PreviousValue = fieldName + " 上月：" + Stage2SettlementCalculator.FormatAmount(previousValue),
+                CurrentValue = fieldName + " 本月：" + Stage2SettlementCalculator.FormatAmount(currentValue),
+                Message = kind + "费主体“" + entity + "”下的客户“" + current.Customer + "”" + fieldName + "发生变化（上月分表第" + previous.Row + "行，本月台账第" + current.LedgerRow + "行）。",
+                Suggestion = "如果这是本月台账更新后的正常变化，请继续；否则请回到台账检查该客户的" + fieldName + "。"
+            });
+        }
+
+        private static List<GroupSettlementTotal> BuildSplitFiles(
+            Stage2Options options,
+            IList<DetailSettlementRow> proxyRows,
+            IList<DetailSettlementRow> interRows,
+            IList<Stage2CheckIssue> auditIssues)
         {
             var templateMap = BuildTemplateIndex(options.ProxyTemplateDirectory, options.IntermediaryTemplateDirectory);
             var grouped = proxyRows
@@ -203,7 +392,7 @@ namespace HainanSettlementTool.Excel
                 {
                     var displayEntity = matchedTemplate ? PriorSheetDisplayEntity(workbook, options.Month) : entity;
                     var worksheet = PrepareMonthSheet(workbook, options.Month);
-                    WriteDetailSheet(worksheet, kind, entity, options.Month, group.Select(item => item.Row).ToList(), displayEntity);
+                    WriteDetailSheet(worksheet, kind, entity, options.Month, group.Select(item => item.Row).ToList(), displayEntity, outputPath, auditIssues);
                     SaveWorkbook(workbook, outputPath);
 
                     totals.Add(new GroupSettlementTotal
@@ -392,7 +581,15 @@ namespace HainanSettlementTool.Excel
             return null;
         }
 
-        private static void WriteDetailSheet(IXLWorksheet worksheet, string kind, string entity, int month, IList<DetailSettlementRow> rows, string displayEntity)
+        private static void WriteDetailSheet(
+            IXLWorksheet worksheet,
+            string kind,
+            string entity,
+            int month,
+            IList<DetailSettlementRow> rows,
+            string displayEntity,
+            string outputPath,
+            IList<Stage2CheckIssue> auditIssues)
         {
             SetTopTitles(worksheet, kind, entity, month, displayEntity);
             var totalRow = AdjustDetailRows(worksheet, rows.Count);
@@ -412,15 +609,17 @@ namespace HainanSettlementTool.Excel
                 worksheet.Cell(excelRow, 10).Value = Math.Round(row.Ratio, 4);
                 worksheet.Cell(excelRow, 11).Value = Math.Round(row.UnitPrice, 4);
                 worksheet.Cell(excelRow, 14).Clear(XLClearOptions.Contents);
-                EnsureDetailFormula(worksheet.Cell(excelRow, 12), "ROUND(C" + excelRow + "*J" + excelRow + "*K" + excelRow + ",4)");
-                EnsureDetailFormula(worksheet.Cell(excelRow, 13), "L" + excelRow + "-N" + excelRow);
-                EnsureDetailFormula(worksheet.Cell(excelRow, 15), "ROUND(M" + excelRow + "/1.13*Q" + excelRow + ",4)");
-                EnsureDetailFormula(worksheet.Cell(excelRow, 16), "M" + excelRow + "-O" + excelRow);
+                SetDetailFormula(worksheet.Cell(excelRow, 12), "ROUND(C" + excelRow + "*J" + excelRow + "*K" + excelRow + ",4)");
+                SetDetailFormula(worksheet.Cell(excelRow, 13), "L" + excelRow + "-N" + excelRow);
+                SetDetailFormula(worksheet.Cell(excelRow, 15), "ROUND(M" + excelRow + "/1.13*Q" + excelRow + ",4)");
+                SetDetailFormula(worksheet.Cell(excelRow, 16), "M" + excelRow + "-O" + excelRow);
                 worksheet.Cell(excelRow, 17).Value = row.TaxRate;
                 for (var column = 18; column <= (worksheet.LastColumnUsed()?.ColumnNumber() ?? 18); column++)
                 {
                     worksheet.Cell(excelRow, column).Clear(XLClearOptions.Contents);
                 }
+
+                AddLedgerDifferenceIssue(row, kind, outputPath, worksheet.Name, auditIssues);
             }
 
             if (rows.Count > 0)
@@ -430,23 +629,36 @@ namespace HainanSettlementTool.Excel
                 for (var column = 3; column <= 7; column++)
                 {
                     var letter = ClosedXmlUtil.ColumnLetter(column);
-                    EnsureDetailFormula(worksheet.Cell(totalRow, column), "SUM(" + letter + DataStartRow + ":" + letter + last + ")");
+                    SetDetailFormula(worksheet.Cell(totalRow, column), "SUM(" + letter + DataStartRow + ":" + letter + last + ")");
                 }
 
                 for (var column = 12; column <= 16; column++)
                 {
                     var letter = ClosedXmlUtil.ColumnLetter(column);
-                    EnsureDetailFormula(worksheet.Cell(totalRow, column), "SUM(" + letter + DataStartRow + ":" + letter + last + ")");
+                    SetDetailFormula(worksheet.Cell(totalRow, column), "SUM(" + letter + DataStartRow + ":" + letter + last + ")");
                 }
             }
         }
 
-        private static void EnsureDetailFormula(IXLCell cell, string fallbackFormula)
+        private static void SetDetailFormula(IXLCell cell, string formula)
         {
-            if (string.IsNullOrWhiteSpace(cell.FormulaA1))
+            cell.FormulaA1 = formula;
+        }
+
+        private static void AddLedgerDifferenceIssue(
+            DetailSettlementRow row,
+            string kind,
+            string outputPath,
+            string sheetName,
+            IList<Stage2CheckIssue> auditIssues)
+        {
+            var issue = Stage2SettlementCalculator.CreateLedgerDifferenceIssue(row, kind, outputPath, sheetName);
+            if (issue == null)
             {
-                cell.FormulaA1 = fallbackFormula;
+                return;
             }
+
+            auditIssues.Add(issue);
         }
 
         private static void SetTopTitles(IXLWorksheet worksheet, string kind, string entity, int month, string displayEntity)
@@ -961,7 +1173,8 @@ namespace HainanSettlementTool.Excel
             IList<GroupSettlementTotal> totals,
             string summaryPath,
             IList<string> warnings,
-            IList<string> missingOwners)
+            IList<string> missingOwners,
+            IList<Stage2CheckIssue> auditIssues)
         {
             var reportPath = Path.Combine(options.OutputDirectory, options.Month + "月结算生成总报告.json");
             var report = new Stage2Report
@@ -984,6 +1197,7 @@ namespace HainanSettlementTool.Excel
             report.Groups.AddRange(totals);
             report.Warnings.AddRange(warnings);
             report.MissingOwners.AddRange(missingOwners);
+            report.AuditIssues.AddRange(auditIssues);
             return report;
         }
 
@@ -1003,6 +1217,96 @@ namespace HainanSettlementTool.Excel
             {
                 File.Delete(path);
             }
+        }
+
+        private static void WriteAuditReport(Stage2Options options, Stage2Report report)
+        {
+            var path = Path.Combine(options.OutputDirectory, "阶段二校验报告.txt");
+            if (report.AuditIssues.Count == 0 && report.Warnings.Count == 0 && report.MissingOwners.Count == 0)
+            {
+                if (File.Exists(path))
+                {
+                    File.Delete(path);
+                }
+                return;
+            }
+
+            var lines = new List<string>
+            {
+                "阶段二校验报告",
+                "结算月份：2026年" + options.Month + "月",
+                "说明：文件已照常生成；当前分表和汇总表金额采用分表自算结果。",
+                "提示：如果确认台账金额才是正确结果，请同步检查/修改对应分表和汇总表。",
+                string.Empty
+            };
+
+            if (report.AuditIssues.Count > 0)
+            {
+                lines.Add("一、校验问题");
+                for (var index = 0; index < report.AuditIssues.Count; index++)
+                {
+                    var issue = report.AuditIssues[index];
+                    lines.Add((index + 1) + ". [" + issue.Severity + "] " + issue.Category);
+                    if (!string.IsNullOrWhiteSpace(issue.Kind))
+                    {
+                        lines.Add("   类型：" + issue.Kind);
+                    }
+                    if (!string.IsNullOrWhiteSpace(issue.Owner) || !string.IsNullOrWhiteSpace(issue.Entity))
+                    {
+                        lines.Add("   负责人/主体：" + issue.Owner + " / " + issue.Entity);
+                    }
+                    if (!string.IsNullOrWhiteSpace(issue.Customer))
+                    {
+                        lines.Add("   客户：" + issue.Customer);
+                    }
+                    if (issue.LedgerRow > 0)
+                    {
+                        lines.Add("   台账行：" + issue.LedgerRow);
+                    }
+                    if (!string.IsNullOrWhiteSpace(issue.PreviousValue) || !string.IsNullOrWhiteSpace(issue.CurrentValue))
+                    {
+                        lines.Add("   对比：" + issue.PreviousValue + "；" + issue.CurrentValue);
+                    }
+                    if (!string.IsNullOrWhiteSpace(issue.Message))
+                    {
+                        lines.Add("   问题：" + issue.Message);
+                    }
+                    if (!string.IsNullOrWhiteSpace(issue.Suggestion))
+                    {
+                        lines.Add("   建议：" + issue.Suggestion);
+                    }
+                    if (!string.IsNullOrWhiteSpace(issue.TemplateFile))
+                    {
+                        lines.Add("   文件：" + issue.TemplateFile);
+                    }
+                    if (!string.IsNullOrWhiteSpace(issue.SheetName))
+                    {
+                        lines.Add("   工作表：" + issue.SheetName);
+                    }
+                }
+                lines.Add(string.Empty);
+            }
+
+            if (report.Warnings.Count > 0)
+            {
+                lines.Add("二、自动生成汇总提示");
+                foreach (var warning in report.Warnings)
+                {
+                    lines.Add("- " + warning);
+                }
+                lines.Add(string.Empty);
+            }
+
+            if (report.MissingOwners.Count > 0)
+            {
+                lines.Add("三、负责人缺失");
+                foreach (var missingOwner in report.MissingOwners)
+                {
+                    lines.Add("- " + missingOwner);
+                }
+            }
+
+            File.WriteAllLines(path, lines, System.Text.Encoding.UTF8);
         }
 
         private static string PartyForSummaryTotal(GroupSettlementTotal total, IDictionary<string, string> partyByKey)
@@ -1140,6 +1444,16 @@ namespace HainanSettlementTool.Excel
             public string Entity { get; set; }
             public string Kind { get; set; }
             public string PaymentParty { get; set; }
+        }
+
+        private sealed class PreviousDetailRow
+        {
+            public int Row { get; set; }
+            public string Customer { get; set; }
+            public string SheetName { get; set; }
+            public double Ratio { get; set; }
+            public double UnitPrice { get; set; }
+            public double TaxRate { get; set; }
         }
     }
 }

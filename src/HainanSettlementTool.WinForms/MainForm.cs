@@ -1,6 +1,8 @@
 using System;
 using System.Drawing;
 using System.IO;
+using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using HainanSettlementTool.Core.Models;
@@ -25,6 +27,7 @@ namespace HainanSettlementTool.WinForms
         private readonly CheckBox _copyReferenceExisting = new CheckBox();
         private readonly CheckBox _allowMissingOwner = new CheckBox();
         private readonly Button _runStage1 = new Button();
+        private readonly Button _cleanPower = new Button();
         private readonly Button _runStage2 = new Button();
         private readonly TextBox _log = new TextBox();
         private readonly Label _status = new Label();
@@ -201,7 +204,7 @@ namespace HainanSettlementTool.WinForms
             var stage1Form = CreateStackFormTable("阶段一：写入电量到台账");
             AddStackPathRow(stage1Form, "基础台账（必填）", _baseLedger, "Excel 文件|*.xlsx");
             AddStackPathRow(stage1Form, "电量处理表", _power, "Excel 文件|*.xlsx");
-            AddStackPathRow(stage1Form, "原始零售侧明细", _rawDetail, "Excel/CSV|*.xlsx;*.csv");
+            AddStackPathRow(stage1Form, "原始零售侧明细", _rawDetail, "Excel/CSV|*.xlsx;*.xls;*.csv|Excel 文件|*.xlsx;*.xls|CSV 文件|*.csv|所有文件|*.*");
             AddStackPathRow(stage1Form, "参考台账（可选）", _referenceLedger, "Excel 文件|*.xlsx");
 
             _copyReferenceExisting.Text = "用参考台账覆盖已有客户 B:AB 列资料（谨慎）";
@@ -213,6 +216,13 @@ namespace HainanSettlementTool.WinForms
             StylePrimaryButton(_runStage1);
             _runStage1.Click += async (sender, args) => await RunStage1Async();
             AddStackActionRow(stage1Form, _runStage1);
+
+            _cleanPower.Text = "只清洗电量数据";
+            _cleanPower.Width = 160;
+            _cleanPower.Height = 34;
+            StyleSecondaryButton(_cleanPower);
+            _cleanPower.Click += async (sender, args) => await RunCleanPowerAsync();
+            AddStackActionRow(stage1Form, _cleanPower);
 
             var stage1Card = WrapCard(stage1Form, new Padding(0, 0, 6, 0));
             stages.Controls.Add(stage1Card, 0, 0);
@@ -697,6 +707,7 @@ namespace HainanSettlementTool.WinForms
             }
 
             _runStage1.Enabled = false;
+            _cleanPower.Enabled = false;
             _runStage2.Enabled = false;
             SetBusy(true);
             try
@@ -720,6 +731,61 @@ namespace HainanSettlementTool.WinForms
             {
                 SetBusy(false);
                 _runStage1.Enabled = true;
+                _cleanPower.Enabled = true;
+                _runStage2.Enabled = true;
+            }
+        }
+
+        private async Task RunCleanPowerAsync()
+        {
+            string rawDetailPath;
+            string outputPath;
+            try
+            {
+                rawDetailPath = _rawDetail.Text.Trim();
+                outputPath = ResolvePowerOutputPath(rawDetailPath);
+                _power.Text = outputPath;
+
+                var message = "确认只清洗电量数据？" + Environment.NewLine
+                    + "输出文件：" + outputPath;
+                if (MessageBox.Show(this, message, "确认清洗电量", MessageBoxButtons.OKCancel, MessageBoxIcon.Question) != DialogResult.OK)
+                {
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, ex.Message, "出错了", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Log(ex.ToString());
+                return;
+            }
+
+            _runStage1.Enabled = false;
+            _cleanPower.Enabled = false;
+            _runStage2.Enabled = false;
+            SetBusy(true);
+            try
+            {
+                Log("开始清洗电量数据。");
+                await Task.Run(() =>
+                {
+                    var service = new Stage1Service(new ClosedXmlStage1ExcelGateway());
+                    var report = service.CleanPowerData(rawDetailPath, outputPath, LogThreadSafe);
+                    LogThreadSafe("电量清洗完成。");
+                    LogThreadSafe("电量处理表：" + report.OutputPath);
+                    LogThreadSafe("客户数量：" + report.PowerRows + "，合计电量：" + report.MonthTotal.ToString("0.####"));
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, ex.Message, "出错了", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Log(ex.ToString());
+            }
+            finally
+            {
+                SetBusy(false);
+                _runStage1.Enabled = true;
+                _cleanPower.Enabled = true;
                 _runStage2.Enabled = true;
             }
         }
@@ -734,6 +800,14 @@ namespace HainanSettlementTool.WinForms
                 {
                     return;
                 }
+
+                var service = new Stage2Service(new ClosedXmlStage1ExcelGateway());
+                var preflight = service.Analyze(options);
+                if (preflight.HasIssues && !ConfirmStage2Preflight(preflight))
+                {
+                    Log("已取消阶段2生成。");
+                    return;
+                }
             }
             catch (Exception ex)
             {
@@ -743,6 +817,7 @@ namespace HainanSettlementTool.WinForms
             }
 
             _runStage1.Enabled = false;
+            _cleanPower.Enabled = false;
             _runStage2.Enabled = false;
             SetBusy(true);
             try
@@ -768,6 +843,7 @@ namespace HainanSettlementTool.WinForms
             {
                 SetBusy(false);
                 _runStage1.Enabled = true;
+                _cleanPower.Enabled = true;
                 _runStage2.Enabled = true;
             }
         }
@@ -775,9 +851,10 @@ namespace HainanSettlementTool.WinForms
         private Stage1Options CreateOptions()
         {
             var powerPath = _power.Text.Trim();
-            if (string.IsNullOrWhiteSpace(powerPath) && !string.IsNullOrWhiteSpace(_rawDetail.Text))
+            var rawDetailPath = _rawDetail.Text.Trim();
+            if (!string.IsNullOrWhiteSpace(rawDetailPath))
             {
-                powerPath = Path.Combine(Path.GetDirectoryName(_rawDetail.Text) ?? string.Empty, "零售侧用户电量数据处理表.xlsx");
+                powerPath = ResolvePowerOutputPath(rawDetailPath);
                 _power.Text = powerPath;
             }
 
@@ -786,11 +863,27 @@ namespace HainanSettlementTool.WinForms
                 Month = SelectedMonth(),
                 BaseLedgerPath = _baseLedger.Text.Trim(),
                 PowerPath = powerPath,
-                RawDetailPath = _rawDetail.Text.Trim(),
+                RawDetailPath = rawDetailPath,
                 ReferenceLedgerPath = _referenceLedger.Text.Trim(),
                 OutputDirectory = _outputDir.Text.Trim(),
                 CopyReferenceExisting = _copyReferenceExisting.Checked
             };
+        }
+
+        private string ResolvePowerOutputPath(string rawDetailPath)
+        {
+            if (string.IsNullOrWhiteSpace(rawDetailPath))
+            {
+                throw new InvalidOperationException("请选择原始零售侧明细。");
+            }
+
+            var outputDirectory = _outputDir.Text.Trim();
+            if (string.IsNullOrWhiteSpace(outputDirectory))
+            {
+                throw new InvalidOperationException("请选择结果输出文件夹。");
+            }
+
+            return Path.Combine(outputDirectory, "零售侧用户电量数据处理表.xlsx");
         }
 
         private Stage2Options CreateStage2Options()
@@ -823,6 +916,137 @@ namespace HainanSettlementTool.WinForms
                 + "结算月份：2026年" + month + "月" + Environment.NewLine
                 + "输出文件夹：" + outputDirectory;
             return MessageBox.Show(this, message, "确认运行", MessageBoxButtons.OKCancel, MessageBoxIcon.Question) == DialogResult.OK;
+        }
+
+        private bool ConfirmStage2Preflight(Stage2PreflightReport report)
+        {
+            using (var dialog = new Form())
+            {
+                dialog.Text = "阶段二预检确认";
+                dialog.StartPosition = FormStartPosition.CenterParent;
+                dialog.Size = new Size(760, 560);
+                dialog.MinimumSize = new Size(680, 500);
+                dialog.BackColor = WindowBackground;
+                dialog.Font = Font;
+
+                var layout = new TableLayoutPanel
+                {
+                    Dock = DockStyle.Fill,
+                    RowCount = 4,
+                    ColumnCount = 1,
+                    Padding = new Padding(18),
+                    BackColor = WindowBackground
+                };
+                layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+                layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+                layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+                layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+                dialog.Controls.Add(layout);
+
+                layout.Controls.Add(new Label
+                {
+                    Text = "发现需要确认的阶段二变化",
+                    AutoSize = true,
+                    ForeColor = MainText,
+                    Font = new Font(Font.FontFamily, 14F, FontStyle.Bold),
+                    Margin = new Padding(0, 0, 0, 8)
+                }, 0, 0);
+
+                layout.Controls.Add(new Label
+                {
+                    Text = "结算月份：2026年" + report.Month + "月；共发现 " + report.Issues.Count + " 条需要确认的变化。确认后仍会生成文件，并写入阶段二校验报告。",
+                    AutoSize = true,
+                    MaximumSize = new Size(700, 0),
+                    ForeColor = MutedText,
+                    Margin = new Padding(0, 0, 0, 12)
+                }, 0, 1);
+
+                var detail = new TextBox
+                {
+                    Dock = DockStyle.Fill,
+                    Multiline = true,
+                    ReadOnly = true,
+                    ScrollBars = ScrollBars.Vertical,
+                    Text = BuildPreflightText(report),
+                    BackColor = Color.White,
+                    ForeColor = MainText,
+                    BorderStyle = BorderStyle.FixedSingle,
+                    Margin = new Padding(0, 0, 0, 14)
+                };
+                layout.Controls.Add(detail, 0, 2);
+
+                var actions = new FlowLayoutPanel
+                {
+                    Dock = DockStyle.Fill,
+                    FlowDirection = FlowDirection.RightToLeft,
+                    AutoSize = true
+                };
+                var ok = new Button { Text = "继续生成并写报告", Width = 150, Height = 34, DialogResult = DialogResult.OK };
+                var cancel = new Button { Text = "取消", Width = 90, Height = 34, DialogResult = DialogResult.Cancel, Margin = new Padding(8, 0, 0, 0) };
+                StylePrimaryButton(ok);
+                StyleSecondaryButton(cancel);
+                actions.Controls.Add(ok);
+                actions.Controls.Add(cancel);
+                layout.Controls.Add(actions, 0, 3);
+
+                dialog.AcceptButton = ok;
+                dialog.CancelButton = cancel;
+                return dialog.ShowDialog(this) == DialogResult.OK;
+            }
+        }
+
+        private static string BuildPreflightText(Stage2PreflightReport report)
+        {
+            var builder = new StringBuilder();
+            var grouped = report.Issues
+                .GroupBy(issue => issue.Category)
+                .OrderBy(group => group.Key);
+
+            foreach (var group in grouped)
+            {
+                builder.AppendLine("【" + group.Key + "】");
+                var index = 1;
+                foreach (var issue in group)
+                {
+                    builder.AppendLine(index + ". [" + issue.Severity + "] " + issue.Message);
+                    if (!string.IsNullOrWhiteSpace(issue.Kind))
+                    {
+                        builder.AppendLine("   类型：" + issue.Kind);
+                    }
+                    if (!string.IsNullOrWhiteSpace(issue.Owner) || !string.IsNullOrWhiteSpace(issue.Entity))
+                    {
+                        builder.AppendLine("   负责人/主体：" + issue.Owner + " / " + issue.Entity);
+                    }
+                    if (!string.IsNullOrWhiteSpace(issue.Customer))
+                    {
+                        builder.AppendLine("   客户：" + issue.Customer);
+                    }
+                    if (issue.LedgerRow > 0)
+                    {
+                        builder.AppendLine("   台账行：" + issue.LedgerRow);
+                    }
+                    if (!string.IsNullOrWhiteSpace(issue.PreviousValue) || !string.IsNullOrWhiteSpace(issue.CurrentValue))
+                    {
+                        builder.AppendLine("   对比：" + issue.PreviousValue + "；" + issue.CurrentValue);
+                    }
+                    if (!string.IsNullOrWhiteSpace(issue.Suggestion))
+                    {
+                        builder.AppendLine("   建议：" + issue.Suggestion);
+                    }
+                    if (!string.IsNullOrWhiteSpace(issue.TemplateFile))
+                    {
+                        builder.AppendLine("   上月模板：" + issue.TemplateFile);
+                    }
+                    if (!string.IsNullOrWhiteSpace(issue.SheetName))
+                    {
+                        builder.AppendLine("   工作表：" + issue.SheetName);
+                    }
+                    builder.AppendLine();
+                    index++;
+                }
+            }
+
+            return builder.ToString();
         }
 
         private void LogThreadSafe(string message)

@@ -41,5 +41,10 @@ namespace HainanSettlementTool.Excel
         {
             return _stage2Generator.Generate(options);
         }
+
+        public Stage2PreflightReport AnalyzeSettlement(Stage2Options options)
+        {
+            return _stage2Generator.Analyze(options);
+        }
     }
 }

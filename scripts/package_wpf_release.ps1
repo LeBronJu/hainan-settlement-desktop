@@ -81,10 +81,10 @@ if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
 }
 
 $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
-$packageName = "HainanSettlementTool-Win7-8-$Configuration-$stamp"
+$packageName = "HainanSettlementTool-Win10-11-$Configuration-$stamp"
 $packageDir = Join-Path $OutputRoot $packageName
 $zipPath = Join-Path $OutputRoot "$packageName.zip"
-$publishSource = Join-Path $ProjectRoot "src\HainanSettlementTool.WinForms\bin\$Configuration\net472"
+$publishSource = Join-Path $ProjectRoot "src\HainanSettlementTool.Wpf\bin\$Configuration\net472"
 
 Invoke-SolutionBuild
 
@@ -101,16 +101,16 @@ foreach ($pattern in $include) {
 }
 
 $readme = @(
-    "Hainan Settlement Tool - Win7/8 test build",
+    "Hainan Settlement Tool - Win10/11 test build",
     "",
     "How to run:",
-    "1. Make sure .NET Framework 4.7.2 or newer is installed.",
-    "2. Double-click the exe file.",
-    "3. Keep all dll and config files in this folder. Do not copy the exe alone.",
+    "1. Double-click the Win10/11 exe file.",
+    "2. Keep all dll and config files in this folder. Do not copy the exe alone.",
+    "3. Close Excel workbooks before running generation.",
     "",
-    "Safety:",
-    "- Do not commit real ledgers, customer data, settlement outputs, screenshots, or finance data.",
-    "- Close Excel workbooks before running generation."
+    "Notes:",
+    "- This build uses the Win10/11 WPF shell and the verified Core/Excel settlement logic.",
+    "- The Win7/8 build is packaged by scripts/package_release.ps1."
 )
 $readme | Set-Content -LiteralPath (Join-Path $packageDir "README.txt") -Encoding UTF8
 

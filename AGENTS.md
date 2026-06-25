@@ -12,7 +12,7 @@ This repository is the standalone C# desktop project for Hainan retail electrici
 
 ## Project Scope
 
-This repository contains only the C# rewrite. The earlier Python project remains in the original repository:
+This repository contains only the C# rewrite. The earlier Python project remains in the original repository and remains the full historical behavior reference:
 
 - `https://github.com/LeBronJu/hainan-settlement-tool`
 
@@ -21,11 +21,28 @@ The C# version is being built as a maintainable Windows desktop app. It should e
 ## Repository Layout
 
 - `HainanSettlementTool.sln`: solution file.
-- `src/HainanSettlementTool.WinForms/`: desktop UI only.
+- `src/HainanSettlementTool.WinForms/`: Win7/8 desktop UI only.
+- `src/HainanSettlementTool.Wpf/`: Win10/11 WPF desktop UI shell only.
 - `src/HainanSettlementTool.Core/`: business models, services, and interfaces.
 - `src/HainanSettlementTool.Excel/`: ClosedXML workbook reading/writing.
 - `docs/architecture.md`: layering and migration boundary.
+- `CONTEXT.md`: domain vocabulary and settlement rules.
+- `docs/dev-notes/`: architecture reviews, robustness priorities, and one-off technical notes.
 - `HANDOFF.md`: current state for future sessions.
+
+## Agent skills
+
+### Issue tracker
+
+Issues and PRDs are tracked in GitHub Issues for `LeBronJu/hainan-settlement-desktop`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Use the default five-role triage label vocabulary. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+This is a single-context repo. See `docs/agents/domain.md`.
 
 ## Engineering Rules
 
@@ -37,19 +54,27 @@ The C# version is being built as a maintainable Windows desktop app. It should e
 
 ## Current Functional Boundary
 
-Stage 1 currently aims to:
+Stage 1 currently supports:
 
-- Read an existing power workbook, or build one from `.xlsx`/`.csv` raw detail.
+- Read an existing power workbook, or build one from `.xlsx`/`.xls`/`.csv` raw detail.
 - Copy/update the ledger with current month power.
 - Add newly discovered customer names and customer codes where possible.
 - Emit a JSON report.
+- Run "clean power data only" without updating the ledger.
 
-Stage 1 does not yet:
+Stage 2 currently supports:
 
-- Directly clean `.xls` raw detail.
+- Read the manually reviewed current-month ledger.
+- Copy previous-month agent/intermediary split sheets as templates and write current-month input values.
+- Generate the current-month summary workbook from the previous/corrected summary template.
+- Emit a JSON settlement report and a text validation report.
+- Show a detailed preflight confirmation for key changes such as new split entities, new split customers, unit price changes, and tax-rate changes.
+
+Stage 1 and Stage 2 still do not:
+
 - Auto-fill volatile business fields such as负责人 or 项目开发人.
-- Generate summary workbooks.
-- Generate agent/intermediary split workbooks.
+- Change ledger customer names to match summary/payment-account names.
+- Treat irregular January/February 2026 data as generic rules.
 
 ## Business Rules To Preserve
 
@@ -63,12 +88,18 @@ Stage 1 does not yet:
 ## Build Command
 
 ```powershell
-& "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe" ".\HainanSettlementTool.sln" /restore /p:Configuration=Debug /m
+dotnet msbuild ".\HainanSettlementTool.sln" /restore /p:Configuration=Debug /m
+```
+
+## Build Portability Check
+
+```powershell
+.\scripts\check_build_portability.ps1
 ```
 
 ## Compatibility Target
 
 - Target framework: `.NET Framework 4.7.2`
 - Intended runtime: Windows 7 SP1 and later, with .NET Framework 4.7.2 or newer installed.
-- Development requires Visual Studio Build Tools 2022 or equivalent MSBuild plus .NET Framework 4.7.2 targeting pack.
-
+- Development requires .NET SDK 8 or newer, or equivalent MSBuild that can resolve SDK-style .NET Framework projects.
+- Packaging scripts should prefer `dotnet msbuild`; if `dotnet` is unavailable, use `vswhere` to discover MSBuild.exe instead of hard-coding a Visual Studio version path.
