@@ -638,11 +638,117 @@ namespace HainanSettlementTool.Excel
                     SetDetailFormula(worksheet.Cell(totalRow, column), "SUM(" + letter + DataStartRow + ":" + letter + last + ")");
                 }
             }
+
+            RepairDetailTotalRowStyles(worksheet, month, totalRow);
+            UpdateDetailSignatureDate(worksheet, totalRow);
         }
 
         private static void SetDetailFormula(IXLCell cell, string formula)
         {
             cell.FormulaA1 = formula;
+        }
+
+        private static void RepairDetailTotalRowStyles(IXLWorksheet worksheet, int month, int totalRow)
+        {
+            for (var column = 1; column <= 17; column++)
+            {
+                var target = worksheet.Cell(totalRow, column);
+                if (HasTemplateStyle(target))
+                {
+                    continue;
+                }
+
+                var source = FindPriorDetailTotalStyleCell(worksheet, month, column)
+                    ?? FindDetailRowStyleFallback(worksheet, totalRow, column);
+                if (source != null)
+                {
+                    target.Style = source.Style;
+                }
+            }
+        }
+
+        private static IXLCell FindPriorDetailTotalStyleCell(IXLWorksheet worksheet, int month, int column)
+        {
+            for (var candidateMonth = month - 1; candidateMonth >= 1; candidateMonth--)
+            {
+                var candidate = worksheet.Workbook.Worksheets.FirstOrDefault(sheet => sheet.Name == candidateMonth + "月");
+                if (candidate == null)
+                {
+                    continue;
+                }
+
+                int totalRow;
+                try
+                {
+                    totalRow = FindTotalRow(candidate, DataStartRow);
+                }
+                catch
+                {
+                    continue;
+                }
+
+                var source = candidate.Cell(totalRow, column);
+                if (HasTemplateStyle(source))
+                {
+                    return source;
+                }
+            }
+
+            return null;
+        }
+
+        private static IXLCell FindDetailRowStyleFallback(IXLWorksheet worksheet, int totalRow, int column)
+        {
+            var row = Math.Max(DataStartRow, totalRow - 1);
+            var source = worksheet.Cell(row, column);
+            return HasTemplateStyle(source) ? source : null;
+        }
+
+        private static bool HasTemplateStyle(IXLCell cell)
+        {
+            return cell.Style.Alignment.Horizontal != XLAlignmentHorizontalValues.General
+                || cell.Style.Border.LeftBorder != XLBorderStyleValues.None
+                || cell.Style.Border.RightBorder != XLBorderStyleValues.None
+                || cell.Style.Border.TopBorder != XLBorderStyleValues.None
+                || cell.Style.Border.BottomBorder != XLBorderStyleValues.None;
+        }
+
+        private static void UpdateDetailSignatureDate(IXLWorksheet worksheet, int totalRow)
+        {
+            foreach (var cell in worksheet.CellsUsed())
+            {
+                if (cell.Address.RowNumber <= totalRow)
+                {
+                    continue;
+                }
+
+                var text = TextUtil.S(cell.GetFormattedString());
+                if (!text.Contains("日期：") || text.Contains("结算日期"))
+                {
+                    continue;
+                }
+
+                var updated = ShiftSignatureDateText(text, 1);
+                if (!string.IsNullOrWhiteSpace(updated))
+                {
+                    cell.Value = updated;
+                }
+            }
+        }
+
+        private static string ShiftSignatureDateText(string text, int months)
+        {
+            var match = Regex.Match(TextUtil.S(text), "日期：\\s*(\\d{4})\\s*年\\s*(\\d{1,2})\\s*月\\s*(\\d{1,2})\\s*日");
+            if (!match.Success)
+            {
+                return null;
+            }
+
+            var date = new DateTime(
+                Convert.ToInt32(match.Groups[1].Value),
+                Convert.ToInt32(match.Groups[2].Value),
+                Convert.ToInt32(match.Groups[3].Value)).AddMonths(months);
+            return "日期：" + date.Year + "年" + date.Month.ToString("00") + "月" + date.Day.ToString("00") + "日";
         }
 
         private static void AddLedgerDifferenceIssue(
@@ -1020,9 +1126,9 @@ namespace HainanSettlementTool.Excel
         private static IList<SummaryMetaRow> ReadSummaryMeta(IXLWorksheet worksheet)
         {
             var cumulativeColumn = SummaryColumn(worksheet, "累计代理费总计");
-            var lastRow = worksheet.LastRowUsed()?.RowNumber() ?? 1;
+            var totalRow = FindSummaryTotalRow(worksheet, 4);
             var rows = new List<SummaryMetaRow>();
-            for (var row = 4; row <= lastRow; row++)
+            for (var row = 4; row < totalRow; row++)
             {
                 var entity = TextUtil.S(worksheet.Cell(row, 2).GetFormattedString());
                 var kind = TextUtil.S(worksheet.Cell(row, 3).GetFormattedString());

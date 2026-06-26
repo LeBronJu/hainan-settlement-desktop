@@ -1,6 +1,6 @@
 # Handoff
 
-Last updated: 2026-06-25
+Last updated: 2026-06-26
 
 ## Project
 
@@ -15,8 +15,9 @@ The Python project remains the historical full-function reference. The C# deskto
 
 ## Current Git State
 
-- Current branch: `main`
-- Latest main commit: `b9358e0 Merge branch 'codex/ui-modernization'`
+- Current branch: `codex/stage2-summary-detail-template-fixes`
+- Latest main/origin main commit: `7d43274 Merge branch 'codex/document-branch-rule'`
+- Branch purpose: fix Stage 2 generated workbook template correctness around split-sheet totals/styles/dates and summary-sheet footer handling.
 - Current release tag: `v1.0`
 - Release page: `https://github.com/LeBronJu/hainan-settlement-desktop/releases/tag/v1.0`
 - Win7/8 and Win10/11 entries are both part of `main`; they share Core/Excel logic but remain separate desktop apps.
@@ -92,6 +93,10 @@ Outputs:
 Current behavior:
 
 - Stage 2 is template-driven. It copies prior-month sheets and writes current-month input/value cells while preserving template formatting, hidden columns, merged headers, blank cells, date display formats, and non-current formulas.
+- Split workbooks rewrite total-row formula ranges after row insert/delete. If the copied total row lacks table border/alignment formatting, generation repairs it from a prior month total row or, as a fallback, the last detail row.
+- Split workbooks only update an existing bottom signature date after the total row; the date is shifted forward one month and no new bottom date is created when the template lacks one.
+- Summary workbooks treat only rows before the `合计` row as subject data. Footer/signature/audit rows after `合计` must not be interpreted as summary subjects.
+- Summary signature date defaults to the settlement month plus 2 months, day 8.
 - Before generation, Stage 2 analyzes key changes and asks the user to confirm detailed items.
 - Preflight items include new agent/intermediary relationship, new customer in a split sheet, profit unit-price change, tax-rate change, and previous template read failures.
 - During generation, Stage 2 audits split-table calculated results against ledger-derived values and writes differences to the validation report.
@@ -132,6 +137,23 @@ Observed result:
 - Release build passed for Win7/8 and Win10/11.
 - Packaging scripts produced both release zips.
 - Build portability check passed.
+
+Current Stage 2 template-fix branch verification on 2026-06-26:
+
+```powershell
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Release /m
+.\scripts\check_build_portability.ps1
+git diff --check
+```
+
+Observed result:
+
+- Core tests: 6 passed.
+- Excel tests: 5 passed, including synthetic Stage 2 workbook regressions for split-sheet total/date/style handling and summary footer protection.
+- Release build passed for Win7/8 and Win10/11.
+- Build portability check passed.
+- `git diff --check` passed; Git only printed CRLF normalization warnings.
 
 Authorized real `.xls` smoke check:
 
@@ -186,7 +208,7 @@ Packaging/docs:
 
 ## Next Steps
 
-1. Use the `v1.0` release packages for final business-side acceptance.
-2. If new bugs appear, reproduce with a copied/sanitized workbook whenever possible.
+1. Review and merge `codex/stage2-summary-detail-template-fixes` before continuing Stage 2 workbook-quality work.
+2. Use copied/sanitized workbooks for any real-data smoke; never write to the production `C:\Users\juqx2\Desktop\2026海南` tree.
 3. Next architecture slice, if desired: extract a shared workflow module so Win7/8 and Win10/11 do not duplicate stage execution flow.
-4. Consider adding a sanitized `.xls` fixture later; real `.xls` smoke passed, but the repository still has no committed `.xls` regression fixture.
+4. Consider adding sanitized Stage 2 fixture workbooks later; current regressions use dynamically generated synthetic workbooks.
