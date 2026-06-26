@@ -1,6 +1,6 @@
 # Handoff
 
-Last updated: 2026-06-25
+Last updated: 2026-06-26
 
 ## Project
 
@@ -17,7 +17,7 @@ The Python project remains the historical full-function reference. The C# deskto
 
 - Current branch: `codex/stage1-ledger-tests`
 - Latest main commit: `7d43274 Merge branch 'codex/document-branch-rule'`
-- Latest quality branch commit: `38b970f Add stage one ledger workbook tests`
+- Current quality branch work: Stage 1 ledger workbook tests plus documentation impact gate cleanup.
 - Current release tag: `v1.0`
 - Release page: `https://github.com/LeBronJu/hainan-settlement-desktop/releases/tag/v1.0`
 - Win7/8 and Win10/11 entries are both part of `main`; they share Core/Excel logic but remain separate desktop apps.
@@ -147,8 +147,9 @@ Authorized real `.xls` smoke check:
 
 Documentation is now part of the development contract:
 
-- Update relevant docs in the same work session as behavior, packaging, release, workflow, architecture, or business-rule changes.
-- Check `README.md`, `HANDOFF.md`, `CONTEXT.md`, and `docs/architecture.md` before finishing user-visible work.
+- Every code, config, script, packaging, business-rule, UI-behavior, test-workflow, or task-state change must end with a documentation impact judgment.
+- Update only documents whose responsibility is affected; do not rewrite unaffected docs for process compliance.
+- Business-rule changes must check `CONTEXT.md`; module-boundary changes must check `AGENTS.md` and an ADR or dev note; release/packaging changes must check `README.md` and `docs/RELEASE_CHECKLIST.md`; branch state, validation results, or next steps must check this `HANDOFF.md`.
 - Before finishing a change, record whether docs were affected. If yes, list the updated docs; if no, state why no doc update was needed.
 - Keep this `HANDOFF.md` current whenever branch state, release status, validation results, or next steps change.
 - Use `.github/PULL_REQUEST_TEMPLATE.md` as the merge-time documentation checklist.
@@ -187,6 +188,7 @@ Packaging/docs:
 - `AGENTS.md`
 - `CONTEXT.md`
 - `docs/architecture.md`
+- `docs/RELEASE_CHECKLIST.md`
 
 ## Next Steps
 
