@@ -15,9 +15,9 @@ The Python project remains the historical full-function reference. The C# deskto
 
 ## Current Git State
 
-- Current branch: `codex/stage2-summary-detail-template-fixes`
-- Latest main/origin main commit: `7d43274 Merge branch 'codex/document-branch-rule'`
-- Branch purpose: fix Stage 2 generated workbook template correctness around split-sheet totals/styles/dates and summary-sheet footer handling.
+- Current branch: `main`
+- Stage 2 workbook template fixes have been merged from `codex/stage2-summary-detail-template-fixes`.
+- Latest merged Stage 2 fix commit before this handoff update: `d8cefbd Document stage two real comparison outcome`
 - Current release tag: `v1.0`
 - Release page: `https://github.com/LeBronJu/hainan-settlement-desktop/releases/tag/v1.0`
 - Win7/8 and Win10/11 entries are both part of `main`; they share Core/Excel logic but remain separate desktop apps.
@@ -171,6 +171,14 @@ Follow-up comparison after rebuilding and regenerating Stage 2 output:
 - Remaining differences were reviewed with the user: formula-backed cells in the new output versus static values in the hand-edited workbook, more complete borders/styles in the new output, and bottom split-sheet dates shifted to `2026年6月8日` where the template already had a date. The user confirmed the monthly date shift is correct because only some agents require dated settlement sheets.
 - No further blocking Stage 2 output issue is known on this branch.
 
+Main branch package build after merging Stage 2 fixes:
+
+- `dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug` passed: Core 6 tests, Excel 6 tests.
+- `dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Release /m` passed.
+- `.\scripts\check_build_portability.ps1` passed.
+- Win10/11 package: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260626-141009.zip`
+- Win7/8 package: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win7-8-Release-20260626-141017.zip`
+
 Authorized real `.xls` smoke check:
 
 - File used locally: `D:\Document\文件处理\海南2026-4月代理费结算\零售侧明细结果.xls`
@@ -224,7 +232,7 @@ Packaging/docs:
 
 ## Next Steps
 
-1. Review and merge `codex/stage2-summary-detail-template-fixes`.
-2. If the branch is accepted, cut or publish a new test/release package from the merged main.
+1. Decide whether to publish a `v1.0.1` release from the current `main` Stage 2 fixes.
+2. Review the still-open `codex/stage1-ledger-tests` branch separately; it is independent of this Stage 2 fix.
 3. Next architecture slice, if desired: extract a shared workflow module so Win7/8 and Win10/11 do not duplicate stage execution flow.
 4. Consider adding sanitized Stage 2 fixture workbooks later; current regressions use dynamically generated synthetic workbooks.
