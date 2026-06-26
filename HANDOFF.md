@@ -163,6 +163,14 @@ Authorized real Stage 2 read-only comparison on 2026-06-26:
 - File set matched for Stage 2 workbooks: 19 split workbooks plus 1 summary workbook.
 - Split formulas matched after formula normalization. The real comparison exposed one date-valued bottom signature date that was not shifted and one missing summary `当月实际支付` header; both are now covered by tests and fixed in code.
 
+Follow-up comparison after rebuilding and regenerating Stage 2 output:
+
+- New generated folder inspected: `C:\Users\juqx2\Desktop\2026海南\test\test2`
+- The Stage 2 workbook file set still matched production: 19 split workbooks plus 1 summary workbook.
+- Visible summary headers and summary total values matched the manually corrected production workbook.
+- Remaining differences were reviewed with the user: formula-backed cells in the new output versus static values in the hand-edited workbook, more complete borders/styles in the new output, and bottom split-sheet dates shifted to `2026年6月8日` where the template already had a date. The user confirmed the monthly date shift is correct because only some agents require dated settlement sheets.
+- No further blocking Stage 2 output issue is known on this branch.
+
 Authorized real `.xls` smoke check:
 
 - File used locally: `D:\Document\文件处理\海南2026-4月代理费结算\零售侧明细结果.xls`
@@ -216,7 +224,7 @@ Packaging/docs:
 
 ## Next Steps
 
-1. Review and merge `codex/stage2-summary-detail-template-fixes` before continuing Stage 2 workbook-quality work.
-2. Use copied/sanitized workbooks for any real-data smoke; never write to the production `C:\Users\juqx2\Desktop\2026海南` tree.
+1. Review and merge `codex/stage2-summary-detail-template-fixes`.
+2. If the branch is accepted, cut or publish a new test/release package from the merged main.
 3. Next architecture slice, if desired: extract a shared workflow module so Win7/8 and Win10/11 do not duplicate stage execution flow.
 4. Consider adding sanitized Stage 2 fixture workbooks later; current regressions use dynamically generated synthetic workbooks.
