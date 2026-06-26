@@ -94,7 +94,7 @@ Current behavior:
 
 - Stage 2 is template-driven. It copies prior-month sheets and writes current-month input/value cells while preserving template formatting, hidden columns, merged headers, blank cells, date display formats, and non-current formulas.
 - Split workbooks rewrite total-row formula ranges after row insert/delete. If the copied total row lacks table border/alignment formatting, generation repairs it from a prior month total row or, as a fallback, the last detail row.
-- Split workbooks only update an existing bottom signature date after the total row; the date is shifted forward one month and no new bottom date is created when the template lacks one.
+- Split workbooks only update an existing bottom signature date after the total row; text dates and Excel date-valued cells are shifted forward one month, and no new bottom date is created when the template lacks one.
 - Summary workbooks treat only rows before the `合计` row as subject data. Footer/signature/audit rows after `合计` must not be interpreted as summary subjects.
 - Summary signature date defaults to the settlement month plus 2 months, day 8.
 - Before generation, Stage 2 analyzes key changes and asks the user to confirm detailed items.
@@ -150,10 +150,18 @@ git diff --check
 Observed result:
 
 - Core tests: 6 passed.
-- Excel tests: 5 passed, including synthetic Stage 2 workbook regressions for split-sheet total/date/style handling and summary footer protection.
+- Excel tests: 6 passed, including synthetic Stage 2 workbook regressions for split-sheet total/date/style handling, Excel date-valued signature dates, summary footer protection, and current-month actual-payment headers.
 - Release build passed for Win7/8 and Win10/11.
 - Build portability check passed.
 - `git diff --check` passed; Git only printed CRLF normalization warnings.
+
+Authorized real Stage 2 read-only comparison on 2026-06-26:
+
+- New generated folder inspected: `C:\Users\juqx2\Desktop\2026海南\test`
+- Manually corrected production folder inspected: `C:\Users\juqx2\Desktop\2026海南\海南2026-4月代理费结算`
+- Scope: Stage 2 `.xlsx` outputs only; ledger, raw detail, confirmation form, PDF, backups, and reports were not modified.
+- File set matched for Stage 2 workbooks: 19 split workbooks plus 1 summary workbook.
+- Split formulas matched after formula normalization. The real comparison exposed one date-valued bottom signature date that was not shifted and one missing summary `当月实际支付` header; both are now covered by tests and fixed in code.
 
 Authorized real `.xls` smoke check:
 

@@ -723,17 +723,55 @@ namespace HainanSettlementTool.Excel
                 }
 
                 var text = TextUtil.S(cell.GetFormattedString());
-                if (!text.Contains("日期：") || text.Contains("结算日期"))
+                if (text.Contains("结算日期"))
                 {
                     continue;
                 }
 
-                var updated = ShiftSignatureDateText(text, 1);
-                if (!string.IsNullOrWhiteSpace(updated))
+                if (text.Contains("日期："))
                 {
-                    cell.Value = updated;
+                    var updated = ShiftSignatureDateText(text, 1);
+                    if (!string.IsNullOrWhiteSpace(updated))
+                    {
+                        cell.Value = updated;
+                        continue;
+                    }
+                }
+
+                DateTime date;
+                if (TryGetDateFormattedCellValue(cell, out date))
+                {
+                    cell.Value = date.AddMonths(1);
                 }
             }
+        }
+
+        private static bool TryGetDateFormattedCellValue(IXLCell cell, out DateTime date)
+        {
+            date = default(DateTime);
+            var format = TextUtil.S(cell.Style.DateFormat.Format).ToLowerInvariant();
+            if (!format.Contains("y") || !format.Contains("m") || !format.Contains("d"))
+            {
+                return false;
+            }
+
+            try
+            {
+                date = cell.GetDateTime();
+                return true;
+            }
+            catch
+            {
+            }
+
+            var serial = ClosedXmlUtil.CellNumber(cell);
+            if (serial <= 20000 || serial >= 60000)
+            {
+                return false;
+            }
+
+            date = DateTime.FromOADate(serial);
+            return true;
         }
 
         private static string ShiftSignatureDateText(string text, int months)
@@ -1101,6 +1139,7 @@ namespace HainanSettlementTool.Excel
 
             UnmergeIntersecting(worksheet, 2, monthColumn + 5, 3, monthColumn + 5);
             worksheet.Range(2, monthColumn + 5, 3, monthColumn + 5).Merge();
+            worksheet.Cell(2, monthColumn + 5).Value = "当月实际支付";
         }
 
         private static void UnmergeIntersecting(IXLWorksheet worksheet, int firstRow, int firstColumn, int lastRow, int lastColumn)

@@ -68,6 +68,59 @@ namespace HainanSettlementTool.Excel.Tests
         }
 
         [TestMethod]
+        public void GenerateSettlementShiftsBottomExcelDateCells()
+        {
+            var root = Path.Combine(Path.GetTempPath(), "HainanSettlementToolTests", Guid.NewGuid().ToString("N"));
+            var ledgerPath = Path.Combine(root, "ledger.xlsx");
+            var proxyRoot = Path.Combine(root, "proxy");
+            var interRoot = Path.Combine(root, "intermediary");
+            var outputRoot = Path.Combine(root, "output");
+            var summaryPath = Path.Combine(root, "summary.xlsx");
+
+            try
+            {
+                Directory.CreateDirectory(proxyRoot);
+                Directory.CreateDirectory(interRoot);
+                Directory.CreateDirectory(outputRoot);
+
+                WriteLedgerWithProxyRows(ledgerPath, "测试负责人", "日期代理", "存量客户", "新增客户");
+                WriteProxyTemplateWithExcelDateSignature(proxyRoot, "测试负责人", "日期代理");
+                WriteSummaryTemplate(summaryPath, "日期代理", "代理费", "清辉");
+
+                var options = new Stage2Options
+                {
+                    Month = 4,
+                    LedgerPath = ledgerPath,
+                    ProxyTemplateDirectory = proxyRoot,
+                    IntermediaryTemplateDirectory = interRoot,
+                    SummaryTemplatePath = summaryPath,
+                    OutputDirectory = outputRoot
+                };
+
+                new Stage2Service(new ClosedXmlStage1ExcelGateway()).Run(options, null);
+
+                var outputPath = Path.Combine(
+                    outputRoot,
+                    "2026年代理 - 海南",
+                    "测试负责人 - 海南2026",
+                    "日期代理 2026海南.xlsx");
+                using (var workbook = new XLWorkbook(outputPath))
+                {
+                    var worksheet = workbook.Worksheet("4月");
+                    var dateCell = FindFormattedCell(worksheet, "2026年6月8日");
+                    Assert.AreEqual("yyyy\"年\"m\"月\"d\"日\";@", dateCell.Style.DateFormat.Format);
+                }
+            }
+            finally
+            {
+                if (Directory.Exists(root))
+                {
+                    Directory.Delete(root, true);
+                }
+            }
+        }
+
+        [TestMethod]
         public void GenerateSettlementKeepsSummaryFooterOutOfDataRowsWhenAddingSubject()
         {
             var root = Path.Combine(Path.GetTempPath(), "HainanSettlementToolTests", Guid.NewGuid().ToString("N"));
@@ -106,6 +159,7 @@ namespace HainanSettlementTool.Excel.Tests
                     Assert.AreEqual("存量代理", worksheet.Cell(4, 2).GetFormattedString());
                     Assert.AreEqual("新增代理", worksheet.Cell(5, 2).GetFormattedString());
                     Assert.AreEqual("合计", worksheet.Cell(6, 1).GetFormattedString());
+                    Assert.AreEqual("当月实际支付", worksheet.Cell(2, 27).GetFormattedString());
                     Assert.AreEqual("SUM(V4:V5)", worksheet.Cell(6, 22).FormulaA1);
                     Assert.AreEqual("日期：2026年06月08日", worksheet.Cell(9, 2).GetFormattedString());
                     Assert.AreEqual(string.Empty, worksheet.Cell(9, 1).GetFormattedString());
@@ -196,6 +250,24 @@ namespace HainanSettlementTool.Excel.Tests
             }
         }
 
+        private static void WriteProxyTemplateWithExcelDateSignature(string root, string owner, string entity)
+        {
+            var folder = Path.Combine(root, owner + " - 海南2026");
+            Directory.CreateDirectory(folder);
+            var path = Path.Combine(folder, entity + " 2026海南.xlsx");
+            using (var workbook = new XLWorkbook())
+            {
+                WriteDetailTemplateSheet(workbook.AddWorksheet("2月"), "代理", entity, 2, true);
+                var sheet = workbook.AddWorksheet("3月");
+                WriteDetailTemplateSheet(sheet, "代理", entity, 3, true);
+                sheet.Cell("B8").Clear(XLClearOptions.Contents);
+                sheet.Cell("N9").Value = new DateTime(2026, 5, 8);
+                sheet.Cell("N9").Style.DateFormat.Format = "yyyy\"年\"m\"月\"d\"日\";@";
+                sheet.Range("N9:O9").Merge();
+                workbook.SaveAs(path);
+            }
+        }
+
         private static void WriteDetailTemplateSheet(
             IXLWorksheet worksheet,
             string kind,
@@ -254,7 +326,7 @@ namespace HainanSettlementTool.Excel.Tests
             using (var workbook = new XLWorkbook())
             {
                 var worksheet = workbook.AddWorksheet("汇总表");
-                worksheet.Cell(2, 16).Value = "2026年3月";
+                WriteSummaryHeaders(worksheet);
                 worksheet.Cell(2, 22).Value = "累计代理费总计";
                 worksheet.Cell(4, 1).Value = 1;
                 worksheet.Cell(4, 2).Value = entity;
@@ -271,7 +343,7 @@ namespace HainanSettlementTool.Excel.Tests
             using (var workbook = new XLWorkbook())
             {
                 var worksheet = workbook.AddWorksheet("汇总表");
-                worksheet.Cell(2, 16).Value = "2026年3月";
+                WriteSummaryHeaders(worksheet);
                 worksheet.Cell(2, 22).Value = "累计代理费总计";
                 worksheet.Cell(4, 1).Value = 1;
                 worksheet.Cell(4, 2).Value = entity;
@@ -282,6 +354,19 @@ namespace HainanSettlementTool.Excel.Tests
                 worksheet.Cell(8, 2).Value = "日期：2026年05月08日";
                 workbook.SaveAs(path);
             }
+        }
+
+        private static void WriteSummaryHeaders(IXLWorksheet worksheet)
+        {
+            worksheet.Range(2, 16, 2, 20).Merge();
+            worksheet.Cell(2, 16).Value = "2026年3月";
+            worksheet.Cell(3, 16).Value = "代理费";
+            worksheet.Cell(3, 17).Value = "居间费";
+            worksheet.Cell(3, 18).Value = "退补电费";
+            worksheet.Cell(3, 19).Value = "当月抵扣";
+            worksheet.Cell(3, 20).Value = "费用合计";
+            worksheet.Range(2, 21, 3, 21).Merge();
+            worksheet.Cell(2, 21).Value = "当月实际支付";
         }
 
         private static void ApplySummaryDataRowStyle(IXLRow row)
@@ -304,6 +389,20 @@ namespace HainanSettlementTool.Excel.Tests
             }
 
             Assert.Fail("未找到签字日期单元格。");
+            return null;
+        }
+
+        private static IXLCell FindFormattedCell(IXLWorksheet worksheet, string formattedText)
+        {
+            foreach (var cell in worksheet.CellsUsed())
+            {
+                if (cell.GetFormattedString() == formattedText)
+                {
+                    return cell;
+                }
+            }
+
+            Assert.Fail("未找到显示文本为“" + formattedText + "”的单元格。");
             return null;
         }
 
