@@ -55,6 +55,26 @@ namespace HainanSettlementTool.Core.Services
             return _stage2Service.Analyze(options);
         }
 
+        public Stage2WorkflowPlan PlanStage2(Stage2Options options)
+        {
+            return new Stage2WorkflowPlan(options, AnalyzeStage2(options));
+        }
+
+        public Stage2WorkflowResult CompleteStage2(Stage2WorkflowPlan plan, bool confirmed, Action<string> log)
+        {
+            if (plan == null)
+            {
+                throw new ArgumentNullException(nameof(plan));
+            }
+
+            if (plan.RequiresConfirmation && !confirmed)
+            {
+                return Stage2WorkflowResult.Cancelled();
+            }
+
+            return Stage2WorkflowResult.Complete(RunStage2(plan.Options, log));
+        }
+
         public StageWorkflowResult<Stage2Report> RunStage2(Stage2Options options, Action<string> log)
         {
             var report = _stage2Service.Run(options, log);

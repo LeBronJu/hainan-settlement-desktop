@@ -329,40 +329,58 @@ namespace HainanSettlementTool.Wpf
 
             try
             {
-                Stage2PreflightReport preflight = null;
+                var workflow = CreateWorkflow();
+                Stage2WorkflowPlan plan = null;
                 await Task.Run(() =>
                 {
                     Dispatcher.Invoke(() => SetProgress(16, "读取台账并比对上月模板"));
-                    preflight = CreateWorkflow().AnalyzeStage2(options);
+                    plan = workflow.PlanStage2(options);
                 });
 
+                var preflight = plan.Preflight;
                 SetProgress(24, preflight.HasIssues ? "预检发现需要确认的变化" : "预检完成");
-                if (preflight.HasIssues)
+                var confirmed = true;
+                if (plan.RequiresConfirmation)
                 {
                     SetStatus("待确认", "WarningBrush", Color.FromRgb(255, 245, 224));
                     SetStepNeedsConfirmation(0);
                     AddLog("阶段二预检发现 " + preflight.Issues.Count + " 条需要确认的变化。", "阶段二");
-                    if (!ConfirmStage2Preflight(preflight))
+                    confirmed = ConfirmStage2Preflight(preflight);
+                    if (confirmed)
                     {
-                        AddLog("已取消阶段二生成。", "阶段二");
-                        ResetProgress("等待执行", "已取消阶段二");
-                        return;
+                        SetStatus("运行中", "WarningBrush", Color.FromRgb(255, 245, 224));
                     }
-
-                    SetStatus("运行中", "WarningBrush", Color.FromRgb(255, 245, 224));
                 }
                 else
                 {
                     AddLog("阶段二预检通过，未发现需要确认的变化。", "阶段二");
                 }
 
+                if (!confirmed)
+                {
+                    var cancelled = workflow.CompleteStage2(plan, confirmed, LogThreadSafe);
+                    if (cancelled.WasCancelled)
+                    {
+                        AddLog("已取消阶段二生成。", "阶段二");
+                        ResetProgress("等待执行", "已取消阶段二");
+                        return;
+                    }
+                }
+
                 SetStepDone(0);
                 SetProgress(34, "读取人工整理后的台账");
-                StageWorkflowResult<Stage2Report> result = null;
+                Stage2WorkflowResult result = null;
                 await Task.Run(() =>
                 {
-                    result = CreateWorkflow().RunStage2(options, LogThreadSafe);
+                    result = workflow.CompleteStage2(plan, confirmed, LogThreadSafe);
                 });
+
+                if (result.WasCancelled)
+                {
+                    AddLog("已取消阶段二生成。", "阶段二");
+                    ResetProgress("等待执行", "已取消阶段二");
+                    return;
+                }
 
                 SetStepDone(1);
                 SetStepDone(2);

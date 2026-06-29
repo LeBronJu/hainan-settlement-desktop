@@ -143,6 +143,7 @@ Two desktop entries exist and should continue to coexist:
 Both UI entries should remain thin shells for file selection, parameter input, confirmation, progress/log display, and error messages. Shared business behavior belongs in Core/Excel.
 The current workflow extraction branch adds Core `SettlementWorkflow` so both UI entries reuse the same stage completion summary rules while keeping UI-specific confirmation, progress, and error display local.
 Do not add WinForms-only features or UX improvements by default. New UI work should target WPF unless the user explicitly asks for Win7/8 support.
+Current Stage 2 workflow deepening keeps WPF responsible for the confirmation dialog and progress UI, while Core `SettlementWorkflow` owns the preflight plan and the confirmed/cancelled generation decision.
 
 ## Latest Verification
 
@@ -249,6 +250,19 @@ Observed result:
 - Core tests: 9 passed, including shared `SettlementWorkflow` summary tests.
 - Excel tests: 9 passed.
 
+Stage 2 workflow deepening verification on 2026-06-29:
+
+```powershell
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Debug /m
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+```
+
+Observed result:
+
+- Debug build passes for Core, Excel, WinForms, and WPF.
+- Core tests: 12 passed, including Stage 2 preflight continue/cancel workflow tests.
+- Excel tests: 9 passed.
+
 Authorized real `.xls` smoke check:
 
 - File used locally: `D:\Document\文件处理\海南2026-4月代理费结算\零售侧明细结果.xls`
@@ -280,6 +294,8 @@ Core:
 - `src/HainanSettlementTool.Core/Services/Stage1Service.cs`
 - `src/HainanSettlementTool.Core/Services/Stage2Service.cs`
 - `src/HainanSettlementTool.Core/Services/SettlementWorkflow.cs`
+- `src/HainanSettlementTool.Core/Services/Stage2WorkflowPlan.cs`
+- `src/HainanSettlementTool.Core/Services/Stage2WorkflowResult.cs`
 - `src/HainanSettlementTool.Core/Services/Stage2SettlementCalculator.cs`
 - `src/HainanSettlementTool.Core/Services/FileAccessGuard.cs`
 

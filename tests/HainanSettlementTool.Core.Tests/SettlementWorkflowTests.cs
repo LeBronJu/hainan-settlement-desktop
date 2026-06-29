@@ -98,6 +98,78 @@ namespace HainanSettlementTool.Core.Tests
             }
         }
 
+        [TestMethod]
+        public void CompleteStage2GeneratesWhenPreflightHasNoIssues()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var gateway = new FakeGateway();
+                var workflow = CreateWorkflow(gateway);
+                var options = CreateStage2Options(root);
+
+                var plan = workflow.PlanStage2(options);
+                var result = workflow.CompleteStage2(plan, confirmed: false, log: null);
+
+                Assert.IsFalse(plan.RequiresConfirmation);
+                Assert.IsFalse(result.WasCancelled);
+                Assert.AreSame(gateway.Stage2Report, result.Report);
+                Assert.AreEqual(1, gateway.GenerateSettlementCalls);
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
+        public void CompleteStage2GeneratesWhenPreflightHasIssuesAndUserConfirms()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var gateway = new FakeGateway { AddPreflightIssue = true };
+                var workflow = CreateWorkflow(gateway);
+                var options = CreateStage2Options(root);
+
+                var plan = workflow.PlanStage2(options);
+                var result = workflow.CompleteStage2(plan, confirmed: true, log: null);
+
+                Assert.IsTrue(plan.RequiresConfirmation);
+                Assert.IsFalse(result.WasCancelled);
+                Assert.AreSame(gateway.Stage2Report, result.Report);
+                Assert.AreEqual(1, gateway.GenerateSettlementCalls);
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
+        public void CompleteStage2DoesNotGenerateWhenPreflightHasIssuesAndUserCancels()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var gateway = new FakeGateway { AddPreflightIssue = true };
+                var workflow = CreateWorkflow(gateway);
+                var options = CreateStage2Options(root);
+
+                var plan = workflow.PlanStage2(options);
+                var result = workflow.CompleteStage2(plan, confirmed: false, log: null);
+
+                Assert.IsTrue(plan.RequiresConfirmation);
+                Assert.IsTrue(result.WasCancelled);
+                Assert.IsNull(result.Report);
+                Assert.AreEqual(0, gateway.GenerateSettlementCalls);
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
         private static SettlementWorkflow CreateWorkflow(FakeGateway gateway)
         {
             return new SettlementWorkflow(
@@ -157,6 +229,10 @@ namespace HainanSettlementTool.Core.Tests
 
         private sealed class FakeGateway : IStage1ExcelGateway, IStage2ExcelGateway
         {
+            public bool AddPreflightIssue { get; set; }
+
+            public int GenerateSettlementCalls { get; private set; }
+
             public readonly Stage1Report Stage1Report = new Stage1Report
             {
                 Output = "out-ledger.xlsx",
@@ -201,11 +277,22 @@ namespace HainanSettlementTool.Core.Tests
 
             public Stage2PreflightReport AnalyzeSettlement(Stage2Options options)
             {
-                return new Stage2PreflightReport();
+                var report = new Stage2PreflightReport();
+                if (AddPreflightIssue)
+                {
+                    report.Issues.Add(new Stage2CheckIssue
+                    {
+                        Severity = "提示",
+                        Category = "测试预检"
+                    });
+                }
+
+                return report;
             }
 
             public Stage2Report GenerateSettlement(Stage2Options options)
             {
+                GenerateSettlementCalls++;
                 return Stage2Report;
             }
         }
