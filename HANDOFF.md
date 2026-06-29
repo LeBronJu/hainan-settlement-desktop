@@ -17,7 +17,8 @@ The stable local reference folder is for future comparison/orientation only; do 
 
 ## Current Git State
 
-- Current branch: `main`
+- Current branch: `codex/real-smoke-runner`
+- Quality branch `codex/real-smoke-runner` adds a parameterized real-data smoke runner script. It should be reviewed before merging to `main`.
 - Stage 2 workbook template fixes have been merged from `codex/stage2-summary-detail-template-fixes`.
 - Latest merged Stage 2 fix commit before this handoff update: `d8cefbd Document stage two real comparison outcome`
 - Current release tag: `v1.0.1`
@@ -283,6 +284,13 @@ Authorized real 2026-05 smoke rerun on 2026-06-29:
 - Stage 2 smoke completed: 16 proxy workbooks, 3 intermediary workbooks, 1 summary workbook, and 0 formula error text hits across generated `.xlsx` files.
 - Stage 2 validation report still contains 1 new-template prompt and 7 amount audit differences at `0.0001` 万元 scale. The user confirmed those differences are rounding differences and not blocking; the current generator writes summary amounts from split-sheet self-calculation.
 - Stable local reference folder recorded for future comparison: `D:\Document\文件处理\稳定参考版海南结算`. Do not read real workbook contents there without explicit user authorization.
+
+Real smoke runner branch verification on 2026-06-29:
+
+- Added `scripts/run_real_smoke.ps1`.
+- The runner accepts explicit input paths and does not hard-code real workbook directories.
+- Smoke output from script validation: `C:\Users\juqx2\Desktop\2026海南\test\real-smoke-20260629-141431`
+- Result matched the previous manual 2026-05 smoke: 69 cleaned rows, 0 power comparison differences, 59 matched stage 1 rows, 10 new stage 1 rows, 16 proxy workbooks, 3 intermediary workbooks, 1 summary workbook, 8 stage 2 audit issues including the known rounding/template prompts, and 0 formula error text hits.
 
 ## Documentation Rule
 

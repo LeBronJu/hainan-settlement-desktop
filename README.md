@@ -87,6 +87,12 @@ dotnet msbuild ".\HainanSettlementTool.sln" /restore /p:Configuration=Debug /m
 .\scripts\check_build_portability.ps1
 ```
 
+授权读取真实工作副本后，可用参数化 smoke 脚本跑阶段1/阶段2本地验收；脚本不会内置真实数据路径，输出写到指定 `OutputRoot` 下的新目录：
+
+```powershell
+.\scripts\run_real_smoke.ps1 -Month 5 -RawDetailPath "<原始明细.xls>" -ExistingPowerPath "<已清洗电量表.xlsx>" -BaseLedgerPath "<基础台账.xlsx>" -ReviewedLedgerPath "<人工整理后的台账.xlsx>" -ProxyTemplateDirectory "<上月代理分表文件夹>" -IntermediaryTemplateDirectory "<上月居间分表文件夹>" -SummaryTemplatePath "<上月汇总表.xlsx>" -OutputRoot "<临时输出文件夹>"
+```
+
 当前解决方案已编译通过。`v1.0.1` 发布前验证包含 Debug 测试、Release 构建、打包脚本、构建脚本兼容性检查，以及授权真实阶段二输出只读对比。
 
 ## 发布打包
