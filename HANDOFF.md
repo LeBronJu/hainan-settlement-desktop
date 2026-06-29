@@ -1,6 +1,6 @@
 # Handoff
 
-Last updated: 2026-06-26
+Last updated: 2026-06-29
 
 ## Project
 
@@ -18,12 +18,33 @@ The Python project remains the historical full-function reference. The C# deskto
 - Current branch: `main`
 - Stage 2 workbook template fixes have been merged from `codex/stage2-summary-detail-template-fixes`.
 - Latest merged Stage 2 fix commit before this handoff update: `d8cefbd Document stage two real comparison outcome`
-- Current release tag: `v1.0`
-- Release page: `https://github.com/LeBronJu/hainan-settlement-desktop/releases/tag/v1.0`
+- Current release tag: `v1.0.1`
+- Release page: `https://github.com/LeBronJu/hainan-settlement-desktop/releases/tag/v1.0.1`
 - Win7/8 and Win10/11 entries are both part of `main`; they share Core/Excel logic but remain separate desktop apps.
 - Do not add real ledgers, customer data, settlement outputs, screenshots, or finance/payment data to git.
 
 Use `git status --short --branch` before editing. The expected post-release worktree is clean.
+
+## Release 1.0.1
+
+GitHub Release title:
+
+- `海南售电结算自动化工具 v1.0.1`
+
+Release assets:
+
+- `HainanSettlementTool-Win7-8-v1.0.1.zip`
+- `HainanSettlementTool-Win10-11-v1.0.1.zip`
+
+Local package copies:
+
+- `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win7-8-v1.0.1.zip`
+- `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-v1.0.1.zip`
+
+Notes:
+
+- `v1.0.1` publishes the Stage 2 workbook template fixes from `main`.
+- The release keeps the existing Win7/8 and Win10/11 split packages.
 
 ## Release 1.0
 
@@ -179,6 +200,26 @@ Main branch package build after merging Stage 2 fixes:
 - Win10/11 package: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260626-141009.zip`
 - Win7/8 package: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win7-8-Release-20260626-141017.zip`
 
+Release `v1.0.1` verification on 2026-06-29:
+
+```powershell
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Release /m
+.\scripts\check_build_portability.ps1
+git diff --check
+.\scripts\package_release.ps1
+.\scripts\package_wpf_release.ps1
+```
+
+Observed result:
+
+- Core tests: 6 passed.
+- Excel tests: 6 passed.
+- Release build passes for Win7/8 and Win10/11.
+- Build portability check passes.
+- `git diff --check` passes; Git only prints CRLF normalization warnings.
+- Both release zips are copied to stable `v1.0.1` asset names under `dist/`.
+
 Authorized real `.xls` smoke check:
 
 - File used locally: `D:\Document\文件处理\海南2026-4月代理费结算\零售侧明细结果.xls`
@@ -225,6 +266,7 @@ Packaging/docs:
 - `scripts/package_release.ps1`
 - `scripts/package_wpf_release.ps1`
 - `scripts/check_build_portability.ps1`
+- `docs/RELEASE_CHECKLIST.md`
 - `README.md`
 - `AGENTS.md`
 - `CONTEXT.md`
@@ -232,7 +274,6 @@ Packaging/docs:
 
 ## Next Steps
 
-1. Decide whether to publish a `v1.0.1` release from the current `main` Stage 2 fixes.
-2. Review the still-open `codex/stage1-ledger-tests` branch separately; it is independent of this Stage 2 fix.
-3. Next architecture slice, if desired: extract a shared workflow module so Win7/8 and Win10/11 do not duplicate stage execution flow.
-4. Consider adding sanitized Stage 2 fixture workbooks later; current regressions use dynamically generated synthetic workbooks.
+1. Review the still-open `codex/stage1-ledger-tests` branch separately; it is independent of this Stage 2 fix.
+2. Next architecture slice, if desired: extract a shared workflow module so Win7/8 and Win10/11 do not duplicate stage execution flow.
+3. Consider adding sanitized Stage 2 fixture workbooks later; current regressions use dynamically generated synthetic workbooks.

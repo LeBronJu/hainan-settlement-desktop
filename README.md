@@ -10,12 +10,12 @@ GitHub 仓库：
 
 ## 当前版本
 
-- 最新正式版本：`v1.0`
-- Release 页面：`https://github.com/LeBronJu/hainan-settlement-desktop/releases/tag/v1.0`
+- 最新正式版本：`v1.0.1`
+- Release 页面：`https://github.com/LeBronJu/hainan-settlement-desktop/releases/tag/v1.0.1`
 - 当前主线：`main`
 - 当前正式包：
-  - `HainanSettlementTool-Win7-8-v1.0.zip`
-  - `HainanSettlementTool-Win10-11-v1.0.zip`
+  - `HainanSettlementTool-Win7-8-v1.0.1.zip`
+  - `HainanSettlementTool-Win10-11-v1.0.1.zip`
 
 ## 当前范围
 
@@ -37,6 +37,7 @@ src/
   HainanSettlementTool.Excel/      # ClosedXML / ExcelDataReader 文件读写实现
 docs/
   architecture.md                  # 分层和迁移边界
+  RELEASE_CHECKLIST.md             # 正式发版前检查清单
   dev-notes/                       # 鲁棒性、解耦和临时技术记录
 CONTEXT.md                         # 领域术语、业务口径和架构约束
 HANDOFF.md                         # 当前版本状态、验证记录和下一步
@@ -82,7 +83,7 @@ dotnet msbuild ".\HainanSettlementTool.sln" /restore /p:Configuration=Debug /m
 .\scripts\check_build_portability.ps1
 ```
 
-当前解决方案已编译通过。`v1.0` 发布前验证包含 Debug 测试、Release 构建、打包脚本、构建脚本兼容性检查，以及授权真实 `.xls` 原始明细 smoke test。
+当前解决方案已编译通过。`v1.0.1` 发布前验证包含 Debug 测试、Release 构建、打包脚本、构建脚本兼容性检查，以及授权真实阶段二输出只读对比。
 
 ## 发布打包
 
@@ -102,8 +103,8 @@ dotnet msbuild ".\HainanSettlementTool.sln" /restore /p:Configuration=Debug /m
 
 正式发布时，GitHub Release 附件使用稳定 ASCII 文件名：
 
-- `HainanSettlementTool-Win7-8-v1.0.zip`
-- `HainanSettlementTool-Win10-11-v1.0.zip`
+- `HainanSettlementTool-Win7-8-v1.0.1.zip`
+- `HainanSettlementTool-Win10-11-v1.0.1.zip`
 
 ## 重要限制
 

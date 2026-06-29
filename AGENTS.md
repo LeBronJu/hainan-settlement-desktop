@@ -51,9 +51,10 @@ This is a single-context repo. See `docs/agents/domain.md`.
 - Core must not reference ClosedXML, WinForms, or file-format implementation details.
 - Excel layer owns workbook reading/writing and template copying.
 - Keep stage boundaries explicit.
-- Keep documentation current. Any behavior, packaging, release, workflow, architecture, or business-rule change must update the relevant docs in the same work session before the work is considered done.
-- At minimum, review `README.md`, `HANDOFF.md`, `CONTEXT.md`, and `docs/architecture.md` when changing user-visible behavior or stage boundaries.
-- For temporary investigations or one-off architecture notes, add or update a dated file under `docs/dev-notes/`.
+- Keep documentation current by making a documentation impact judgment before finishing any code, configuration, script, packaging, release, workflow, architecture, business-rule, UI-behavior, test-process, or task-state change.
+- If documentation is affected, update the relevant docs and list them in the final response. If documentation is not affected, explain why in the final response. Missing this judgment means the task is not complete.
+- Do not update every document by default. Choose the docs that own the changed area: user-visible behavior usually affects `README.md` and `HANDOFF.md`; business rules affect `CONTEXT.md`; module boundaries affect `AGENTS.md` plus an ADR or dated dev-note; release and packaging changes affect `README.md`, `HANDOFF.md`, and `docs/RELEASE_CHECKLIST.md`.
+- Temporary local setup or one-off machine work that does not enter the project mainline can explicitly skip project documentation.
 
 ## Current Functional Boundary
 
