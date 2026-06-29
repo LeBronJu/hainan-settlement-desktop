@@ -16,6 +16,7 @@ The Python project remains the historical full-function reference. The C# deskto
 ## Current Git State
 
 - Current branch: `main`
+- Current quality branch: `codex/extract-stage-workflows`
 - Stage 2 workbook template fixes have been merged from `codex/stage2-summary-detail-template-fixes`.
 - Latest merged Stage 2 fix commit before this handoff update: `d8cefbd Document stage two real comparison outcome`
 - Current release tag: `v1.0.1`
@@ -139,6 +140,7 @@ Two desktop entries exist and should continue to coexist:
 - `src/HainanSettlementTool.Wpf`: Win10/11 UI shell on `.NET Framework 4.7.2`.
 
 Both UI entries should remain thin shells for file selection, parameter input, confirmation, progress/log display, and error messages. Shared business behavior belongs in Core/Excel.
+The current workflow extraction branch adds Core `SettlementWorkflow` so both UI entries reuse the same stage completion summary rules while keeping UI-specific confirmation, progress, and error display local.
 
 ## Latest Verification
 
@@ -232,6 +234,19 @@ Observed result:
 - Core tests: 6 passed.
 - Excel tests: 9 passed, including the Stage 1 ledger workbook tests for inserting new customers before footer rows, filling only unambiguous customer codes, and preserving the base ledger by writing an output copy.
 
+Workflow extraction branch verification on 2026-06-29:
+
+```powershell
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Debug /m
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+```
+
+Observed result:
+
+- Debug build passes for Core, Excel, WinForms, and WPF.
+- Core tests: 9 passed, including shared `SettlementWorkflow` summary tests.
+- Excel tests: 9 passed.
+
 Authorized real `.xls` smoke check:
 
 - File used locally: `D:\Document\文件处理\海南2026-4月代理费结算\零售侧明细结果.xls`
@@ -259,6 +274,7 @@ Core:
 
 - `src/HainanSettlementTool.Core/Services/Stage1Service.cs`
 - `src/HainanSettlementTool.Core/Services/Stage2Service.cs`
+- `src/HainanSettlementTool.Core/Services/SettlementWorkflow.cs`
 - `src/HainanSettlementTool.Core/Services/Stage2SettlementCalculator.cs`
 - `src/HainanSettlementTool.Core/Services/FileAccessGuard.cs`
 
@@ -291,7 +307,7 @@ Packaging/docs:
 
 ## Next Steps
 
-1. Use the `v1.0.1` release packages for business-side acceptance.
-2. Next architecture slice, if desired: extract a shared workflow module so Win7/8 and Win10/11 do not duplicate stage execution flow.
+1. Review and merge `codex/extract-stage-workflows` after final diff/validation if no UI behavior concern appears.
+2. Use the `v1.0.1` release packages for business-side acceptance.
 3. Consider adding sanitized Stage 2 fixture workbooks later; current regressions use dynamically generated synthetic workbooks.
 4. Consider adding a sanitized `.xls` fixture later; real `.xls` smoke passed, but the repository still has no committed `.xls` regression fixture.

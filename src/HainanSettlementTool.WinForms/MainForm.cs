@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -715,11 +716,8 @@ namespace HainanSettlementTool.WinForms
                 Log("开始阶段1，请不要关闭应用窗口。");
                 await Task.Run(() =>
                 {
-                    var service = new Stage1Service(new ClosedXmlStage1ExcelGateway());
-                    var report = service.Run(options, LogThreadSafe);
-                    LogThreadSafe("阶段1完成。");
-                    LogThreadSafe("输出台账：" + report.Output);
-                    LogThreadSafe("报告：" + report.ReportPath);
+                    var result = CreateWorkflow().RunStage1(options, LogThreadSafe);
+                    LogSummary(result.SummaryLines);
                 });
             }
             catch (Exception ex)
@@ -769,11 +767,8 @@ namespace HainanSettlementTool.WinForms
                 Log("开始清洗电量数据。");
                 await Task.Run(() =>
                 {
-                    var service = new Stage1Service(new ClosedXmlStage1ExcelGateway());
-                    var report = service.CleanPowerData(rawDetailPath, outputPath, LogThreadSafe);
-                    LogThreadSafe("电量清洗完成。");
-                    LogThreadSafe("电量处理表：" + report.OutputPath);
-                    LogThreadSafe("客户数量：" + report.PowerRows + "，合计电量：" + report.MonthTotal.ToString("0.####"));
+                    var result = CreateWorkflow().CleanPowerData(rawDetailPath, outputPath, LogThreadSafe);
+                    LogSummary(result.SummaryLines);
                 });
             }
             catch (Exception ex)
@@ -801,8 +796,7 @@ namespace HainanSettlementTool.WinForms
                     return;
                 }
 
-                var service = new Stage2Service(new ClosedXmlStage1ExcelGateway());
-                var preflight = service.Analyze(options);
+                var preflight = CreateWorkflow().AnalyzeStage2(options);
                 if (preflight.HasIssues && !ConfirmStage2Preflight(preflight))
                 {
                     Log("已取消阶段2生成。");
@@ -825,13 +819,8 @@ namespace HainanSettlementTool.WinForms
                 Log("开始阶段2，请确认台账和模板文件没有在 Excel 中打开。");
                 await Task.Run(() =>
                 {
-                    var service = new Stage2Service(new ClosedXmlStage1ExcelGateway());
-                    var report = service.Run(options, LogThreadSafe);
-                    LogThreadSafe("阶段2完成。");
-                    LogThreadSafe("汇总表：" + report.Summary);
-                    LogThreadSafe("报告：" + report.ReportPath);
-                    LogThreadSafe("代理费合计：" + report.ProxyTotal.ToString("0.####"));
-                    LogThreadSafe("居间费合计：" + report.IntermediaryTotal.ToString("0.####"));
+                    var result = CreateWorkflow().RunStage2(options, LogThreadSafe);
+                    LogSummary(result.SummaryLines);
                 });
             }
             catch (Exception ex)
@@ -884,6 +873,22 @@ namespace HainanSettlementTool.WinForms
             }
 
             return Path.Combine(outputDirectory, "零售侧用户电量数据处理表.xlsx");
+        }
+
+        private static SettlementWorkflow CreateWorkflow()
+        {
+            var gateway = new ClosedXmlStage1ExcelGateway();
+            return new SettlementWorkflow(
+                new Stage1Service(gateway),
+                new Stage2Service(gateway));
+        }
+
+        private void LogSummary(IEnumerable<string> summaryLines)
+        {
+            foreach (var line in summaryLines)
+            {
+                LogThreadSafe(line);
+            }
         }
 
         private Stage2Options CreateStage2Options()

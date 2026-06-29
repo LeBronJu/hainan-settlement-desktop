@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -191,7 +192,7 @@ namespace HainanSettlementTool.Wpf
 
             try
             {
-                Stage1Report report = null;
+                StageWorkflowResult<Stage1Report> result = null;
                 await Task.Run(() =>
                 {
                     Dispatcher.Invoke(() =>
@@ -201,8 +202,7 @@ namespace HainanSettlementTool.Wpf
                         SetProgress(28, "读取台账和电量文件");
                     });
 
-                    var service = new Stage1Service(new ClosedXmlStage1ExcelGateway());
-                    report = service.Run(options, LogThreadSafe);
+                    result = CreateWorkflow().RunStage1(options, LogThreadSafe);
                 });
 
                 SetStepDone(1);
@@ -210,9 +210,7 @@ namespace HainanSettlementTool.Wpf
                 SetStepDone(3);
                 SetStepDone(4);
                 SetProgress(100, "阶段一执行完成");
-                AddLog("阶段一执行完成。", "成功");
-                AddLog("输出台账：" + report.Output, "信息");
-                AddLog("报告：" + report.ReportPath, "信息");
+                LogSummary(result.SummaryLines);
 
                 Stage1ResultStatus.Text = "成功";
                 Stage1ResultCount.Text = "1 个文件";
@@ -266,7 +264,7 @@ namespace HainanSettlementTool.Wpf
 
             try
             {
-                PowerCleanReport report = null;
+                StageWorkflowResult<PowerCleanReport> result = null;
                 await Task.Run(() =>
                 {
                     Dispatcher.Invoke(() =>
@@ -276,8 +274,7 @@ namespace HainanSettlementTool.Wpf
                         SetProgress(35, "读取原始零售侧明细");
                     });
 
-                    var service = new Stage1Service(new ClosedXmlStage1ExcelGateway());
-                    report = service.CleanPowerData(rawDetailPath, outputPath, LogThreadSafe);
+                    result = CreateWorkflow().CleanPowerData(rawDetailPath, outputPath, LogThreadSafe);
                 });
 
                 SetStepDone(1);
@@ -285,12 +282,10 @@ namespace HainanSettlementTool.Wpf
                 SetStepDone(3);
                 SetStepDone(4);
                 SetProgress(100, "电量清洗完成");
-                AddLog("电量清洗完成。", "成功");
-                AddLog("电量处理表：" + report.OutputPath, "信息");
-                AddLog("客户数量：" + report.PowerRows + "，合计电量：" + report.MonthTotal.ToString("0.####"), "信息");
+                LogSummary(result.SummaryLines);
 
                 Stage1ResultStatus.Text = "成功";
-                Stage1ResultCount.Text = report.PowerRows + " 个客户";
+                Stage1ResultCount.Text = result.Report.PowerRows + " 个客户";
                 FinishedAtText.Text = DateTime.Now.ToString("HH:mm:ss");
                 ShowCompletion("电量清洗完成", "电量处理表已生成", outputDirectory);
             }
@@ -338,8 +333,7 @@ namespace HainanSettlementTool.Wpf
                 await Task.Run(() =>
                 {
                     Dispatcher.Invoke(() => SetProgress(16, "读取台账并比对上月模板"));
-                    var preflightService = new Stage2Service(new ClosedXmlStage1ExcelGateway());
-                    preflight = preflightService.Analyze(options);
+                    preflight = CreateWorkflow().AnalyzeStage2(options);
                 });
 
                 SetProgress(24, preflight.HasIssues ? "预检发现需要确认的变化" : "预检完成");
@@ -364,11 +358,10 @@ namespace HainanSettlementTool.Wpf
 
                 SetStepDone(0);
                 SetProgress(34, "读取人工整理后的台账");
-                Stage2Report report = null;
+                StageWorkflowResult<Stage2Report> result = null;
                 await Task.Run(() =>
                 {
-                    var service = new Stage2Service(new ClosedXmlStage1ExcelGateway());
-                    report = service.Run(options, LogThreadSafe);
+                    result = CreateWorkflow().RunStage2(options, LogThreadSafe);
                 });
 
                 SetStepDone(1);
@@ -376,16 +369,12 @@ namespace HainanSettlementTool.Wpf
                 SetStepDone(3);
                 SetStepDone(4);
                 SetProgress(100, "阶段二执行完成");
-                AddLog("阶段二执行完成。", "成功");
-                AddLog("汇总表：" + report.Summary, "信息");
-                AddLog("报告：" + report.ReportPath, "信息");
-                AddLog("代理费合计：" + report.ProxyTotal.ToString("0.####"), "信息");
-                AddLog("居间费合计：" + report.IntermediaryTotal.ToString("0.####"), "信息");
+                LogSummary(result.SummaryLines);
 
                 ProxyResultStatus.Text = "成功";
-                ProxyResultCount.Text = report.ProxyGroups + " 个文件";
+                ProxyResultCount.Text = result.Report.ProxyGroups + " 个文件";
                 IntermediaryResultStatus.Text = "成功";
-                IntermediaryResultCount.Text = report.IntermediaryGroups + " 个文件";
+                IntermediaryResultCount.Text = result.Report.IntermediaryGroups + " 个文件";
                 SummaryResultStatus.Text = "成功";
                 SummaryResultCount.Text = "1 个文件";
                 FinishedAtText.Text = DateTime.Now.ToString("HH:mm:ss");
@@ -454,6 +443,24 @@ namespace HainanSettlementTool.Wpf
                 OutputDirectory = OutputDirBox.Text.Trim(),
                 AllowMissingOwner = AllowMissingOwnerCheckBox.IsChecked == true
             };
+        }
+
+        private static SettlementWorkflow CreateWorkflow()
+        {
+            var gateway = new ClosedXmlStage1ExcelGateway();
+            return new SettlementWorkflow(
+                new Stage1Service(gateway),
+                new Stage2Service(gateway));
+        }
+
+        private void LogSummary(IEnumerable<string> summaryLines)
+        {
+            var first = true;
+            foreach (var line in summaryLines)
+            {
+                AddLog(line, first ? "成功" : "信息");
+                first = false;
+            }
         }
 
         private int SelectedMonth()
