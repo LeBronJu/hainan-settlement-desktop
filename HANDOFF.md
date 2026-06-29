@@ -281,7 +281,7 @@ Authorized real 2026-05 smoke rerun on 2026-06-29:
 - Stage 1 raw `.xls` cleaning matched the existing production cleaned workbook: 69 rows, no missing/extra customer keys, and no power value differences.
 - Stage 1 ledger update smoke completed: 69 power rows, 59 matched rows, 10 new rows, 10 missing manual-info rows, and 0 missing codes.
 - Stage 2 smoke completed: 16 proxy workbooks, 3 intermediary workbooks, 1 summary workbook, and 0 formula error text hits across generated `.xlsx` files.
-- Stage 2 validation report still contains 1 new-template prompt and 7 amount audit differences at `0.0001` 万元 scale. Treat those as business review items; the current generator writes summary amounts from split-sheet self-calculation.
+- Stage 2 validation report still contains 1 new-template prompt and 7 amount audit differences at `0.0001` 万元 scale. The user confirmed those differences are rounding differences and not blocking; the current generator writes summary amounts from split-sheet self-calculation.
 - Stable local reference folder recorded for future comparison: `D:\Document\文件处理\稳定参考版海南结算`. Do not read real workbook contents there without explicit user authorization.
 
 ## Documentation Rule
