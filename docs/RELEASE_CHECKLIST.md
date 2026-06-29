@@ -24,15 +24,22 @@ git diff --check
 
 ## Documentation Impact Gate
 
-Make a documentation impact judgment before tagging:
+Make a documentation impact judgment before merging release-bound changes or tagging:
 
 - Release version, assets, package names, or release status changed: update `README.md` and `HANDOFF.md`.
 - Packaging or release procedure changed: update this checklist.
 - Architecture boundaries changed: update `docs/architecture.md` and, if needed, a dated dev-note.
 - Business rules changed: review and update `CONTEXT.md`.
+- Branch state, validation results, or next steps changed: update `HANDOFF.md`.
 - No docs affected: state the reason in the final response.
 
 Do not update unrelated documents just to satisfy the gate.
+
+## Validation Gate
+
+- Run relevant tests, builds, and packaging checks, or explain why they are not needed.
+- Confirm no real ledgers, customer data, settlement outputs, screenshots, or sensitive finance data are included.
+- Confirm generated packages contain all required `.dll`, `.config`, and executable files.
 
 ## Assets And Publish
 

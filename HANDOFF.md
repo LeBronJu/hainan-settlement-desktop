@@ -20,10 +20,11 @@ The Python project remains the historical full-function reference. The C# deskto
 - Latest merged Stage 2 fix commit before this handoff update: `d8cefbd Document stage two real comparison outcome`
 - Current release tag: `v1.0.1`
 - Release page: `https://github.com/LeBronJu/hainan-settlement-desktop/releases/tag/v1.0.1`
+- Stage 1 ledger workbook tests and documentation impact gate cleanup have been integrated from `codex/stage1-ledger-tests`.
 - Win7/8 and Win10/11 entries are both part of `main`; they share Core/Excel logic but remain separate desktop apps.
 - Do not add real ledgers, customer data, settlement outputs, screenshots, or finance/payment data to git.
 
-Use `git status --short --branch` before editing. The expected post-release worktree is clean.
+Use `git status --short --branch` before editing. The expected handoff worktree is clean.
 
 ## Release 1.0.1
 
@@ -154,7 +155,7 @@ dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Release /m
 Observed result:
 
 - Core tests: 6 passed.
-- Excel tests: 3 passed.
+- Excel tests: 3 passed in `v1.0`; current quality branch adds Stage 1 ledger workbook tests and brings Excel tests to 6 passed.
 - Release build passed for Win7/8 and Win10/11.
 - Packaging scripts produced both release zips.
 - Build portability check passed.
@@ -220,6 +221,17 @@ Observed result:
 - `git diff --check` passes; Git only prints CRLF normalization warnings.
 - Both release zips are copied to stable `v1.0.1` asset names under `dist/`.
 
+Stage 1 ledger test branch integration on 2026-06-29:
+
+```powershell
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+```
+
+Observed result:
+
+- Core tests: 6 passed.
+- Excel tests: 9 passed, including the Stage 1 ledger workbook tests for inserting new customers before footer rows, filling only unambiguous customer codes, and preserving the base ledger by writing an output copy.
+
 Authorized real `.xls` smoke check:
 
 - File used locally: `D:\Document\文件处理\海南2026-4月代理费结算\零售侧明细结果.xls`
@@ -233,8 +245,12 @@ Authorized real `.xls` smoke check:
 
 Documentation is now part of the development contract:
 
-- Update relevant docs in the same work session as behavior, packaging, release, workflow, architecture, or business-rule changes.
-- Check `README.md`, `HANDOFF.md`, `CONTEXT.md`, and `docs/architecture.md` before finishing user-visible work.
+- Every code, config, script, packaging, business-rule, UI-behavior, test-workflow, or task-state change must end with a documentation impact judgment.
+- Update only documents whose responsibility is affected; do not rewrite unaffected docs for process compliance.
+- Business-rule changes must check `CONTEXT.md`; module-boundary changes must check `AGENTS.md` and an ADR or dev note; release/packaging changes must check `README.md` and `docs/RELEASE_CHECKLIST.md`; branch state, validation results, or next steps must check this `HANDOFF.md`.
+- Before finishing a change, record whether docs were affected. If yes, list the updated docs; if no, state why no doc update was needed.
+- Keep this `HANDOFF.md` current whenever branch state, release status, validation results, or next steps change.
+- Use `.github/PULL_REQUEST_TEMPLATE.md` as the merge-time documentation checklist.
 - Put temporary investigations and architecture decisions in dated files under `docs/dev-notes/`.
 
 ## Useful Files
@@ -271,9 +287,11 @@ Packaging/docs:
 - `AGENTS.md`
 - `CONTEXT.md`
 - `docs/architecture.md`
+- `docs/RELEASE_CHECKLIST.md`
 
 ## Next Steps
 
-1. Review the still-open `codex/stage1-ledger-tests` branch separately; it is independent of this Stage 2 fix.
+1. Use the `v1.0.1` release packages for business-side acceptance.
 2. Next architecture slice, if desired: extract a shared workflow module so Win7/8 and Win10/11 do not duplicate stage execution flow.
 3. Consider adding sanitized Stage 2 fixture workbooks later; current regressions use dynamically generated synthetic workbooks.
+4. Consider adding a sanitized `.xls` fixture later; real `.xls` smoke passed, but the repository still has no committed `.xls` regression fixture.
