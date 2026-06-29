@@ -22,7 +22,9 @@ The Python project remains the historical full-function reference. The C# deskto
 - Current release tag: `v1.0.1`
 - Release page: `https://github.com/LeBronJu/hainan-settlement-desktop/releases/tag/v1.0.1`
 - Stage 1 ledger workbook tests and documentation impact gate cleanup have been integrated from `codex/stage1-ledger-tests`.
-- Win7/8 and Win10/11 entries are both part of `main`; they share Core/Excel logic but remain separate desktop apps.
+- Win10/11 WPF is the primary UI entry for new features and UX work.
+- Win7/8 WinForms remains part of `main` as a maintenance compatibility entry: keep it buildable, packageable, and fix blocking bugs only unless explicitly requested.
+- Win7/8 and Win10/11 share Core/Excel logic but remain separate desktop apps.
 - Do not add real ledgers, customer data, settlement outputs, screenshots, or finance/payment data to git.
 
 Use `git status --short --branch` before editing. The expected handoff worktree is clean.
@@ -46,7 +48,7 @@ Local package copies:
 Notes:
 
 - `v1.0.1` publishes the Stage 2 workbook template fixes from `main`.
-- The release keeps the existing Win7/8 and Win10/11 split packages.
+- The release keeps the existing Win7/8 and Win10/11 split packages. Future releases may continue shipping Win7/8 as a maintenance compatibility package, while new UI features default to Win10/11.
 
 ## Release 1.0
 
@@ -136,11 +138,12 @@ Known limits:
 
 Two desktop entries exist and should continue to coexist:
 
-- `src/HainanSettlementTool.WinForms`: Win7/8 UI on `.NET Framework 4.7.2`.
-- `src/HainanSettlementTool.Wpf`: Win10/11 UI shell on `.NET Framework 4.7.2`.
+- `src/HainanSettlementTool.WinForms`: Win7/8 maintenance UI on `.NET Framework 4.7.2`.
+- `src/HainanSettlementTool.Wpf`: Win10/11 primary UI shell on `.NET Framework 4.7.2`.
 
 Both UI entries should remain thin shells for file selection, parameter input, confirmation, progress/log display, and error messages. Shared business behavior belongs in Core/Excel.
 The current workflow extraction branch adds Core `SettlementWorkflow` so both UI entries reuse the same stage completion summary rules while keeping UI-specific confirmation, progress, and error display local.
+Do not add WinForms-only features or UX improvements by default. New UI work should target WPF unless the user explicitly asks for Win7/8 support.
 
 ## Latest Verification
 
@@ -308,6 +311,7 @@ Packaging/docs:
 ## Next Steps
 
 1. Review and merge `codex/extract-stage-workflows` after final diff/validation if no UI behavior concern appears.
-2. Use the `v1.0.1` release packages for business-side acceptance.
-3. Consider adding sanitized Stage 2 fixture workbooks later; current regressions use dynamically generated synthetic workbooks.
-4. Consider adding a sanitized `.xls` fixture later; real `.xls` smoke passed, but the repository still has no committed `.xls` regression fixture.
+2. Continue quality work with WPF as the default UI target; avoid WinForms parity work unless it is a bugfix, build/package compatibility issue, or explicitly requested.
+3. Use the `v1.0.1` release packages for business-side acceptance.
+4. Consider adding sanitized Stage 2 fixture workbooks later; current regressions use dynamically generated synthetic workbooks.
+5. Consider adding a sanitized `.xls` fixture later; real `.xls` smoke passed, but the repository still has no committed `.xls` regression fixture.

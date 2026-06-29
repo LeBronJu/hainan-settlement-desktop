@@ -20,8 +20,8 @@ If `CONTEXT.md` or `docs/adr/` do not exist, proceed silently. They can be creat
 - Stage 1: raw retail detail cleaning and ledger update.
 - Stage 2: manually reviewed ledger to split workbooks, summary workbook, preflight report, and validation report.
 - Excel layer: workbook reading, raw detail cleaning, template copying, and generated workbook writing.
-- Win7/8 UI: WinForms desktop entry.
-- Win10/11 UI: WPF desktop entry.
+- Win7/8 UI: WinForms maintenance desktop entry.
+- Win10/11 UI: WPF primary desktop entry for new UI work.
 
 ## ADR Conflicts
 

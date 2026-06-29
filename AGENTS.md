@@ -21,8 +21,8 @@ The C# version is being built as a maintainable Windows desktop app. It should e
 ## Repository Layout
 
 - `HainanSettlementTool.sln`: solution file.
-- `src/HainanSettlementTool.WinForms/`: Win7/8 desktop UI only.
-- `src/HainanSettlementTool.Wpf/`: Win10/11 WPF desktop UI shell only.
+- `src/HainanSettlementTool.WinForms/`: Win7/8 maintenance UI. Keep it buildable and fix blocking bugs, but do not add new features or UX improvements unless the user explicitly asks.
+- `src/HainanSettlementTool.Wpf/`: Win10/11 WPF main UI. New UI features and UX improvements belong here by default.
 - `src/HainanSettlementTool.Core/`: business models, services, and interfaces.
 - `src/HainanSettlementTool.Excel/`: ClosedXML workbook reading/writing.
 - `docs/architecture.md`: layering and migration boundary.
@@ -49,9 +49,10 @@ This is a single-context repo. See `docs/agents/domain.md`.
 - Do not make development changes directly on `main` or `master`. Create a development branch first, using the `codex/` prefix unless the user requests another branch name.
 - If an issue is uncertain, ambiguous, or risky, especially when it may affect settlement correctness, workbook safety, or user-visible business rules, stop and analyze it explicitly for the user. Do not encode a guess; ask the user to decide.
 - UI must not contain Excel parsing, matching, amount calculation, or workbook template rules.
-- Core must not reference ClosedXML, WinForms, or file-format implementation details.
+- Core must not reference ClosedXML, WinForms, WPF, or file-format implementation details.
 - Excel layer owns workbook reading/writing and template copying.
 - Keep stage boundaries explicit.
+- Win7/8 WinForms is in maintenance mode. Do not spend quality/refactor work on WinForms parity unless needed for compilation, packaging, blocking bugfixes, shared Core/Excel behavior changes, or explicit user authorization.
 - Keep documentation current without creating noise. Each code, config, script, packaging, release, workflow, architecture, business-rule, UI-behavior, test-process, or task-state change must end with a documentation impact judgment.
 - Final responses for development work must include documentation impact, validation performed, and work intentionally not done when applicable. Missing the documentation impact judgment means the task is not complete.
 - Update only documents whose responsibility is affected. User-visible behavior usually affects `README.md` and `HANDOFF.md`; business rules affect `CONTEXT.md`; module boundaries affect `AGENTS.md` plus an ADR or dated dev-note; release and packaging changes affect `README.md`, `HANDOFF.md`, and `docs/RELEASE_CHECKLIST.md`; branch state, validation results, or next steps affect `HANDOFF.md`.
@@ -102,6 +103,13 @@ dotnet msbuild ".\HainanSettlementTool.sln" /restore /p:Configuration=Debug /m
 ```powershell
 .\scripts\check_build_portability.ps1
 ```
+
+## UI Support Policy
+
+- Win10/11 WPF is the primary user experience and default target for new UI features.
+- Win7/8 WinForms remains available as a maintenance compatibility entry.
+- Shared settlement correctness, workbook safety, and report generation fixes still belong in Core/Excel and benefit both entries.
+- WinForms-only changes should be limited to blocking bugfixes, build/package compatibility, or explicitly requested support.
 
 ## Compatibility Target
 

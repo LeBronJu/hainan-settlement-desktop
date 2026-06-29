@@ -24,15 +24,17 @@ GitHub 仓库：
 - 阶段1补充功能：只清洗电量数据，输出 `零售侧用户电量数据处理表.xlsx`。
 - 阶段2：人工整理后的台账 -> 代理/居间分表、汇总表、JSON 报告、阶段二校验报告。
 - 界面顶部“公共设置”里的结算月份和结果输出文件夹由阶段1、阶段2共用。
-- Win7/8版与 Win10/11版长期共存，共享 Core/Excel 业务逻辑，不是两个互相独立的业务实现。
+- Win10/11版（WPF）是主推荐版本和后续新功能入口。
+- Win7/8版（WinForms）进入维护模式：保留兼容包、构建和阻塞性 bugfix，不再做新功能或体验优化。
+- 两个入口共享 Core/Excel 业务逻辑；结算规则和 workbook 修复应优先落在共享层。
 
 ## 项目结构
 
 ```text
 HainanSettlementTool.sln
 src/
-  HainanSettlementTool.WinForms/   # Win7/8版界面，只负责输入、日志、调用服务
-  HainanSettlementTool.Wpf/        # Win10/11版界面，只负责输入、日志、调用服务
+  HainanSettlementTool.WinForms/   # Win7/8维护版界面，只修 bug 和兼容性
+  HainanSettlementTool.Wpf/        # Win10/11主线界面，承接后续新功能和体验优化
   HainanSettlementTool.Core/       # 业务模型、业务服务、接口
   HainanSettlementTool.Excel/      # ClosedXML / ExcelDataReader 文件读写实现
 docs/
@@ -102,6 +104,8 @@ dotnet msbuild ".\HainanSettlementTool.sln" /restore /p:Configuration=Debug /m
 ```
 
 脚本会执行 Release 构建，并在 `dist/` 下生成一个干净目录和 `.zip` 压缩包。测试时请保留目录内所有 `.dll` 和 `.config` 文件，不要只单独复制 exe。
+
+Win7/8 包是维护版兼容包。正式发布仍可携带该包，但新功能和体验改进默认只进入 Win10/11 包，除非用户明确要求 Win7/8 适配。
 
 正式发布时，GitHub Release 附件使用稳定 ASCII 文件名：
 
