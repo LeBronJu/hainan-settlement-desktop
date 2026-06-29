@@ -17,8 +17,8 @@ The stable local reference folder is for future comparison/orientation only; do 
 
 ## Current Git State
 
-- Current branch: `codex/real-smoke-runner`
-- Quality branch `codex/real-smoke-runner` adds a parameterized real-data smoke runner script. It should be reviewed before merging to `main`.
+- Current branch: `main`
+- Quality branch `codex/real-smoke-runner` has been reviewed and merged.
 - Stage 2 workbook template fixes have been merged from `codex/stage2-summary-detail-template-fixes`.
 - Latest merged Stage 2 fix commit before this handoff update: `d8cefbd Document stage two real comparison outcome`
 - Current release tag: `v1.0.1`
