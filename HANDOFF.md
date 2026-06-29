@@ -10,8 +10,10 @@ Standalone C# desktop rewrite of the Hainan retail electricity settlement automa
 - GitHub: `https://github.com/LeBronJu/hainan-settlement-desktop`
 - Original Python baseline: `D:\Document\文件处理\hainan-settlement-tool`
 - Original Python GitHub: `https://github.com/LeBronJu/hainan-settlement-tool`
+- Stable local reference folder: `D:\Document\文件处理\稳定参考版海南结算`
 
 The Python project remains the historical full-function reference. The C# desktop project is now versioned and released independently.
+The stable local reference folder is for future comparison/orientation only; do not read its real workbook contents without explicit user authorization.
 
 ## Current Git State
 
@@ -271,6 +273,16 @@ Authorized real `.xls` smoke check:
 - `ReadCustomerCodes` read 64 customer-code mappings.
 - `Stage1Service.CleanPowerData(...)` generated a temporary cleaned `.xlsx` successfully.
 - Temporary smoke output was deleted; no real workbook was committed.
+
+Authorized real 2026-05 smoke rerun on 2026-06-29:
+
+- Output folder: `C:\Users\juqx2\Desktop\2026海南\test\codex-real-smoke-20260629-120157`
+- Scope: read real 2026-05 production inputs and write generated files only under the test smoke folder.
+- Stage 1 raw `.xls` cleaning matched the existing production cleaned workbook: 69 rows, no missing/extra customer keys, and no power value differences.
+- Stage 1 ledger update smoke completed: 69 power rows, 59 matched rows, 10 new rows, 10 missing manual-info rows, and 0 missing codes.
+- Stage 2 smoke completed: 16 proxy workbooks, 3 intermediary workbooks, 1 summary workbook, and 0 formula error text hits across generated `.xlsx` files.
+- Stage 2 validation report still contains 1 new-template prompt and 7 amount audit differences at `0.0001` 万元 scale. Treat those as business review items; the current generator writes summary amounts from split-sheet self-calculation.
+- Stable local reference folder recorded for future comparison: `D:\Document\文件处理\稳定参考版海南结算`. Do not read real workbook contents there without explicit user authorization.
 
 ## Documentation Rule
 
