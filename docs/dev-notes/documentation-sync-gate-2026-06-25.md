@@ -10,6 +10,13 @@ The rule is therefore a gate on judgment, not a mandate to edit every document.
 
 ## Rule
 
+Every project work session must start by reading current instructions, not by relying on memory or prior chat summaries:
+
+- Run `git status --short --branch`.
+- Read `AGENTS.md` and `HANDOFF.md`.
+- Read the owning document for the area being changed.
+- Repeat this reading gate after context compaction, a long pause, or a change in task direction.
+
 Every code, config, script, packaging, business-rule, UI-behavior, test-workflow, or task-state change must end with a documentation impact judgment:
 
 - If docs were affected, list the documents updated.

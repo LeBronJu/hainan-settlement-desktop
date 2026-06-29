@@ -46,6 +46,9 @@ This is a single-context repo. See `docs/agents/domain.md`.
 
 ## Engineering Rules
 
+- Start every project work session by checking the branch and reading current project instructions before editing. Minimum gate: run `git status --short --branch`, then read `AGENTS.md` and `HANDOFF.md`. Do not rely only on chat history, memory, or a prior agent summary.
+- Before changing an area, read that area's owning document: business settlement rules require `CONTEXT.md`; module boundaries or workflow seams require `docs/architecture.md`; release/packaging requires `docs/RELEASE_CHECKLIST.md`; user-visible setup or package status requires `README.md`; current branch/task state requires `HANDOFF.md`.
+- If context was compacted, the thread was resumed after a pause, or the task direction changed, repeat the relevant reading gate before making further edits.
 - Do not make development changes directly on `main` or `master`. Create a development branch first, using the `codex/` prefix unless the user requests another branch name.
 - If an issue is uncertain, ambiguous, or risky, especially when it may affect settlement correctness, workbook safety, or user-visible business rules, stop and analyze it explicitly for the user. Do not encode a guess; ask the user to decide.
 - UI must not contain Excel parsing, matching, amount calculation, or workbook template rules.
@@ -54,7 +57,7 @@ This is a single-context repo. See `docs/agents/domain.md`.
 - Keep stage boundaries explicit.
 - Win7/8 WinForms is in maintenance mode. Do not spend quality/refactor work on WinForms parity unless needed for compilation, packaging, blocking bugfixes, shared Core/Excel behavior changes, or explicit user authorization.
 - Keep documentation current without creating noise. Each code, config, script, packaging, release, workflow, architecture, business-rule, UI-behavior, test-process, or task-state change must end with a documentation impact judgment.
-- Final responses for development work must include documentation impact, validation performed, and work intentionally not done when applicable. Missing the documentation impact judgment means the task is not complete.
+- Final responses for development work must explicitly include documentation impact judgment, validation performed, and work intentionally not done when applicable. This is required even when no documentation was updated. Missing the documentation impact judgment means the task is not complete.
 - Update only documents whose responsibility is affected. User-visible behavior usually affects `README.md` and `HANDOFF.md`; business rules affect `CONTEXT.md`; module boundaries affect `AGENTS.md` plus an ADR or dated dev-note; release and packaging changes affect `README.md`, `HANDOFF.md`, and `docs/RELEASE_CHECKLIST.md`; branch state, validation results, or next steps affect `HANDOFF.md`.
 - Temporary local setup or new-machine exploration that does not enter the project mainline can state that no project docs were needed.
 - For temporary investigations or one-off architecture notes, add or update a dated file under `docs/dev-notes/`.

@@ -16,7 +16,6 @@ The Python project remains the historical full-function reference. The C# deskto
 ## Current Git State
 
 - Current branch: `main`
-- Current quality branch: `codex/extract-stage-workflows`
 - Stage 2 workbook template fixes have been merged from `codex/stage2-summary-detail-template-fixes`.
 - Latest merged Stage 2 fix commit before this handoff update: `d8cefbd Document stage two real comparison outcome`
 - Current release tag: `v1.0.1`
@@ -160,7 +159,7 @@ dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Release /m
 Observed result:
 
 - Core tests: 6 passed.
-- Excel tests: 3 passed in `v1.0`; current quality branch adds Stage 1 ledger workbook tests and brings Excel tests to 6 passed.
+- Excel tests: 3 passed in `v1.0`; later quality branches added Stage 1 ledger workbook tests and Stage 2 workbook regressions.
 - Release build passed for Win7/8 and Win10/11.
 - Packaging scripts produced both release zips.
 - Build portability check passed.
@@ -263,6 +262,9 @@ Authorized real `.xls` smoke check:
 
 Documentation is now part of the development contract:
 
+- At the start of each project work session, run `git status --short --branch` and read `AGENTS.md` plus this `HANDOFF.md` before editing.
+- Read the owning document before changing a responsibility area: `CONTEXT.md` for settlement rules, `docs/architecture.md` for module seams or workflow structure, `README.md` for user-facing setup/package status, and `docs/RELEASE_CHECKLIST.md` for release or packaging.
+- Repeat the relevant reading gate after context compaction, a long pause, or a task direction change.
 - Every code, config, script, packaging, business-rule, UI-behavior, test-workflow, or task-state change must end with a documentation impact judgment.
 - Update only documents whose responsibility is affected; do not rewrite unaffected docs for process compliance.
 - Business-rule changes must check `CONTEXT.md`; module-boundary changes must check `AGENTS.md` and an ADR or dev note; release/packaging changes must check `README.md` and `docs/RELEASE_CHECKLIST.md`; branch state, validation results, or next steps must check this `HANDOFF.md`.
@@ -310,8 +312,7 @@ Packaging/docs:
 
 ## Next Steps
 
-1. Review and merge `codex/extract-stage-workflows` after final diff/validation if no UI behavior concern appears.
-2. Continue quality work with WPF as the default UI target; avoid WinForms parity work unless it is a bugfix, build/package compatibility issue, or explicitly requested.
-3. Use the `v1.0.1` release packages for business-side acceptance.
-4. Consider adding sanitized Stage 2 fixture workbooks later; current regressions use dynamically generated synthetic workbooks.
-5. Consider adding a sanitized `.xls` fixture later; real `.xls` smoke passed, but the repository still has no committed `.xls` regression fixture.
+1. Continue quality work with WPF as the default UI target; avoid WinForms parity work unless it is a bugfix, build/package compatibility issue, or explicitly requested.
+2. Use the `v1.0.1` release packages for business-side acceptance.
+3. Consider adding sanitized Stage 2 fixture workbooks later; current regressions use dynamically generated synthetic workbooks.
+4. Consider adding a sanitized `.xls` fixture later; real `.xls` smoke passed, but the repository still has no committed `.xls` regression fixture.
