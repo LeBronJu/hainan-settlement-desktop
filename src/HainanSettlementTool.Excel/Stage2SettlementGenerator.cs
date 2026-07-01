@@ -252,6 +252,7 @@ namespace HainanSettlementTool.Excel
                 {
                     var previousSheet = PreviousMonthSheet(workbook, month, month + "月") ?? LastMonthSheet(workbook);
                     var previousRows = ReadPreviousDetails(previousSheet);
+                    var currentCustomers = new HashSet<string>(currentRows.Select(row => NormalizeName(row.Customer)));
                     foreach (var row in currentRows)
                     {
                         PreviousDetailRow previous;
@@ -277,6 +278,25 @@ namespace HainanSettlementTool.Excel
                         AddValueChangeIssue(issues, kind, owner, entity, row, previous, templatePath, "电量比例", previous.Ratio, row.Ratio);
                         AddValueChangeIssue(issues, kind, owner, entity, row, previous, templatePath, "利润单价", previous.UnitPrice, row.UnitPrice);
                         AddValueChangeIssue(issues, kind, owner, entity, row, previous, templatePath, "税率", previous.TaxRate, row.TaxRate);
+                    }
+
+                    foreach (var previous in previousRows.Values.Where(row => !currentCustomers.Contains(NormalizeName(row.Customer))))
+                    {
+                        issues.Add(new Stage2CheckIssue
+                        {
+                            Severity = "提示",
+                            Category = "上月分表存在本月台账外明细行",
+                            Kind = kind + "费",
+                            Customer = previous.Customer,
+                            Owner = owner,
+                            Entity = entity,
+                            TemplateFile = templatePath,
+                            SheetName = previous.SheetName,
+                            PreviousValue = "上月分表第" + previous.Row + "行",
+                            CurrentValue = "本月台账无匹配客户",
+                            Message = kind + "费主体“" + entity + "”的上月分表第" + previous.Row + "行“" + previous.Customer + "”未在本月台账中匹配到。",
+                            Suggestion = "程序生成本月分表时不会继承该行；如果本月仍需退补或补扣，请生成后手动调整分表和汇总表。"
+                        });
                     }
                 }
             }
@@ -393,6 +413,11 @@ namespace HainanSettlementTool.Excel
                     var displayEntity = matchedTemplate ? PriorSheetDisplayEntity(workbook, options.Month) : entity;
                     var worksheet = PrepareMonthSheet(workbook, options.Month);
                     WriteDetailSheet(worksheet, kind, entity, options.Month, group.Select(item => item.Row).ToList(), displayEntity, outputPath, auditIssues);
+                    if (!matchedTemplate)
+                    {
+                        KeepOnlyCurrentMonthSheet(workbook, worksheet);
+                    }
+
                     SaveWorkbook(workbook, outputPath);
 
                     totals.Add(new GroupSettlementTotal
@@ -538,6 +563,15 @@ namespace HainanSettlementTool.Excel
             }
 
             return source.CopyTo(title);
+        }
+
+        private static void KeepOnlyCurrentMonthSheet(XLWorkbook workbook, IXLWorksheet currentMonthSheet)
+        {
+            var currentName = currentMonthSheet.Name;
+            foreach (var sheet in workbook.Worksheets.Where(sheet => sheet.Name != currentName).ToList())
+            {
+                sheet.Delete();
+            }
         }
 
         private static IXLWorksheet PreviousMonthSheet(XLWorkbook workbook, int month, string targetTitle)
