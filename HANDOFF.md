@@ -27,10 +27,10 @@ The stable local reference folder is for future comparison/orientation only; do 
 
 ## Current Git State
 
-- Current branch: `codex/stage2-special-rows-template-cleanup`
+- Current branch: `main`
 - Quality branch `codex/real-smoke-runner` has been reviewed and merged.
 - Stage 2 workbook template fixes have been merged from `codex/stage2-summary-detail-template-fixes`.
-- Active branch `codex/stage2-special-rows-template-cleanup` fixes new-subject borrowed-template history, adds preflight handling for previous-month special detail rows, and improves the WPF preflight confirmation layout.
+- Stage 2 special-row/template cleanup has been merged to `main`. It fixes new-subject borrowed-template history, adds preflight handling for previous-month special detail rows, and improves the WPF preflight confirmation layout.
 - Latest merged Stage 2 fix commit before this handoff update: `d8cefbd Document stage two real comparison outcome`
 - Current release tag: `v1.0.1`
 - Release page: `https://github.com/LeBronJu/hainan-settlement-desktop/releases/tag/v1.0.1`
@@ -40,7 +40,7 @@ The stable local reference folder is for future comparison/orientation only; do 
 - Win7/8 and Win10/11 share Core/Excel logic but remain separate desktop apps.
 - Do not add real ledgers, customer data, settlement outputs, screenshots, or finance/payment data to git.
 
-Use `git status --short --branch` before editing. The expected handoff worktree after this branch is committed is clean on `codex/stage2-special-rows-template-cleanup`; no real Excel files or generated settlement outputs should be tracked.
+Use `git status --short --branch` before editing. The expected handoff worktree is clean on `main`; no real Excel files or generated settlement outputs should be tracked.
 
 ## Release 1.0.1
 
@@ -343,6 +343,25 @@ Observed result:
 - Build portability check passes.
 - `git diff --check` passes; Git only prints CRLF normalization warnings.
 - Win10/11 final local package: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260701-100344.zip`.
+
+Main branch verification after merging Stage 2 special-row/template cleanup on 2026-07-01:
+
+```powershell
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Release /m
+.\scripts\check_build_portability.ps1
+git diff --check
+.\scripts\package_wpf_release.ps1
+```
+
+Observed result:
+
+- Core tests: 12 passed.
+- Excel tests: 12 passed.
+- Release build passes for Core, Excel, WinForms, and WPF.
+- Build portability check passes.
+- `git diff --check` passes; Git only prints a CRLF normalization warning for `HANDOFF.md`.
+- Win10/11 main-branch local package: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260701-102428.zip`.
 
 ## Documentation Rule
 
