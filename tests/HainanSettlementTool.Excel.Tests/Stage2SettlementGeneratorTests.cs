@@ -176,6 +176,164 @@ namespace HainanSettlementTool.Excel.Tests
             }
         }
 
+        [TestMethod]
+        public void GenerateSettlementDoesNotKeepBorrowedTemplateHistoryForNewSubject()
+        {
+            var root = Path.Combine(Path.GetTempPath(), "HainanSettlementToolTests", Guid.NewGuid().ToString("N"));
+            var ledgerPath = Path.Combine(root, "ledger.xlsx");
+            var proxyRoot = Path.Combine(root, "proxy");
+            var interRoot = Path.Combine(root, "intermediary");
+            var outputRoot = Path.Combine(root, "output");
+            var summaryPath = Path.Combine(root, "summary.xlsx");
+
+            try
+            {
+                Directory.CreateDirectory(proxyRoot);
+                Directory.CreateDirectory(interRoot);
+                Directory.CreateDirectory(outputRoot);
+
+                WriteLedgerWithProxyEntities(ledgerPath, "测试负责人", "模板代理", "新增代理");
+                WriteProxyTemplate(proxyRoot, "测试负责人", "模板代理");
+                WriteSummaryTemplate(summaryPath, "模板代理", "代理费", "清辉");
+
+                var options = new Stage2Options
+                {
+                    Month = 4,
+                    LedgerPath = ledgerPath,
+                    ProxyTemplateDirectory = proxyRoot,
+                    IntermediaryTemplateDirectory = interRoot,
+                    SummaryTemplatePath = summaryPath,
+                    OutputDirectory = outputRoot
+                };
+
+                new Stage2Service(new ClosedXmlStage1ExcelGateway()).Run(options, null);
+
+                var outputPath = Path.Combine(
+                    outputRoot,
+                    "2026年代理 - 海南",
+                    "测试负责人 - 海南2026",
+                    "新增代理 2026海南.xlsx");
+                using (var workbook = new XLWorkbook(outputPath))
+                {
+                    Assert.AreEqual(1, workbook.Worksheets.Count);
+                    Assert.IsTrue(workbook.Worksheets.Contains("4月"));
+                    Assert.AreEqual("代理名称:新增代理", workbook.Worksheet("4月").Cell("A2").GetFormattedString());
+                }
+            }
+            finally
+            {
+                if (Directory.Exists(root))
+                {
+                    Directory.Delete(root, true);
+                }
+            }
+        }
+
+        [TestMethod]
+        public void AnalyzeSettlementReportsPreviousDetailRowsOutsideCurrentLedger()
+        {
+            var root = Path.Combine(Path.GetTempPath(), "HainanSettlementToolTests", Guid.NewGuid().ToString("N"));
+            var ledgerPath = Path.Combine(root, "ledger.xlsx");
+            var proxyRoot = Path.Combine(root, "proxy");
+            var interRoot = Path.Combine(root, "intermediary");
+            var outputRoot = Path.Combine(root, "output");
+            var summaryPath = Path.Combine(root, "summary.xlsx");
+
+            try
+            {
+                Directory.CreateDirectory(proxyRoot);
+                Directory.CreateDirectory(interRoot);
+                Directory.CreateDirectory(outputRoot);
+
+                WriteLedgerWithSingleProxyRow(ledgerPath, 4, "测试负责人", "特殊代理", "存量客户");
+                WriteProxyTemplateWithSpecialDetailRow(proxyRoot, "测试负责人", "特殊代理", "扣除三月少扣税费");
+                WriteSummaryTemplate(summaryPath, "特殊代理", "代理费", "清辉");
+
+                var options = new Stage2Options
+                {
+                    Month = 4,
+                    LedgerPath = ledgerPath,
+                    ProxyTemplateDirectory = proxyRoot,
+                    IntermediaryTemplateDirectory = interRoot,
+                    SummaryTemplatePath = summaryPath,
+                    OutputDirectory = outputRoot
+                };
+
+                var report = new Stage2Service(new ClosedXmlStage1ExcelGateway()).Analyze(options);
+
+                Assert.IsTrue(report.HasIssues);
+                Assert.IsTrue(report.Issues.Exists(issue =>
+                    issue.Category == "上月分表存在本月台账外明细行"
+                    && issue.Customer == "扣除三月少扣税费"
+                    && issue.Entity == "特殊代理"
+                    && issue.SheetName == "3月"));
+            }
+            finally
+            {
+                if (Directory.Exists(root))
+                {
+                    Directory.Delete(root, true);
+                }
+            }
+        }
+
+        [TestMethod]
+        public void GenerateSettlementDoesNotCarryPreviousSpecialDetailRowsIntoCurrentMonth()
+        {
+            var root = Path.Combine(Path.GetTempPath(), "HainanSettlementToolTests", Guid.NewGuid().ToString("N"));
+            var ledgerPath = Path.Combine(root, "ledger.xlsx");
+            var proxyRoot = Path.Combine(root, "proxy");
+            var interRoot = Path.Combine(root, "intermediary");
+            var outputRoot = Path.Combine(root, "output");
+            var summaryPath = Path.Combine(root, "summary.xlsx");
+
+            try
+            {
+                Directory.CreateDirectory(proxyRoot);
+                Directory.CreateDirectory(interRoot);
+                Directory.CreateDirectory(outputRoot);
+
+                WriteLedgerWithSingleProxyRow(ledgerPath, 4, "测试负责人", "特殊代理", "存量客户");
+                WriteProxyTemplateWithSpecialDetailRow(proxyRoot, "测试负责人", "特殊代理", "扣除三月少扣税费");
+                WriteSummaryTemplate(summaryPath, "特殊代理", "代理费", "清辉");
+
+                var options = new Stage2Options
+                {
+                    Month = 4,
+                    LedgerPath = ledgerPath,
+                    ProxyTemplateDirectory = proxyRoot,
+                    IntermediaryTemplateDirectory = interRoot,
+                    SummaryTemplatePath = summaryPath,
+                    OutputDirectory = outputRoot
+                };
+
+                new Stage2Service(new ClosedXmlStage1ExcelGateway()).Run(options, null);
+
+                var outputPath = Path.Combine(
+                    outputRoot,
+                    "2026年代理 - 海南",
+                    "测试负责人 - 海南2026",
+                    "特殊代理 2026海南.xlsx");
+                using (var workbook = new XLWorkbook(outputPath))
+                {
+                    Assert.AreEqual("扣除三月少扣税费", workbook.Worksheet("3月").Cell(6, 2).GetFormattedString());
+
+                    var current = workbook.Worksheet("4月");
+                    Assert.AreEqual("存量客户", current.Cell(5, 2).GetFormattedString());
+                    Assert.AreEqual("合计", current.Cell(6, 1).GetFormattedString());
+                    Assert.AreNotEqual("扣除三月少扣税费", current.Cell(6, 2).GetFormattedString());
+                    Assert.AreEqual("SUM(P5:P5)", current.Cell(6, 16).FormulaA1);
+                }
+            }
+            finally
+            {
+                if (Directory.Exists(root))
+                {
+                    Directory.Delete(root, true);
+                }
+            }
+        }
+
         private static void WriteLedgerWithProxyRows(
             string path,
             string owner,
@@ -191,6 +349,24 @@ namespace HainanSettlementTool.Excel.Tests
                 worksheet.Cell(1, start).Value = "4月";
                 WriteLedgerRow(worksheet, 4, start, owner, proxyEntity, existingCustomer, 100);
                 WriteLedgerRow(worksheet, 5, start, owner, proxyEntity, newCustomer, 200);
+                workbook.SaveAs(path);
+            }
+        }
+
+        private static void WriteLedgerWithSingleProxyRow(
+            string path,
+            int month,
+            string owner,
+            string proxyEntity,
+            string customer)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            using (var workbook = new XLWorkbook())
+            {
+                var worksheet = workbook.AddWorksheet(LedgerLayout.MainSheetName);
+                var start = LedgerLayout.MonthStartColumn(month);
+                worksheet.Cell(1, start).Value = month + "月";
+                WriteLedgerRow(worksheet, 4, start, owner, proxyEntity, customer, 100);
                 workbook.SaveAs(path);
             }
         }
@@ -264,6 +440,40 @@ namespace HainanSettlementTool.Excel.Tests
                 sheet.Cell("N9").Value = new DateTime(2026, 5, 8);
                 sheet.Cell("N9").Style.DateFormat.Format = "yyyy\"年\"m\"月\"d\"日\";@";
                 sheet.Range("N9:O9").Merge();
+                workbook.SaveAs(path);
+            }
+        }
+
+        private static void WriteProxyTemplateWithSpecialDetailRow(string root, string owner, string entity, string specialText)
+        {
+            var folder = Path.Combine(root, owner + " - 海南2026");
+            Directory.CreateDirectory(folder);
+            var path = Path.Combine(folder, entity + " 2026海南.xlsx");
+            using (var workbook = new XLWorkbook())
+            {
+                var sheet = workbook.AddWorksheet("3月");
+                WriteDetailTemplateSheet(sheet, "代理", entity, 3, true);
+                sheet.Row(6).InsertRowsAbove(1);
+                sheet.Row(5).CopyTo(sheet.Row(6));
+                sheet.Cell(6, 1).Value = 2;
+                sheet.Cell(6, 2).Value = specialText;
+                sheet.Cell(6, 3).Clear(XLClearOptions.Contents);
+                sheet.Cell(6, 10).Clear(XLClearOptions.Contents);
+                sheet.Cell(6, 11).Clear(XLClearOptions.Contents);
+                sheet.Cell(6, 16).Value = -0.0683;
+                sheet.Cell(7, 1).Value = "合计";
+                for (var column = 3; column <= 7; column++)
+                {
+                    var letter = ColumnLetter(column);
+                    sheet.Cell(7, column).FormulaA1 = "SUM(" + letter + "5:" + letter + "6)";
+                }
+
+                for (var column = 12; column <= 16; column++)
+                {
+                    var letter = ColumnLetter(column);
+                    sheet.Cell(7, column).FormulaA1 = "SUM(" + letter + "5:" + letter + "6)";
+                }
+
                 workbook.SaveAs(path);
             }
         }

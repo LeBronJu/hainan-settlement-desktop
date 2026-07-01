@@ -1,6 +1,6 @@
 # Handoff
 
-Last updated: 2026-06-29
+Last updated: 2026-07-01
 
 ## Project
 
@@ -15,11 +15,22 @@ Standalone C# desktop rewrite of the Hainan retail electricity settlement automa
 The Python project remains the historical full-function reference. The C# desktop project is now versioned and released independently.
 The stable local reference folder is for future comparison/orientation only; do not read its real workbook contents without explicit user authorization.
 
+## Real Data And Local Reference Paths
+
+- Real production environment root: `C:\Users\juqx2\Desktop\2026海南`
+- Real production workbooks include issued ledgers, settlement sheets, manually corrected outputs, customer data, screenshots, and sensitive financial results. Treat every workbook under this root as real production data.
+- Do not read files under the real production root unless the user explicitly authorizes the specific file, folder, or smoke scope for the current task. Prior authorizations in old conversation context should not be treated as blanket future permission.
+- Never modify files in the real production root in place. If the user authorizes a real smoke or comparison, write generated outputs only to an explicitly selected test/output folder and do not overwrite production files.
+- Known test/output area used by the user: `C:\Users\juqx2\Desktop\2026海南\test`. Files there may still contain real or sensitive data; do not commit them.
+- Stable local reference folder: `D:\Document\文件处理\稳定参考版海南结算`. It is for future comparison/orientation only; do not read real workbook contents there without explicit user authorization.
+- Repository-safe real smoke entry point: `scripts/run_real_smoke.ps1`. It accepts paths as parameters and must not hard-code real production paths.
+
 ## Current Git State
 
-- Current branch: `main`
+- Current branch: `codex/stage2-special-rows-template-cleanup`
 - Quality branch `codex/real-smoke-runner` has been reviewed and merged.
 - Stage 2 workbook template fixes have been merged from `codex/stage2-summary-detail-template-fixes`.
+- Active branch `codex/stage2-special-rows-template-cleanup` fixes new-subject borrowed-template history, adds preflight handling for previous-month special detail rows, and improves the WPF preflight confirmation layout.
 - Latest merged Stage 2 fix commit before this handoff update: `d8cefbd Document stage two real comparison outcome`
 - Current release tag: `v1.0.1`
 - Release page: `https://github.com/LeBronJu/hainan-settlement-desktop/releases/tag/v1.0.1`
@@ -29,7 +40,7 @@ The stable local reference folder is for future comparison/orientation only; do 
 - Win7/8 and Win10/11 share Core/Excel logic but remain separate desktop apps.
 - Do not add real ledgers, customer data, settlement outputs, screenshots, or finance/payment data to git.
 
-Use `git status --short --branch` before editing. The expected handoff worktree is clean.
+Use `git status --short --branch` before editing. The expected handoff worktree after this branch is committed is clean on `codex/stage2-special-rows-template-cleanup`; no real Excel files or generated settlement outputs should be tracked.
 
 ## Release 1.0.1
 
@@ -120,12 +131,14 @@ Outputs:
 Current behavior:
 
 - Stage 2 is template-driven. It copies prior-month sheets and writes current-month input/value cells while preserving template formatting, hidden columns, merged headers, blank cells, date display formats, and non-current formulas.
+- When a new agent/intermediary subject has no matching prior workbook and must borrow a same-kind template, the output copy keeps only the generated current-month sheet so donor history is not carried into the new subject workbook.
 - Split workbooks rewrite total-row formula ranges after row insert/delete. If the copied total row lacks table border/alignment formatting, generation repairs it from a prior month total row or, as a fallback, the last detail row.
 - Split workbooks only update an existing bottom signature date after the total row; text dates and Excel date-valued cells are shifted forward one month, and no new bottom date is created when the template lacks one.
 - Summary workbooks treat only rows before the `合计` row as subject data. Footer/signature/audit rows after `合计` must not be interpreted as summary subjects.
 - Summary signature date defaults to the settlement month plus 2 months, day 8.
 - Before generation, Stage 2 analyzes key changes and asks the user to confirm detailed items.
-- Preflight items include new agent/intermediary relationship, new customer in a split sheet, profit unit-price change, tax-rate change, and previous template read failures.
+- Preflight items include new agent/intermediary relationship, new customer in a split sheet, previous split-sheet detail rows absent from the current ledger, profit unit-price change, tax-rate change, and previous template read failures.
+- Previous split-sheet special detail rows, such as manual refund/withholding/correction lines, remain in the historical sheet but are not inherited into the generated current-month sheet. If the current month still needs the adjustment, the user must manually update the generated split sheet and summary.
 - During generation, Stage 2 audits split-table calculated results against ledger-derived values and writes differences to the validation report.
 - Stage 2 amount calculation and ledger/split-sheet difference issue generation are centralized in Core for testability.
 
@@ -291,6 +304,45 @@ Real smoke runner branch verification on 2026-06-29:
 - The runner accepts explicit input paths and does not hard-code real workbook directories.
 - Smoke output from script validation: `C:\Users\juqx2\Desktop\2026海南\test\real-smoke-20260629-141431`
 - Result matched the previous manual 2026-05 smoke: 69 cleaned rows, 0 power comparison differences, 59 matched stage 1 rows, 10 new stage 1 rows, 16 proxy workbooks, 3 intermediary workbooks, 1 summary workbook, 8 stage 2 audit issues including the known rounding/template prompts, and 0 formula error text hits.
+
+Stage 2 special-row/template cleanup branch verification on 2026-06-30:
+
+```powershell
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Debug /m
+.\scripts\check_build_portability.ps1
+git diff --check
+.\scripts\package_wpf_release.ps1
+```
+
+Observed result:
+
+- Core tests: 12 passed.
+- Excel tests: 12 passed, including new synthetic regressions for borrowed-template history cleanup, previous-month special detail row preflight, and not carrying special rows into the generated current month.
+- Debug build passes for Core, Excel, WinForms, and WPF.
+- Build portability check passes.
+- `git diff --check` passes; Git only prints CRLF normalization warnings.
+- Win10/11 business-acceptance package: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260630-115250.zip`.
+- User ran practical testing on 2026-07-01 and reported no issues found.
+
+Final local verification before committing the Stage 2 special-row/template cleanup branch on 2026-07-01:
+
+```powershell
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Debug /m
+.\scripts\check_build_portability.ps1
+git diff --check
+.\scripts\package_wpf_release.ps1
+```
+
+Observed result:
+
+- Core tests: 12 passed.
+- Excel tests: 12 passed.
+- Debug build passes for Core, Excel, WinForms, and WPF.
+- Build portability check passes.
+- `git diff --check` passes; Git only prints CRLF normalization warnings.
+- Win10/11 final local package: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260701-100344.zip`.
 
 ## Documentation Rule
 
