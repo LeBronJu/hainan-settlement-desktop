@@ -29,8 +29,9 @@ The stable local reference folder is for future comparison/orientation only; do 
 
 ## Current Git State
 
-- Current branch: `codex/employee-reward-module`
-- Active development branch `codex/employee-reward-module` implements the independent `员工电量奖励` module for Win10/11 WPF, Core, and Excel. The user completed practical testing on 2026-07-02 and reported no blocking issues. Do not merge or release until the user explicitly asks for that next step.
+- Current branch: `main`
+- Employee reward module has been merged to `main` from `codex/employee-reward-module`. The user completed practical testing on 2026-07-02 and reported no blocking issues.
+- Latest employee reward feature commit before this handoff update: `feb933f Add employee reward module`
 - Quality branch `codex/real-smoke-runner` has been reviewed and merged.
 - Stage 2 workbook template fixes have been merged from `codex/stage2-summary-detail-template-fixes`.
 - Stage 2 special-row/template cleanup has been merged to `main`. It fixes new-subject borrowed-template history, adds preflight handling for previous-month special detail rows, and improves the WPF preflight confirmation layout.
@@ -545,6 +546,24 @@ Observed result:
 - Excel tests: 14 passed.
 - Debug build passes for Core, Excel, WinForms, and WPF.
 
+Main merge verification on 2026-07-02:
+
+```powershell
+git diff --check
+git status --short | Select-String -Pattern '\.(xlsx|xls|csv|png|jpg|jpeg|pdf)$'
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Debug /m
+```
+
+Observed result:
+
+- `main` fast-forwarded from `164d9e5` to `feb933f` with the employee reward module.
+- `git diff --check` passed; Git only printed CRLF normalization warnings for the handoff update.
+- No real Excel, CSV, image, PDF, or generated sensitive output file appears in `git status`.
+- Core tests: 16 passed.
+- Excel tests: 14 passed.
+- Debug build passes for Core, Excel, WinForms, and WPF.
+
 ## Documentation Rule
 
 Documentation is now part of the development contract:
@@ -605,10 +624,8 @@ Packaging/docs:
 
 ## Next Steps
 
-1. Review the full branch diff, then commit and push `codex/employee-reward-module` when ready.
-2. When the user authorizes merge, merge locally to `main` without requiring a PR, then run the documented validation checks.
-3. Decide whether to cut a Win10/11 acceptance release from the accepted WPF package or rebuild a fresh release package after commit/merge.
-4. Continue quality work with WPF as the default UI target; avoid WinForms parity work unless it is a bugfix, build/package compatibility issue, or explicitly requested.
-5. Consider adding sanitized employee reward fixture workbooks later; current regressions use dynamically generated synthetic workbooks and a local temporary real smoke.
-6. Consider adding sanitized Stage 2 fixture workbooks later; current regressions use dynamically generated synthetic workbooks.
-7. Consider adding a sanitized `.xls` fixture later; real `.xls` smoke passed, but the repository still has no committed `.xls` regression fixture.
+1. Decide whether to cut a Win10/11 acceptance release from the accepted WPF package or rebuild a fresh release package from `main`.
+2. Continue quality work with WPF as the default UI target; avoid WinForms parity work unless it is a bugfix, build/package compatibility issue, or explicitly requested.
+3. Consider adding sanitized employee reward fixture workbooks later; current regressions use dynamically generated synthetic workbooks and a local temporary real smoke.
+4. Consider adding sanitized Stage 2 fixture workbooks later; current regressions use dynamically generated synthetic workbooks.
+5. Consider adding a sanitized `.xls` fixture later; real `.xls` smoke passed, but the repository still has no committed `.xls` regression fixture.
