@@ -32,6 +32,7 @@ The stable local reference folder is for future comparison/orientation only; do 
 - Current branch: `main`
 - Employee reward module has been merged to `main` from `codex/employee-reward-module`. The user completed practical testing on 2026-07-02 and reported no blocking issues.
 - Latest employee reward feature commit before this handoff update: `feb933f Add employee reward module`
+- `main` now contains the employee reward module and WPF theme support after `v1.0.1`, but no newer release tag has been cut yet.
 - Quality branch `codex/real-smoke-runner` has been reviewed and merged.
 - Stage 2 workbook template fixes have been merged from `codex/stage2-summary-detail-template-fixes`.
 - Stage 2 special-row/template cleanup has been merged to `main`. It fixes new-subject borrowed-template history, adds preflight handling for previous-month special detail rows, and improves the WPF preflight confirmation layout.
@@ -44,7 +45,7 @@ The stable local reference folder is for future comparison/orientation only; do 
 - Win7/8 and Win10/11 share Core/Excel logic but remain separate desktop apps.
 - Do not add real ledgers, customer data, settlement outputs, screenshots, or finance/payment data to git.
 
-Use `git status --short --branch` before editing. The expected handoff worktree may be dirty on `codex/employee-reward-module` with employee reward code, tests, and documentation changes; no real Excel files or generated settlement outputs should be tracked.
+Use `git status --short --branch` before editing. The expected handoff worktree should be clean on `main`; no real Excel files or generated settlement outputs should be tracked.
 
 ## Release 1.0.1
 
@@ -181,7 +182,7 @@ Current behavior:
 
 Known limits:
 
-- The first implementation generates an internal layout based on the reference workbooks instead of copying the reference templates. User visual review is still needed before release.
+- The implementation generates an internal layout based on the reference workbooks instead of copying the reference templates. The user completed practical testing on 2026-07-02 and reported no blocking issues, but a formal release has not been cut yet.
 - Win7/8 WinForms has no employee reward UI entry; this follows the maintenance-only WinForms policy.
 
 ## UI State
@@ -192,9 +193,9 @@ Two desktop entries exist and should continue to coexist:
 - `src/HainanSettlementTool.Wpf`: Win10/11 primary UI shell on `.NET Framework 4.7.2`.
 
 Both UI entries should remain thin shells for file selection, parameter input, confirmation, progress/log display, and error messages. Shared business behavior belongs in Core/Excel.
-The current workflow extraction branch adds Core `SettlementWorkflow` so both UI entries reuse the same stage completion summary rules while keeping UI-specific confirmation, progress, and error display local.
+Core `SettlementWorkflow` lets both UI entries reuse the same stage completion summary rules while keeping UI-specific confirmation, progress, and error display local.
 Do not add WinForms-only features or UX improvements by default. New UI work should target WPF unless the user explicitly asks for Win7/8 support.
-Current Stage 2 workflow deepening keeps WPF responsible for the confirmation dialog and progress UI, while Core `SettlementWorkflow` owns the preflight plan and the confirmed/cancelled generation decision.
+Stage 2 workflow handling keeps WPF responsible for the confirmation dialog and progress UI, while Core `SettlementWorkflow` owns the preflight plan and the confirmed/cancelled generation decision.
 The employee reward module currently exists only in the WPF app as a separate tab. It reuses the shared output folder and has its own start/end month selectors.
 The WPF app supports UI theme selection in the custom title bar: `跟随系统`, `浅色`, and `深色`. The setting is stored in the existing WPF input snapshot XML. This is UI-only; generated Excel workbooks remain theme-independent, light, and print-safe.
 
