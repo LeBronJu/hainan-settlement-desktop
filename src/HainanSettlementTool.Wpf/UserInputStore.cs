@@ -15,6 +15,8 @@ namespace HainanSettlementTool.Wpf
         public string ProxyTemplateDirectory { get; set; }
         public string IntermediaryTemplateDirectory { get; set; }
         public string SummaryTemplatePath { get; set; }
+        public string RewardLedgerPath { get; set; }
+        public string ThemeMode { get; set; }
     }
 
     internal static class UserInputStore

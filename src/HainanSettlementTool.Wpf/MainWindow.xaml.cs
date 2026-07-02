@@ -22,23 +22,42 @@ namespace HainanSettlementTool.Wpf
         private readonly TextBlock[] _stepTexts;
         private readonly TextBlock[] _stepStatuses;
         private string _lastOutputDirectory;
+        private bool _isBusy;
+        private bool _loadingInputs;
+        private string _themeMode = ThemeService.SystemMode;
 
         public MainWindow()
         {
+            var snapshot = UserInputStore.Load();
+            _themeMode = ThemeService.NormalizeMode(snapshot.ThemeMode);
+            ThemeService.Apply(_themeMode);
+
             InitializeComponent();
+
+            InitializeThemeCombo(_themeMode);
 
             for (var month = 2; month <= 12; month++)
             {
                 MonthCombo.Items.Add("2026年" + month + "月");
             }
 
+            for (var month = 1; month <= 12; month++)
+            {
+                RewardStartMonthCombo.Items.Add("2026年" + month + "月");
+                RewardEndMonthCombo.Items.Add("2026年" + month + "月");
+            }
+
             MonthCombo.SelectedIndex = -1;
+            RewardStartMonthCombo.SelectedIndex = 0;
+            RewardEndMonthCombo.SelectedIndex = -1;
             _stepTexts = new[] { Step1Text, Step2Text, Step3Text, Step4Text, Step5Text };
             _stepStatuses = new[] { Step1Status, Step2Status, Step3Status, Step4Status, Step5Status };
             ResetProgress("等待执行", "尚未开始");
             ResetResults();
             AddLog("工具已就绪，等待操作。", "信息");
-            LoadSavedInputs();
+            LoadSavedInputs(snapshot);
+            UpdateSharedSettingsState();
+            SystemEvents.UserPreferenceChanged += SystemEvents_UserPreferenceChanged;
         }
 
         private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -73,6 +92,12 @@ namespace HainanSettlementTool.Wpf
             base.OnClosing(e);
         }
 
+        protected override void OnClosed(EventArgs e)
+        {
+            SystemEvents.UserPreferenceChanged -= SystemEvents_UserPreferenceChanged;
+            base.OnClosed(e);
+        }
+
         private void ToggleMaximize()
         {
             WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
@@ -81,6 +106,43 @@ namespace HainanSettlementTool.Wpf
         private void BrowseOutputDir_Click(object sender, RoutedEventArgs e)
         {
             BrowseFolder(OutputDirBox, "选择结果输出文件夹");
+        }
+
+        private void MainTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (!ReferenceEquals(e.OriginalSource, MainTabControl))
+            {
+                return;
+            }
+
+            UpdateSharedSettingsState();
+        }
+
+        private void ThemeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_loadingInputs)
+            {
+                return;
+            }
+
+            _themeMode = SelectedThemeMode();
+            ThemeService.Apply(_themeMode);
+            RefreshThemeDependentState();
+            SaveInputs();
+        }
+
+        private void SystemEvents_UserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
+        {
+            if (_themeMode != ThemeService.SystemMode)
+            {
+                return;
+            }
+
+            Dispatcher.Invoke(() =>
+            {
+                ThemeService.Apply(_themeMode);
+                RefreshThemeDependentState();
+            });
         }
 
         private void BrowseBaseLedger_Click(object sender, RoutedEventArgs e)
@@ -121,6 +183,11 @@ namespace HainanSettlementTool.Wpf
         private void BrowseSummaryTemplate_Click(object sender, RoutedEventArgs e)
         {
             BrowseExcel(SummaryTemplateBox, "选择上月/修正版汇总表");
+        }
+
+        private void BrowseRewardLedger_Click(object sender, RoutedEventArgs e)
+        {
+            BrowseExcel(RewardLedgerBox, "选择最新售电结算台账");
         }
 
         private void BrowseExcel(TextBox target, string title)
@@ -342,13 +409,13 @@ namespace HainanSettlementTool.Wpf
                 var confirmed = true;
                 if (plan.RequiresConfirmation)
                 {
-                    SetStatus("待确认", "WarningBrush", Color.FromRgb(255, 245, 224));
+                    SetStatus("待确认", "WarningBrush", "StatusBusyBrush");
                     SetStepNeedsConfirmation(0);
                     AddLog("阶段二预检发现 " + preflight.Issues.Count + " 条需要确认的变化。", "阶段二");
                     confirmed = ConfirmStage2Preflight(preflight);
                     if (confirmed)
                     {
-                        SetStatus("运行中", "WarningBrush", Color.FromRgb(255, 245, 224));
+                        SetStatus("运行中", "WarningBrush", "StatusBusyBrush");
                     }
                 }
                 else
@@ -397,6 +464,73 @@ namespace HainanSettlementTool.Wpf
                 SummaryResultCount.Text = "1 个文件";
                 FinishedAtText.Text = DateTime.Now.ToString("HH:mm:ss");
                 ShowCompletion("阶段二执行完成", "分表和汇总表已生成", options.OutputDirectory);
+            }
+            catch (Exception ex)
+            {
+                SetStepFailed();
+                SetProgress(100, "执行失败");
+                AddLog(ex.Message, "错误");
+                ShowError(ex);
+            }
+            finally
+            {
+                SetBusy(false);
+            }
+        }
+
+        private async void RunEmployeeReward_Click(object sender, RoutedEventArgs e)
+        {
+            EmployeeRewardOptions options;
+            try
+            {
+                options = CreateEmployeeRewardOptions();
+                SaveInputs();
+                if (!ConfirmEmployeeRewardRun(options))
+                {
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowError(ex);
+                return;
+            }
+
+            SetBusy(true);
+            ResetResults();
+            ResetProgress("正在生成员工电量奖励...", "检查输入文件");
+            SetProgress(10, "检查输入文件");
+            SetStepRunning(0);
+            AddLog("开始生成员工电量奖励表。", "员工奖励");
+
+            try
+            {
+                StageWorkflowResult<EmployeeRewardResult> result = null;
+                await Task.Run(() =>
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        SetStepDone(0);
+                        SetStepRunning(1);
+                        SetProgress(30, "读取售电结算台账");
+                    });
+
+                    result = CreateWorkflow().RunEmployeeReward(options, LogThreadSafe);
+                });
+
+                SetStepDone(1);
+                SetStepDone(2);
+                SetStepDone(3);
+                SetStepDone(4);
+                SetProgress(100, "员工电量奖励生成完成");
+                LogSummary(result.SummaryLines);
+
+                EmployeeRewardResultStatus.Text = "成功";
+                EmployeeRewardResultCount.Text = result.Report.PersonalWorkbookPaths.Count + " 个";
+                SummaryResultStatus.Text = "成功";
+                SummaryResultCount.Text = "1 个文件";
+                FinishedAtText.Text = DateTime.Now.ToString("HH:mm:ss");
+                ShowCompletion("员工电量奖励生成完成", "奖励总表、个人确认表和校验报告已生成", options.OutputDirectory);
             }
             catch (Exception ex)
             {
@@ -463,12 +597,32 @@ namespace HainanSettlementTool.Wpf
             };
         }
 
+        private EmployeeRewardOptions CreateEmployeeRewardOptions()
+        {
+            var startMonth = SelectedRewardStartMonth();
+            var endMonth = SelectedRewardEndMonth();
+            if (startMonth > endMonth)
+            {
+                throw new InvalidOperationException("员工电量奖励开始月份不能晚于结束月份。");
+            }
+
+            return new EmployeeRewardOptions
+            {
+                Year = 2026,
+                StartMonth = startMonth,
+                EndMonth = endMonth,
+                LedgerPath = RewardLedgerBox.Text.Trim(),
+                OutputDirectory = OutputDirBox.Text.Trim()
+            };
+        }
+
         private static SettlementWorkflow CreateWorkflow()
         {
             var gateway = new ClosedXmlStage1ExcelGateway();
             return new SettlementWorkflow(
                 new Stage1Service(gateway),
-                new Stage2Service(gateway));
+                new Stage2Service(gateway),
+                new EmployeeRewardService(gateway));
         }
 
         private void LogSummary(IEnumerable<string> summaryLines)
@@ -491,6 +645,62 @@ namespace HainanSettlementTool.Wpf
             return MonthCombo.SelectedIndex + 2;
         }
 
+        private int SelectedRewardStartMonth()
+        {
+            if (RewardStartMonthCombo.SelectedIndex < 0)
+            {
+                throw new InvalidOperationException("请选择员工电量奖励开始月份。");
+            }
+
+            return RewardStartMonthCombo.SelectedIndex + 1;
+        }
+
+        private int SelectedRewardEndMonth()
+        {
+            if (RewardEndMonthCombo.SelectedIndex < 0)
+            {
+                throw new InvalidOperationException("请选择员工电量奖励结束月份。");
+            }
+
+            return RewardEndMonthCombo.SelectedIndex + 1;
+        }
+
+        private void InitializeThemeCombo(string mode)
+        {
+            _loadingInputs = true;
+            ThemeCombo.Items.Add("跟随系统");
+            ThemeCombo.Items.Add("浅色");
+            ThemeCombo.Items.Add("深色");
+            ThemeCombo.SelectedIndex = ThemeIndex(mode);
+            _loadingInputs = false;
+        }
+
+        private static int ThemeIndex(string mode)
+        {
+            switch (ThemeService.NormalizeMode(mode))
+            {
+                case ThemeService.LightMode:
+                    return 1;
+                case ThemeService.DarkMode:
+                    return 2;
+                default:
+                    return 0;
+            }
+        }
+
+        private string SelectedThemeMode()
+        {
+            switch (ThemeCombo.SelectedIndex)
+            {
+                case 1:
+                    return ThemeService.LightMode;
+                case 2:
+                    return ThemeService.DarkMode;
+                default:
+                    return ThemeService.SystemMode;
+            }
+        }
+
         private bool ConfirmRun(string stageName, int month, string outputDirectory)
         {
             var dialog = new ConfirmRunWindow(stageName, month, outputDirectory)
@@ -498,6 +708,15 @@ namespace HainanSettlementTool.Wpf
                 Owner = this
             };
             return dialog.ShowDialog() == true;
+        }
+
+        private bool ConfirmEmployeeRewardRun(EmployeeRewardOptions options)
+        {
+            var period = options.StartMonth == options.EndMonth
+                ? "2026年" + options.StartMonth + "月"
+                : "2026年" + options.StartMonth + "-" + options.EndMonth + "月";
+            var message = "即将生成员工电量奖励表。\n\n期间：" + period + "\n输出文件夹：\n" + options.OutputDirectory;
+            return MessageBox.Show(this, message, "确认生成员工电量奖励", MessageBoxButton.OKCancel, MessageBoxImage.Question) == MessageBoxResult.OK;
         }
 
         private bool ConfirmStage2Preflight(Stage2PreflightReport report)
@@ -511,22 +730,51 @@ namespace HainanSettlementTool.Wpf
 
         private void SetBusy(bool busy)
         {
+            _isBusy = busy;
             RunStage1Button.IsEnabled = !busy;
             CleanPowerButton.IsEnabled = !busy;
             RunStage2Button.IsEnabled = !busy;
+            RunEmployeeRewardButton.IsEnabled = !busy;
             ClearStage1Button.IsEnabled = !busy;
             ClearStage2Button.IsEnabled = !busy;
+            ClearEmployeeRewardButton.IsEnabled = !busy;
             SetStatus(
                 busy ? "运行中" : "就绪",
                 busy ? "WarningBrush" : "SuccessBrush",
-                busy ? Color.FromRgb(255, 245, 224) : Color.FromRgb(234, 247, 241));
+                busy ? "StatusBusyBrush" : "StatusReadyBrush");
+            UpdateSharedSettingsState();
         }
 
-        private void SetStatus(string text, string dotBrushKey, Color background)
+        private void UpdateSharedSettingsState()
+        {
+            var employeeRewardSelected = MainTabControl != null && MainTabControl.SelectedIndex == 1;
+            var monthEnabled = !_isBusy && !employeeRewardSelected;
+
+            MonthCombo.IsEnabled = monthEnabled;
+            SettlementMonthLabel.Foreground = monthEnabled ? BrushOf("FieldTextBrush") : BrushOf("MutedBrush");
+            SharedSettingsCaption.Text = employeeRewardSelected
+                ? "员工电量奖励使用本页的开始/结束月份，输出仍保存到这个文件夹中"
+                : "阶段一和阶段二生成的所有文件都会保存到这个文件夹中";
+        }
+
+        private void RefreshThemeDependentState()
+        {
+            UpdateSharedSettingsState();
+            if (StatusText.Text == "待确认" || StatusText.Text == "运行中")
+            {
+                SetStatus(StatusText.Text, "WarningBrush", "StatusBusyBrush");
+            }
+            else
+            {
+                SetStatus(StatusText.Text, "SuccessBrush", "StatusReadyBrush");
+            }
+        }
+
+        private void SetStatus(string text, string dotBrushKey, string backgroundBrushKey)
         {
             StatusText.Text = text;
             StatusDot.Fill = BrushOf(dotBrushKey);
-            StatusPill.Background = new SolidColorBrush(background);
+            StatusPill.Background = BrushOf(backgroundBrushKey);
         }
 
         private void ResetProgress(string title, string description)
@@ -592,9 +840,9 @@ namespace HainanSettlementTool.Wpf
                 if (_stepStatuses[i].Text == "进行中")
                 {
                     _stepTexts[i].Text = "●  " + StepName(i);
-                    _stepTexts[i].Foreground = new SolidColorBrush(Color.FromRgb(192, 57, 43));
+                    _stepTexts[i].Foreground = BrushOf("ErrorBrush");
                     _stepStatuses[i].Text = "失败";
-                    _stepStatuses[i].Foreground = new SolidColorBrush(Color.FromRgb(192, 57, 43));
+                    _stepStatuses[i].Foreground = BrushOf("ErrorBrush");
                     return;
                 }
             }
@@ -627,6 +875,8 @@ namespace HainanSettlementTool.Wpf
             IntermediaryResultCount.Text = "-";
             SummaryResultStatus.Text = "等待";
             SummaryResultCount.Text = "-";
+            EmployeeRewardResultStatus.Text = "等待";
+            EmployeeRewardResultCount.Text = "-";
             FinishedAtText.Text = "-";
             _lastOutputDirectory = null;
             CompletionTitleText.Text = "等待生成结果";
@@ -644,9 +894,8 @@ namespace HainanSettlementTool.Wpf
             CompletionCard.Visibility = Visibility.Visible;
         }
 
-        private void LoadSavedInputs()
+        private void LoadSavedInputs(UserInputSnapshot snapshot)
         {
-            var snapshot = UserInputStore.Load();
             OutputDirBox.Text = snapshot.OutputDirectory ?? string.Empty;
             BaseLedgerBox.Text = snapshot.BaseLedgerPath ?? string.Empty;
             PowerBox.Text = snapshot.PowerPath ?? string.Empty;
@@ -656,6 +905,7 @@ namespace HainanSettlementTool.Wpf
             ProxyTemplateDirBox.Text = snapshot.ProxyTemplateDirectory ?? string.Empty;
             IntermediaryTemplateDirBox.Text = snapshot.IntermediaryTemplateDirectory ?? string.Empty;
             SummaryTemplateBox.Text = snapshot.SummaryTemplatePath ?? string.Empty;
+            RewardLedgerBox.Text = snapshot.RewardLedgerPath ?? string.Empty;
 
             if (HasSavedInputs(snapshot))
             {
@@ -677,7 +927,9 @@ namespace HainanSettlementTool.Wpf
                     CompletedLedgerPath = CompletedLedgerBox.Text.Trim(),
                     ProxyTemplateDirectory = ProxyTemplateDirBox.Text.Trim(),
                     IntermediaryTemplateDirectory = IntermediaryTemplateDirBox.Text.Trim(),
-                    SummaryTemplatePath = SummaryTemplateBox.Text.Trim()
+                    SummaryTemplatePath = SummaryTemplateBox.Text.Trim(),
+                    RewardLedgerPath = RewardLedgerBox.Text.Trim(),
+                    ThemeMode = _themeMode
                 });
             }
             catch (Exception ex)
@@ -696,7 +948,8 @@ namespace HainanSettlementTool.Wpf
                 || !string.IsNullOrWhiteSpace(snapshot.CompletedLedgerPath)
                 || !string.IsNullOrWhiteSpace(snapshot.ProxyTemplateDirectory)
                 || !string.IsNullOrWhiteSpace(snapshot.IntermediaryTemplateDirectory)
-                || !string.IsNullOrWhiteSpace(snapshot.SummaryTemplatePath);
+                || !string.IsNullOrWhiteSpace(snapshot.SummaryTemplatePath)
+                || !string.IsNullOrWhiteSpace(snapshot.RewardLedgerPath);
         }
 
         private void LogThreadSafe(string message)
@@ -732,6 +985,14 @@ namespace HainanSettlementTool.Wpf
             IntermediaryTemplateDirBox.Clear();
             SummaryTemplateBox.Clear();
             AllowMissingOwnerCheckBox.IsChecked = false;
+            SaveInputs();
+        }
+
+        private void ClearEmployeeReward_Click(object sender, RoutedEventArgs e)
+        {
+            RewardLedgerBox.Clear();
+            RewardStartMonthCombo.SelectedIndex = 0;
+            RewardEndMonthCombo.SelectedIndex = -1;
             SaveInputs();
         }
 

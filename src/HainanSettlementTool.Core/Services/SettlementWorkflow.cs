@@ -7,8 +7,14 @@ namespace HainanSettlementTool.Core.Services
     {
         private readonly Stage1Service _stage1Service;
         private readonly Stage2Service _stage2Service;
+        private readonly EmployeeRewardService _employeeRewardService;
 
         public SettlementWorkflow(Stage1Service stage1Service, Stage2Service stage2Service)
+            : this(stage1Service, stage2Service, null)
+        {
+        }
+
+        public SettlementWorkflow(Stage1Service stage1Service, Stage2Service stage2Service, EmployeeRewardService employeeRewardService)
         {
             if (stage1Service == null)
             {
@@ -22,6 +28,7 @@ namespace HainanSettlementTool.Core.Services
 
             _stage1Service = stage1Service;
             _stage2Service = stage2Service;
+            _employeeRewardService = employeeRewardService;
         }
 
         public StageWorkflowResult<Stage1Report> RunStage1(Stage1Options options, Action<string> log)
@@ -87,6 +94,27 @@ namespace HainanSettlementTool.Core.Services
                     "报告：" + report.ReportPath,
                     "代理费合计：" + report.ProxyTotal.ToString("0.####"),
                     "居间费合计：" + report.IntermediaryTotal.ToString("0.####")
+                });
+        }
+
+        public StageWorkflowResult<EmployeeRewardResult> RunEmployeeReward(EmployeeRewardOptions options, Action<string> log)
+        {
+            if (_employeeRewardService == null)
+            {
+                throw new InvalidOperationException("员工电量奖励服务未配置。");
+            }
+
+            var report = _employeeRewardService.Run(options, log);
+            return new StageWorkflowResult<EmployeeRewardResult>(
+                report,
+                new[]
+                {
+                    "员工电量奖励生成完成。",
+                    "奖励总表：" + report.SummaryPath,
+                    "报告：" + report.ReportPath,
+                    "员工确认表：" + report.PersonalWorkbookPaths.Count + " 个",
+                    "电量合计：" + report.TotalPower.ToString("0.####") + " 万千瓦时",
+                    "奖励金额：" + report.TotalReward.ToString("0.##") + " 元"
                 });
         }
     }

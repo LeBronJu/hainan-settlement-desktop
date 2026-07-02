@@ -50,6 +50,7 @@ This is a single-context repo. See `docs/agents/domain.md`.
 - Before changing an area, read that area's owning document: business settlement rules require `CONTEXT.md`; module boundaries or workflow seams require `docs/architecture.md`; release/packaging requires `docs/RELEASE_CHECKLIST.md`; user-visible setup or package status requires `README.md`; current branch/task state requires `HANDOFF.md`.
 - If context was compacted, the thread was resumed after a pause, or the task direction changed, repeat the relevant reading gate before making further edits.
 - Do not make development changes directly on `main` or `master`. Create a development branch first, using the `codex/` prefix unless the user requests another branch name.
+- This is a local single-developer project. Pull requests are optional; it is acceptable to commit and push a `codex/` branch, then merge locally to `main` when the user authorizes it. Still run the documented validation and documentation-impact checks before merging or releasing.
 - If an issue is uncertain, ambiguous, or risky, especially when it may affect settlement correctness, workbook safety, or user-visible business rules, stop and analyze it explicitly for the user. Do not encode a guess; ask the user to decide.
 - UI must not contain Excel parsing, matching, amount calculation, or workbook template rules.
 - Core must not reference ClosedXML, WinForms, WPF, or file-format implementation details.

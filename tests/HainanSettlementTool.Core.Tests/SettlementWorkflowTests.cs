@@ -99,6 +99,38 @@ namespace HainanSettlementTool.Core.Tests
         }
 
         [TestMethod]
+        public void RunEmployeeRewardReturnsSharedSummaryLines()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var gateway = new FakeGateway();
+                var workflow = CreateWorkflow(gateway);
+                var options = CreateEmployeeRewardOptions(root);
+
+                var result = workflow.RunEmployeeReward(options, null);
+
+                Assert.AreEqual(gateway.EmployeeRewardResult.SummaryPath, result.Report.SummaryPath);
+                Assert.AreEqual(gateway.EmployeeRewardResult.ReportPath, result.Report.ReportPath);
+                CollectionAssert.AreEqual(
+                    new[]
+                    {
+                        "员工电量奖励生成完成。",
+                        "奖励总表：" + gateway.EmployeeRewardResult.SummaryPath,
+                        "报告：" + gateway.EmployeeRewardResult.ReportPath,
+                        "员工确认表：2 个",
+                        "电量合计：123.4567 万千瓦时",
+                        "奖励金额：123.46 元"
+                    },
+                    result.SummaryLines.ToArray());
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
         public void CompleteStage2GeneratesWhenPreflightHasNoIssues()
         {
             var root = CreateTempRoot();
@@ -174,7 +206,8 @@ namespace HainanSettlementTool.Core.Tests
         {
             return new SettlementWorkflow(
                 new Stage1Service(gateway),
-                new Stage2Service(gateway));
+                new Stage2Service(gateway),
+                new EmployeeRewardService(gateway));
         }
 
         private static Stage1Options CreateStage1Options(string root)
@@ -206,6 +239,18 @@ namespace HainanSettlementTool.Core.Tests
             };
         }
 
+        private static EmployeeRewardOptions CreateEmployeeRewardOptions(string root)
+        {
+            return new EmployeeRewardOptions
+            {
+                Year = 2026,
+                StartMonth = 1,
+                EndMonth = 5,
+                LedgerPath = CreateFile(root, "reward-ledger.xlsx"),
+                OutputDirectory = Path.Combine(root, "out")
+            };
+        }
+
         private static string CreateFile(string root, string name)
         {
             Directory.CreateDirectory(root);
@@ -227,7 +272,7 @@ namespace HainanSettlementTool.Core.Tests
             }
         }
 
-        private sealed class FakeGateway : IStage1ExcelGateway, IStage2ExcelGateway
+        private sealed class FakeGateway : IStage1ExcelGateway, IStage2ExcelGateway, IEmployeeRewardExcelGateway
         {
             public bool AddPreflightIssue { get; set; }
 
@@ -245,6 +290,15 @@ namespace HainanSettlementTool.Core.Tests
                 ReportPath = "stage2-report.json",
                 ProxyTotal = 123.4567,
                 IntermediaryTotal = 8.9
+            };
+
+            public readonly EmployeeRewardResult EmployeeRewardResult = new EmployeeRewardResult
+            {
+                SummaryPath = "employee-reward.xlsx",
+                ReportPath = "employee-reward-report.json",
+                TotalPower = 123.4567,
+                TotalReward = 123.4567,
+                PersonalWorkbookPaths = new List<string> { "a.xlsx", "b.xlsx" }
             };
 
             public List<PowerRow> ReadPowerRows(string powerPath)
@@ -294,6 +348,31 @@ namespace HainanSettlementTool.Core.Tests
             {
                 GenerateSettlementCalls++;
                 return Stage2Report;
+            }
+
+            public IList<EmployeeRewardLedgerRow> ReadLedgerRows(EmployeeRewardOptions options)
+            {
+                return new List<EmployeeRewardLedgerRow>
+                {
+                    new EmployeeRewardLedgerRow
+                    {
+                        SourceRow = 4,
+                        CustomerCode = "001",
+                        CustomerName = "客户A",
+                        Owner = "员工A",
+                        MonthPowers = new Dictionary<int, double> { { 1, 123.4567 } }
+                    }
+                };
+            }
+
+            public EmployeeRewardOutput GenerateWorkbooks(EmployeeRewardOptions options, EmployeeRewardResult result)
+            {
+                return new EmployeeRewardOutput
+                {
+                    SummaryPath = EmployeeRewardResult.SummaryPath,
+                    ReportPath = EmployeeRewardResult.ReportPath,
+                    PersonalWorkbookPaths = EmployeeRewardResult.PersonalWorkbookPaths
+                };
             }
         }
     }

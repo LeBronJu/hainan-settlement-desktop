@@ -4,13 +4,14 @@ using HainanSettlementTool.Core.Services;
 
 namespace HainanSettlementTool.Excel
 {
-    public sealed class ClosedXmlStage1ExcelGateway : IStage1ExcelGateway, IStage2ExcelGateway
+    public sealed class ClosedXmlStage1ExcelGateway : IStage1ExcelGateway, IStage2ExcelGateway, IEmployeeRewardExcelGateway
     {
         private readonly PowerWorkbookReader _powerWorkbookReader = new PowerWorkbookReader();
         private readonly RawDetailReader _rawDetailReader = new RawDetailReader();
         private readonly CustomerCodeReader _customerCodeReader = new CustomerCodeReader();
         private readonly LedgerStage1Updater _ledgerUpdater = new LedgerStage1Updater();
         private readonly Stage2SettlementGenerator _stage2Generator = new Stage2SettlementGenerator();
+        private readonly EmployeeRewardGenerator _employeeRewardGenerator = new EmployeeRewardGenerator();
 
         public List<PowerRow> ReadPowerRows(string powerPath)
         {
@@ -45,6 +46,16 @@ namespace HainanSettlementTool.Excel
         public Stage2PreflightReport AnalyzeSettlement(Stage2Options options)
         {
             return _stage2Generator.Analyze(options);
+        }
+
+        public IList<EmployeeRewardLedgerRow> ReadLedgerRows(EmployeeRewardOptions options)
+        {
+            return _employeeRewardGenerator.ReadLedgerRows(options);
+        }
+
+        public EmployeeRewardOutput GenerateWorkbooks(EmployeeRewardOptions options, EmployeeRewardResult result)
+        {
+            return _employeeRewardGenerator.GenerateWorkbooks(options, result);
         }
     }
 }
