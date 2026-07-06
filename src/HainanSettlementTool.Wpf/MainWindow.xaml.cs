@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -159,7 +160,10 @@ namespace HainanSettlementTool.Wpf
 
         private void BrowseBaseLedger_Click(object sender, RoutedEventArgs e)
         {
-            BrowseExcel(BaseLedgerBox, "选择基础台账");
+            var title = SelectedProvinceOrNull() == ProvinceCode.Chongqing
+                ? "选择重庆售电结算台账"
+                : "选择基础台账";
+            BrowseExcel(BaseLedgerBox, title);
         }
 
         private void BrowsePower_Click(object sender, RoutedEventArgs e)
@@ -256,6 +260,19 @@ namespace HainanSettlementTool.Wpf
 
         private async void RunStage1_Click(object sender, RoutedEventArgs e)
         {
+            var province = SelectedProvinceOrNull();
+            if (!province.HasValue)
+            {
+                ShowErrorMessage("请选择结算省份后再执行阶段一。");
+                return;
+            }
+
+            if (province.Value == ProvinceCode.Chongqing)
+            {
+                await RunProvinceStage1LedgerUpdateAsync();
+                return;
+            }
+
             Stage1Options options;
             try
             {
@@ -457,6 +474,78 @@ namespace HainanSettlementTool.Wpf
                 Stage1ResultCount.Text = result.Report.CustomerRows + " 个客户";
                 FinishedAtText.Text = DateTime.Now.ToString("HH:mm:ss");
                 ShowCompletion("重庆电量清洗完成", "电量处理表、户号明细和校验报告已生成", options.OutputDirectory);
+            }
+            catch (Exception ex)
+            {
+                SetStepFailed();
+                SetProgress(100, "执行失败");
+                AddLog(ex.Message, "错误");
+                ShowError(ex);
+            }
+            finally
+            {
+                SetBusy(false);
+            }
+        }
+
+        private async Task RunProvinceStage1LedgerUpdateAsync()
+        {
+            ProvinceStage1LedgerUpdateOptions options;
+            try
+            {
+                options = CreateProvinceStage1LedgerUpdateOptions();
+                SaveInputs();
+            }
+            catch (Exception ex)
+            {
+                ShowError(ex);
+                return;
+            }
+
+            SetBusy(true);
+            ResetResults();
+            ResetProgress("正在预检重庆台账...", "读取台账和电量明细");
+            SetProgress(10, "检查输入文件");
+            SetStepRunning(0);
+            AddLog("开始预检重庆阶段一台账更新。", "重庆");
+
+            try
+            {
+                var workflow = CreateWorkflow();
+                ProvinceStage1LedgerUpdatePlan plan = null;
+                await Task.Run(() =>
+                {
+                    Dispatcher.Invoke(() => SetProgress(22, "读取重庆台账和交易中心电量确认单"));
+                    plan = workflow.PlanProvinceStage1LedgerUpdate(options, LogThreadSafe);
+                });
+
+                SetProgress(30, plan.RequiresConfirmation ? "预检发现需要确认的项目" : "预检完成");
+                if (!ConfirmProvinceStage1LedgerUpdate(options, plan))
+                {
+                    AddLog("已取消重庆阶段一台账更新。", "重庆");
+                    ResetProgress("等待执行", "已取消重庆台账更新");
+                    return;
+                }
+
+                SetStepDone(0);
+                SetProgress(40, "写入重庆台账副本");
+                StageWorkflowResult<ProvinceStage1LedgerUpdateResult> result = null;
+                await Task.Run(() =>
+                {
+                    result = workflow.UpdateProvinceStage1Ledger(options, LogThreadSafe);
+                });
+
+                SetStepDone(1);
+                SetStepDone(2);
+                SetStepDone(3);
+                SetStepDone(4);
+                SetProgress(100, "重庆台账更新完成");
+                LogSummary(result.SummaryLines);
+
+                Stage1ResultStatus.Text = "成功";
+                Stage1ResultCount.Text = result.Report.UpdatedPowerRows + " 个客户";
+                FinishedAtText.Text = DateTime.Now.ToString("HH:mm:ss");
+                ShowCompletion("重庆台账更新完成", "台账副本和更新报告已生成", options.OutputDirectory);
             }
             catch (Exception ex)
             {
@@ -729,6 +818,18 @@ namespace HainanSettlementTool.Wpf
             };
         }
 
+        private ProvinceStage1LedgerUpdateOptions CreateProvinceStage1LedgerUpdateOptions()
+        {
+            return new ProvinceStage1LedgerUpdateOptions
+            {
+                Province = SelectedProvince(),
+                Month = SelectedMonth(),
+                LedgerPath = BaseLedgerBox.Text.Trim(),
+                RawDetailPath = RawDetailBox.Text.Trim(),
+                OutputDirectory = OutputDirBox.Text.Trim()
+            };
+        }
+
         private static SettlementWorkflow CreateWorkflow()
         {
             var gateway = new ClosedXmlStage1ExcelGateway();
@@ -937,22 +1038,24 @@ namespace HainanSettlementTool.Wpf
             Stage1CaptionText.Text = !hasProvince
                 ? "不同省份的结算口径不同，必须先选择省份再执行。"
                 : chongqing
-                ? "清洗交易中心电量确认结算单，生成重庆标准电量处理表"
+                ? "清洗交易中心电量确认结算单，并写入重庆台账副本"
                 : "整理电量并写入基础台账，输出检查报告";
+            BaseLedgerLabel.Text = chongqing ? "重庆售电结算台账（必填）" : "基础台账（必填）";
             RawDetailLabel.Text = !hasProvince ? "电量文件（先选择省份）" : chongqing ? "交易中心电量确认结算单（必填）" : "原始零售侧明细";
-            RunStage1ButtonText.Text = chongqing ? "清洗并更新台账（暂未开放）" : "开始 执行阶段一";
+            RunStage1ButtonText.Text = chongqing ? "清洗并更新台账" : "开始 执行阶段一";
             CleanPowerButton.Content = chongqing ? "只清洗电量数据" : "只清洗电量";
 
+            var ledgerVisibility = hasProvince ? Visibility.Visible : Visibility.Collapsed;
             var hainanVisibility = hainan ? Visibility.Visible : Visibility.Collapsed;
-            BaseLedgerLabel.Visibility = hainanVisibility;
-            BaseLedgerRow.Visibility = hainanVisibility;
+            BaseLedgerLabel.Visibility = ledgerVisibility;
+            BaseLedgerRow.Visibility = ledgerVisibility;
             PowerLabel.Visibility = hainanVisibility;
             PowerRow.Visibility = hainanVisibility;
             ReferenceLedgerLabel.Visibility = hainanVisibility;
             ReferenceLedgerRow.Visibility = hainanVisibility;
             CopyReferenceExistingCheckBox.Visibility = hainanVisibility;
 
-            RunStage1Button.IsEnabled = !_isBusy && hainan;
+            RunStage1Button.IsEnabled = !_isBusy && hasProvince;
             CleanPowerButton.IsEnabled = !_isBusy && hasProvince;
             RunStage2Button.IsEnabled = !_isBusy && hainan;
             RunEmployeeRewardButton.IsEnabled = !_isBusy && hainan;
@@ -1191,6 +1294,38 @@ namespace HainanSettlementTool.Wpf
                 Owner = this
             };
             return dialog.ShowDialog() == true;
+        }
+
+        private bool ConfirmProvinceStage1LedgerUpdate(ProvinceStage1LedgerUpdateOptions options, ProvinceStage1LedgerUpdatePlan plan)
+        {
+            var message = new StringBuilder();
+            message.AppendLine("结算月份：2026年" + options.Month + "月");
+            message.AppendLine("匹配客户：" + plan.MatchedRows + " / " + plan.PowerCustomerRows);
+            message.AppendLine("预计补齐电力用户编码：" + plan.CodeFillRows + " 行");
+            message.AppendLine("输出文件夹：");
+            message.AppendLine(options.OutputDirectory);
+
+            if (plan.RequiresConfirmation)
+            {
+                message.AppendLine();
+                message.AppendLine("预检发现以下项目，请确认后再继续：");
+                foreach (var issue in plan.Issues.Take(12))
+                {
+                    var customer = string.IsNullOrWhiteSpace(issue.CustomerName) ? string.Empty : "：" + issue.CustomerName;
+                    message.AppendLine("- " + issue.Category + customer + "；" + issue.Message);
+                }
+
+                if (plan.Issues.Count > 12)
+                {
+                    message.AppendLine("- 其余 " + (plan.Issues.Count - 12) + " 项会写入更新报告。");
+                }
+
+                return ConfirmAction("确认重庆台账更新", "预检发现需要确认的项目", message.ToString(), "继续写入副本");
+            }
+
+            message.AppendLine();
+            message.AppendLine("未发现匹配异常。确认后会生成台账副本，不会覆盖原文件。");
+            return ConfirmAction("确认重庆台账更新", "即将写入重庆台账副本", message.ToString(), "开始写入");
         }
 
         private void ClearStage1_Click(object sender, RoutedEventArgs e)

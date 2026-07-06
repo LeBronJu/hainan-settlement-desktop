@@ -13,6 +13,12 @@ namespace HainanSettlementTool.Excel
         private readonly Stage2SettlementGenerator _stage2Generator = new Stage2SettlementGenerator();
         private readonly EmployeeRewardGenerator _employeeRewardGenerator = new EmployeeRewardGenerator();
         private readonly ChongqingPowerCleanGenerator _chongqingPowerCleanGenerator = new ChongqingPowerCleanGenerator();
+        private readonly ChongqingLedgerStage1Updater _chongqingLedgerStage1Updater;
+
+        public ClosedXmlStage1ExcelGateway()
+        {
+            _chongqingLedgerStage1Updater = new ChongqingLedgerStage1Updater(_chongqingPowerCleanGenerator);
+        }
 
         public List<PowerRow> ReadPowerRows(string powerPath)
         {
@@ -47,6 +53,26 @@ namespace HainanSettlementTool.Excel
             }
 
             throw new System.NotSupportedException("当前省份暂未接入多省份阶段一电量清洗。");
+        }
+
+        public ProvinceStage1LedgerUpdatePlan PlanLedgerUpdate(ProvinceStage1LedgerUpdateOptions options)
+        {
+            if (options.Province == ProvinceCode.Chongqing)
+            {
+                return _chongqingLedgerStage1Updater.Plan(options);
+            }
+
+            throw new System.NotSupportedException("当前省份暂未接入多省份阶段一台账更新。");
+        }
+
+        public ProvinceStage1LedgerUpdateResult UpdateLedger(ProvinceStage1LedgerUpdateOptions options)
+        {
+            if (options.Province == ProvinceCode.Chongqing)
+            {
+                return _chongqingLedgerStage1Updater.Update(options);
+            }
+
+            throw new System.NotSupportedException("当前省份暂未接入多省份阶段一台账更新。");
         }
 
         public Stage2Report GenerateSettlement(Stage2Options options)

@@ -91,14 +91,16 @@ Stage 1 and Stage 2 still do not:
 - Change ledger customer names to match summary/payment-account names.
 - Treat irregular January/February 2026 data as generic rules.
 
-Chongqing Stage 1 currently targets only power-data cleaning:
+Chongqing Stage 1 currently targets power-data cleaning and ledger update:
 
 - Input: Chongqing trading-center electricity confirmation statement (`.xlsx/.xls/.csv`).
+- Ledger update input: Chongqing settlement ledger (`.xlsx`).
 - Preferred sheet: `sheet1`; fallback to the first sheet when `sheet1` does not exist.
 - Required headers: `用户名称`, `户号`, `时段`, `用电量`.
 - Unit: `兆瓦时`; do not reuse Hainan's `万千瓦时` unit.
 - Output: Chongqing retail-side power processing workbook plus JSON validation report.
 - Aggregation: by user name for the main summary, with account-number detail retained for audit.
+- Ledger update matches by `电力用户名称`, fills `电力用户编码` from the power-detail `户号`, writes target-month `总实际电量/尖/峰/平/谷` to a copied ledger, and requires WPF confirmation before writing when matching issues exist.
 
 ## Business Rules To Preserve
 

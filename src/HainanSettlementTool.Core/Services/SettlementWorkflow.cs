@@ -90,6 +90,41 @@ namespace HainanSettlementTool.Core.Services
                 });
         }
 
+        public ProvinceStage1LedgerUpdatePlan PlanProvinceStage1LedgerUpdate(
+            ProvinceStage1LedgerUpdateOptions options,
+            Action<string> log)
+        {
+            if (_provinceStage1Service == null)
+            {
+                throw new InvalidOperationException("多省份阶段一服务未配置。");
+            }
+
+            return _provinceStage1Service.PlanLedgerUpdate(options, log);
+        }
+
+        public StageWorkflowResult<ProvinceStage1LedgerUpdateResult> UpdateProvinceStage1Ledger(
+            ProvinceStage1LedgerUpdateOptions options,
+            Action<string> log)
+        {
+            if (_provinceStage1Service == null)
+            {
+                throw new InvalidOperationException("多省份阶段一服务未配置。");
+            }
+
+            var report = _provinceStage1Service.UpdateLedger(options, log);
+            return new StageWorkflowResult<ProvinceStage1LedgerUpdateResult>(
+                report,
+                new[]
+                {
+                    ProvinceStage1Service.ProvinceName(report.Province) + "阶段一台账更新完成。",
+                    "输出台账：" + report.OutputLedgerPath,
+                    "报告：" + report.ReportPath,
+                    "匹配客户：" + report.MatchedRows + "，写入电量：" + report.UpdatedPowerRows,
+                    "补齐电力用户编码：" + report.CodeFillRows,
+                    "合计电量：" + report.TotalPower.ToString("0.####") + " " + report.Unit
+                });
+        }
+
         public Stage2PreflightReport AnalyzeStage2(Stage2Options options)
         {
             return _stage2Service.Analyze(options);

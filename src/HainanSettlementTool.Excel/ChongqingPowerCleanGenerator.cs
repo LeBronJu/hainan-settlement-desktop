@@ -20,31 +20,44 @@ namespace HainanSettlementTool.Excel
 
         public ProvinceStage1CleanResult Generate(ProvinceStage1CleanOptions options)
         {
-            var source = ReadSource(options.RawDetailPath);
-            var month = ResolveMonth(options, source.TitleText);
-            var customerRows = AggregateCustomerRows(source.Rows);
-            var accountRows = AggregateAccountRows(source.Rows);
-            var outputPath = UniquePath(Path.Combine(options.OutputDirectory, OutputWorkbookName(options, month)));
-            var reportPath = UniquePath(Path.Combine(options.OutputDirectory, ReportName(month)));
+            var data = ReadData(options);
+            var outputPath = UniquePath(Path.Combine(options.OutputDirectory, OutputWorkbookName(options, data.Month)));
+            var reportPath = UniquePath(Path.Combine(options.OutputDirectory, ReportName(data.Month)));
 
-            WriteWorkbook(outputPath, month, customerRows, accountRows);
+            WriteWorkbook(outputPath, data.Month, data.CustomerRows, data.AccountRows);
             var result = new ProvinceStage1CleanResult
             {
                 Province = ProvinceCode.Chongqing,
-                Month = month,
+                Month = data.Month,
                 Unit = Unit,
                 RawDetailPath = options.RawDetailPath,
                 OutputWorkbookPath = outputPath,
                 ReportPath = reportPath,
-                SourceSheetName = source.SheetName,
-                RawRows = source.Rows.Count,
-                CustomerRows = customerRows.Count,
-                AccountRows = accountRows.Count,
-                TotalPower = Math.Round(customerRows.Sum(row => row.Total), 4),
-                Warnings = source.Warnings
+                SourceSheetName = data.SourceSheetName,
+                RawRows = data.RawRows,
+                CustomerRows = data.CustomerRows.Count,
+                AccountRows = data.AccountRows.Count,
+                TotalPower = Math.Round(data.CustomerRows.Sum(row => row.Total), 4),
+                Warnings = data.Warnings
             };
             WriteReport(reportPath, result);
             return result;
+        }
+
+        internal ChongqingPowerDataSet ReadData(ProvinceStage1CleanOptions options)
+        {
+            var source = ReadSource(options.RawDetailPath);
+            var month = ResolveMonth(options, source.TitleText);
+            return new ChongqingPowerDataSet
+            {
+                Month = month,
+                Unit = Unit,
+                SourceSheetName = source.SheetName,
+                RawRows = source.Rows.Count,
+                CustomerRows = AggregateCustomerRows(source.Rows),
+                AccountRows = AggregateAccountRows(source.Rows),
+                Warnings = source.Warnings
+            };
         }
 
         private static SourceReadResult ReadSource(string path)
@@ -70,7 +83,8 @@ namespace HainanSettlementTool.Excel
 
         private static SourceReadResult ReadXlsx(string path)
         {
-            using (var workbook = new XLWorkbook(path))
+            using (var stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (var workbook = new XLWorkbook(stream))
             {
                 var worksheet = workbook.Worksheets.FirstOrDefault(ws => string.Equals(ws.Name, "sheet1", StringComparison.OrdinalIgnoreCase))
                     ?? workbook.Worksheets.First();
@@ -826,7 +840,18 @@ namespace HainanSettlementTool.Excel
             public string NormalizedPeriod { get; set; }
         }
 
-        private sealed class ChongqingPowerAggregateRow
+        internal sealed class ChongqingPowerDataSet
+        {
+            public int Month { get; set; }
+            public string Unit { get; set; }
+            public string SourceSheetName { get; set; }
+            public int RawRows { get; set; }
+            public List<ChongqingPowerAggregateRow> CustomerRows { get; set; }
+            public List<ChongqingPowerAggregateRow> AccountRows { get; set; }
+            public List<string> Warnings { get; set; }
+        }
+
+        internal sealed class ChongqingPowerAggregateRow
         {
             public string CustomerName { get; set; }
             public string AccountNumber { get; set; }

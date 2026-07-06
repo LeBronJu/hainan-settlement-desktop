@@ -188,11 +188,12 @@ Known limits:
 - The implementation generates an internal layout based on the reference workbooks instead of copying the reference templates. The user completed practical testing on 2026-07-02 and reported no blocking issues, but a formal release has not been cut yet.
 - Win7/8 WinForms has no employee reward UI entry; this follows the maintenance-only WinForms policy.
 
-### Chongqing Stage 1 Power Cleaning
+### Chongqing Stage 1 Power Cleaning And Ledger Update
 
 Inputs:
 
 - Chongqing trading-center electricity confirmation statement (`.xlsx`, `.xls`, or `.csv`).
+- Chongqing settlement ledger (`.xlsx`) when updating the ledger.
 - Settlement month from the file title/name, with the UI month as fallback.
 - Shared output folder.
 
@@ -200,22 +201,28 @@ Outputs:
 
 - `x月重庆零售侧用户电量数据处理表.xlsx`.
 - `x月重庆零售侧用户电量校验报告.json`.
+- `x月重庆售电结算台账-阶段一更新.xlsx`.
+- `x月重庆阶段一台账更新报告.json`.
 
 Current behavior:
 
-- The module is exposed only in the Win10/11 WPF app through the new province selector. Selecting `重庆` shows the Stage 1 account-update area and currently enables only `只清洗电量数据`.
+- The module is exposed only in the Win10/11 WPF app through the new province selector. Selecting `重庆` shows the Stage 1 account-update area and enables `清洗并更新台账` plus `只清洗电量数据`.
 - Excel input prefers the `sheet1` worksheet and falls back to the first sheet when `sheet1` is absent. CSV input is read as a single table.
 - Required headers are `用户名称`, `户号`, `时段`, and `用电量`.
 - Unit is `兆瓦时`; this must remain separate from Hainan's `万千瓦时` Stage 1 ledger unit.
 - Period values map as `尖峰` -> `尖`, `高峰` -> `峰`, `平段` -> `平`, `低谷` -> `谷`.
 - Output main sheet `用户电量汇总` aggregates by customer name. Output detail sheet `户号明细` retains account-number rows for audit and later ledger-update work.
 - Missing customer name, missing account number, invalid period, non-numeric power, and negative power stop generation as serious source-data errors.
+- Ledger update matches by `电力用户名称`, not `电力用户编码`.
+- Ledger update can fill `电力用户编码` from the power-detail `户号`; multiple account numbers are joined with `、` and surfaced in the preflight confirmation.
+- Ledger update writes only target-month `总实际电量（兆瓦时）` and `尖/峰/平/谷` into a copied ledger. It does not overwrite the source ledger.
+- Missing/new/ledger-only customers, possible alias candidates, multiple-account customers, month mismatch, account-code differences, and existing target-month power differences are surfaced in a WPF confirmation before writing and also written to the JSON report.
 
 Known limits:
 
-- Chongqing Stage 1 does not yet update a Chongqing ledger.
 - Chongqing Stage 2 settlement generation is not implemented.
-- Customer-name alias mapping against a future Chongqing ledger is not implemented.
+- Customer-name alias mapping is not automatic; possible aliases are reported and require user judgment.
+- Unmatched customers are not automatically inserted into the Chongqing ledger.
 - Current regressions use synthetic workbooks; no real Chongqing workbook is committed.
 
 ## UI State
@@ -674,6 +681,34 @@ Authorized Chongqing ledger read-only structure analysis on 2026-07-06:
 - Month blocks were identified by row-1 merged headers. Existing blocks cover January through May 2026. The May block starts at `FI`: total actual power in `FI`, periods in `FJ:FM` (`尖/峰/平/谷`), coefficient columns in `FN:FO`, and downstream benefit fields after that.
 - The current May ledger power values already match the generated Chongqing cleaned power output on customer count, total power, and every numeric power vector. The same one customer-name text difference remains, so the next module needs an alias/mismatch report rather than silent fuzzy matching.
 
+Chongqing Stage 1 ledger update implementation verification on 2026-07-06:
+
+```powershell
+dotnet msbuild .\src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Debug
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+```
+
+Observed result:
+
+- Added Core models for Chongqing ledger update options, preflight plan, issues, and result.
+- Added `ChongqingLedgerStage1Updater` in the Excel layer.
+- WPF `清洗并更新台账` is now enabled for Chongqing and runs a preflight before writing.
+- WPF preflight uses the modern dialog and shows matching issues before generating a copied ledger.
+- Synthetic tests passed for workflow summary and Chongqing ledger update writing.
+- Core tests: 18 passed.
+- Excel tests: 17 passed.
+- WPF Debug build passed.
+- Win10/11 WPF test package generated at `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260706-154127.zip`.
+
+Authorized Chongqing Stage 1 ledger update real smoke on 2026-07-06:
+
+- Inputs inspected read-only: `C:\Users\juqx2\Desktop\2026年-重庆\重庆2026年售电结算台账20260609.xlsx` and `C:\Users\juqx2\Desktop\2026年-重庆\重庆\重庆2026年电量确认结算单\2026年05月售电公司电量确认结算单.xlsx`
+- Output folder: `C:\Users\juqx2\Desktop\2026年-重庆\test\codex-chongqing-ledger-update-smoke-20260706-153825`
+- Generated output ledger: `5月重庆售电结算台账-阶段一更新.xlsx`
+- Generated report: `5月重庆阶段一台账更新报告.json`
+- Real-smoke preflight required confirmation: 25 matched customer rows, 25 account-code fill rows, 7 multi-account rows, 1 power customer not in ledger, 1 ledger customer not in power table, 1 possible alias candidate, and 0 existing target-month power differences.
+- The smoke wrote 25 matched rows into the copied ledger and did not modify the original ledger.
+
 ## Documentation Rule
 
 Documentation is now part of the development contract:
@@ -734,10 +769,9 @@ Packaging/docs:
 
 ## Next Steps
 
-1. Build Chongqing Stage 1 ledger update as the next vertical slice: input latest Chongqing ledger plus cleaned power workbook/raw confirmation statement, write a copied ledger output, and generate a JSON mismatch report.
-2. For Chongqing ledger update, match by `电力用户名称` first because the ledger's `电力用户编码` column is currently blank; report missing/extra/alias candidates instead of fuzzy-updating silently.
-3. Decide with the user whether future Chongqing ledger updates should overwrite already-filled month power cells after confirmation, or only fill blank target-month cells by default.
-4. Decide whether to include a `户号` column in the main Chongqing summary later or keep the current two-sheet design: user summary plus account detail.
-5. Decide whether to cut a Win10/11 acceptance release from the accepted WPF package or rebuild a fresh release package from `main`.
-6. Continue quality work with WPF as the default UI target; avoid WinForms parity work unless it is a bugfix, build/package compatibility issue, or explicitly requested.
-7. Consider adding sanitized employee reward, Stage 2, Chongqing, and `.xls` fixture workbooks later; current regressions use dynamically generated synthetic workbooks and local authorized smoke only.
+1. Let the user test the Chongqing `清洗并更新台账` WPF flow, especially the preflight dialog wording and the generated B-column account-code format for multi-account customers.
+2. Decide whether unmatched possible alias customers should support a user-maintained alias table later, or remain manual review only.
+3. Decide whether future Chongqing months should require the target month block to already exist in the ledger, or whether the app should copy the previous month block and create the new month block.
+4. Decide whether to cut a Win10/11 acceptance release from the accepted WPF package or rebuild a fresh release package from `main`.
+5. Continue quality work with WPF as the default UI target; avoid WinForms parity work unless it is a bugfix, build/package compatibility issue, or explicitly requested.
+6. Consider adding sanitized employee reward, Stage 2, Chongqing, and `.xls` fixture workbooks later; current regressions use dynamically generated synthetic workbooks and local authorized smoke only.

@@ -104,6 +104,75 @@ namespace HainanSettlementTool.Excel.Tests
             }
         }
 
+        [TestMethod]
+        public void UpdateLedgerWritesChongqingPowerAndAccountCodesToCopiedLedger()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var raw = Path.Combine(root, "2026年05月售电公司电量确认结算单.xlsx");
+                var ledger = Path.Combine(root, "重庆2026年售电结算台账.xlsx");
+                var outputDirectory = Path.Combine(root, "out");
+                WriteChongqingWorkbook(raw);
+                WriteChongqingLedger(ledger);
+                var gateway = new ClosedXmlStage1ExcelGateway();
+                var options = new ProvinceStage1LedgerUpdateOptions
+                {
+                    Province = ProvinceCode.Chongqing,
+                    Month = 5,
+                    LedgerPath = ledger,
+                    RawDetailPath = raw,
+                    OutputDirectory = outputDirectory
+                };
+
+                var plan = gateway.PlanLedgerUpdate(options);
+                var result = gateway.UpdateLedger(options);
+
+                Assert.IsTrue(plan.RequiresConfirmation);
+                Assert.AreEqual(3, plan.LedgerCustomerRows);
+                Assert.AreEqual(2, plan.PowerCustomerRows);
+                Assert.AreEqual(2, plan.MatchedRows);
+                Assert.AreEqual(2, plan.CodeFillRows);
+                Assert.AreEqual(1, plan.MultiAccountRows);
+                Assert.AreEqual(1, plan.MissingInPowerRows);
+                Assert.IsTrue(File.Exists(result.OutputLedgerPath));
+                Assert.IsTrue(File.Exists(result.ReportPath));
+                Assert.AreEqual(2, result.UpdatedPowerRows);
+                Assert.AreEqual(2, result.CodeFillRows);
+
+                using (var original = new XLWorkbook(ledger))
+                using (var updated = new XLWorkbook(result.OutputLedgerPath))
+                {
+                    var originalSheet = original.Worksheet("Sheet1");
+                    var updatedSheet = updated.Worksheet("Sheet1");
+                    var customerA = FindLedgerRow(updatedSheet, "测试客户A");
+                    var customerB = FindLedgerRow(updatedSheet, "测试客户B");
+                    var customerC = FindLedgerRow(updatedSheet, "台账独有客户");
+
+                    Assert.AreEqual(string.Empty, originalSheet.Cell(customerA, 2).GetString());
+                    Assert.AreEqual("A-001、A-002", updatedSheet.Cell(customerA, 2).GetString());
+                    Assert.AreEqual("B-001", updatedSheet.Cell(customerB, 2).GetString());
+                    Assert.AreEqual(31.5, updatedSheet.Cell(customerA, 8).GetDouble(), 0.00001);
+                    Assert.AreEqual(3.5, updatedSheet.Cell(customerA, 9).GetDouble(), 0.00001);
+                    Assert.AreEqual(17, updatedSheet.Cell(customerA, 10).GetDouble(), 0.00001);
+                    Assert.AreEqual(5, updatedSheet.Cell(customerA, 11).GetDouble(), 0.00001);
+                    Assert.AreEqual(6, updatedSheet.Cell(customerA, 12).GetDouble(), 0.00001);
+                    Assert.AreEqual(12, updatedSheet.Cell(customerB, 8).GetDouble(), 0.00001);
+                    Assert.IsTrue(updatedSheet.Cell(customerC, 8).IsEmpty());
+                }
+
+                var report = JObject.Parse(File.ReadAllText(result.ReportPath));
+                Assert.AreEqual("重庆", (string)report["province"]);
+                Assert.AreEqual(5, (int)report["month"]);
+                Assert.AreEqual(2, (int)report["updatedPowerRows"]);
+                Assert.AreEqual(2, (int)report["codeFillRows"]);
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
         private static void WriteChongqingWorkbook(string path, bool includeNegative = false)
         {
             Directory.CreateDirectory(Path.GetDirectoryName(path));
@@ -138,6 +207,50 @@ namespace HainanSettlementTool.Excel.Tests
 
                 workbook.SaveAs(path);
             }
+        }
+
+        private static void WriteChongqingLedger(string path)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            using (var workbook = new XLWorkbook())
+            {
+                var ws = workbook.AddWorksheet("Sheet1");
+                ws.Range("A1:G1").Merge();
+                ws.Cell("A1").Value = "重庆2026年售电结算台账";
+                ws.Cell("A2").Value = "序号";
+                ws.Cell("B2").Value = "电力用户编码";
+                ws.Cell("C2").Value = "电力用户名称";
+                ws.Cell("D2").Value = "合同年用电量（兆瓦时）";
+                ws.Cell("E2").Value = "履约开始月份";
+                ws.Cell("F2").Value = "履约结束月份";
+                ws.Cell("G2").Value = "负责人";
+                ws.Range("H1:N1").Merge();
+                ws.Cell("H1").Value = "5月";
+                ws.Cell("H2").Value = "总实际电量（兆瓦时）";
+                ws.Cell("I2").Value = "实际电量（兆瓦时）";
+                ws.Cell("I3").Value = "尖";
+                ws.Cell("J3").Value = "峰";
+                ws.Cell("K3").Value = "平";
+                ws.Cell("L3").Value = "谷";
+                ws.Cell("M2").Value = "峰平谷系数";
+                ws.Cell("M3").Value = "峰_平";
+                ws.Cell("N3").Value = "谷_平";
+
+                WriteLedgerRow(ws, 4, 1, "测试客户A");
+                WriteLedgerRow(ws, 5, 2, "测试客户B");
+                WriteLedgerRow(ws, 6, 3, "台账独有客户");
+                workbook.SaveAs(path);
+            }
+        }
+
+        private static void WriteLedgerRow(IXLWorksheet ws, int row, int index, string customerName)
+        {
+            ws.Cell(row, 1).Value = index;
+            ws.Cell(row, 3).Value = customerName;
+            ws.Cell(row, 4).Value = 100;
+            ws.Cell(row, 5).Value = 202601;
+            ws.Cell(row, 6).Value = 202612;
+            ws.Cell(row, 7).Value = "测试负责人";
         }
 
         private static void WriteRow(IXLWorksheet ws, int row, string customer, string account, string meter, string period, double power)
@@ -180,6 +293,21 @@ namespace HainanSettlementTool.Excel.Tests
             }
 
             Assert.Fail("未找到户号明细：" + customerName + " / " + account);
+            return 0;
+        }
+
+        private static int FindLedgerRow(IXLWorksheet worksheet, string customerName)
+        {
+            var lastRow = worksheet.LastRowUsed().RowNumber();
+            for (var row = 4; row <= lastRow; row++)
+            {
+                if (worksheet.Cell(row, 3).GetString() == customerName)
+                {
+                    return row;
+                }
+            }
+
+            Assert.Fail("未找到台账客户：" + customerName);
             return 0;
         }
 
