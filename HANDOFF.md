@@ -239,7 +239,7 @@ Do not add WinForms-only features or UX improvements by default. New UI work sho
 Stage 2 workflow handling keeps WPF responsible for the confirmation dialog and progress UI, while Core `SettlementWorkflow` owns the preflight plan and the confirmed/cancelled generation decision.
 The employee reward module currently exists only in the WPF app as a separate tab. It reuses the shared output folder and has its own start/end month selectors.
 The WPF app supports UI theme selection in the custom title bar: `跟随系统`, `浅色`, and `深色`. The setting is stored in the existing WPF input snapshot XML. This is UI-only; generated Excel workbooks remain theme-independent, light, and print-safe.
-The WPF app now has a top-level settlement-province selector. It defaults to empty on startup so the user must explicitly choose the province before running business actions. `海南` keeps the mature Stage 1, Stage 2, and employee reward entries. `重庆` currently exposes only Stage 1 power cleaning; Hainan-only Stage 2 and employee reward UI entries are hidden when Chongqing is selected.
+The WPF app now has a top-level settlement-province selector. It defaults to empty on startup so the user must explicitly choose the province before running business actions. Before a province is selected, the main business area shows only a neutral empty state; stale file paths, run buttons, and province-specific output rows must stay hidden. `海南` keeps the mature Stage 1, Stage 2, and employee reward entries. `重庆` currently exposes only Stage 1 power cleaning; Hainan-only Stage 2 and employee reward UI entries are hidden when Chongqing is selected.
 WPF business confirmation, warning, and error prompts should use project-native modern WPF dialogs, not system `MessageBox`; OS-native dialogs are still acceptable for file and folder selection.
 
 ## Latest Verification
@@ -755,6 +755,28 @@ Observed result:
 - Win10/11 WPF test package generated at `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260706-171820.zip`.
 - Package contents checked for the WPF executable, config, Core/Excel DLLs, and ClosedXML DLL.
 
+WPF no-province empty state polish on 2026-07-06:
+
+```powershell
+dotnet msbuild .\src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Debug
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Debug /m
+.\scripts\package_wpf_release.ps1
+```
+
+Observed result:
+
+- When the WPF settlement province is empty, the main business tab now shows a neutral empty state instead of stale file paths, province-specific labels, and run buttons.
+- The right-side completion/output card now shows a no-province waiting state and hides province-specific output rows and completion time until a province is selected.
+- Selecting a province resets the right-side previous-result summary so old success counts from another province are not shown under the new province.
+- Full Debug test suite passed: Core 18 tests and Excel 18 tests.
+- Debug build passed for Core, Excel, WinForms, and WPF.
+- `git diff --check` passed with CRLF normalization warnings only.
+- WPF `MessageBox` search had no matches.
+- No real Excel, CSV, image, PDF, or generated sensitive output file appears in `git status`.
+- Win10/11 WPF test package generated at `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260706-173120.zip`.
+- Package contents checked for the WPF executable, config, Core/Excel DLLs, and ClosedXML DLL.
+
 ## Documentation Rule
 
 Documentation is now part of the development contract:
@@ -816,7 +838,7 @@ Packaging/docs:
 
 ## Next Steps
 
-1. Let the user test the Chongqing `清洗并更新台账` WPF flow, especially the one-time manual matching window for the old-name/current-name customer case and multi-account reminders.
+1. Let the user test the latest WPF package, first checking the no-province empty state, then the Chongqing `清洗并更新台账` flow and one-time manual matching window.
 2. Decide later whether repeated manual matches should remain one-time only or support a user-maintained alias table.
 3. Decide whether future Chongqing months should require the target month block to already exist in the ledger, or whether the app should copy the previous month block and create the new month block.
 4. Decide whether to cut a Win10/11 acceptance release from the accepted WPF package or rebuild a fresh release package from `main`.

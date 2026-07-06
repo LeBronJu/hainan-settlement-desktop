@@ -114,6 +114,18 @@
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
 
+                        <Border x:Name="ProvinceEmptyPanel" Grid.ColumnSpan="2" Style="{StaticResource CardBorder}" BorderBrush="{DynamicResource TabSelectedBorderBrush}" MinHeight="280" Padding="28" Focusable="False">
+                            <Grid>
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="560">
+                                    <Border Width="56" Height="56" CornerRadius="28" Background="{DynamicResource ComboItemSelectedBrush}" HorizontalAlignment="Center">
+                                        <TextBlock Text="&#xE946;" FontFamily="Segoe MDL2 Assets" Foreground="{DynamicResource AccentBrush}" FontSize="26" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                    <TextBlock Text="请先选择结算省份" Margin="0,18,0,0" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" HorizontalAlignment="Center" />
+                                    <TextBlock Text="选择后会显示该省份可执行的结算阶段、输入文件和输出结果，避免误选或漏选。" Margin="0,10,0,0" TextWrapping="Wrap" TextAlignment="Center" Foreground="{DynamicResource FieldTextBrush}" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
                         <Border x:Name="StageOnePanel" Grid.Column="0" Style="{StaticResource CardBorder}" BorderBrush="{DynamicResource StageOneBorderBrush}" Margin="0,0,8,0">
                             <Grid>
                                 <Grid.RowDefinitions>
@@ -443,8 +455,8 @@
                             </Grid.RowDefinitions>
 
                             <StackPanel Orientation="Horizontal">
-                                <Border Width="44" Height="44" CornerRadius="22" Background="{DynamicResource SuccessBrush}">
-                                    <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" Foreground="White" FontSize="22" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <Border x:Name="CompletionIconCircle" Width="44" Height="44" CornerRadius="22" Background="{DynamicResource SuccessBrush}">
+                                    <TextBlock x:Name="CompletionIconText" Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" Foreground="White" FontSize="22" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                 </Border>
                                 <StackPanel Margin="14,0,0,0">
                                     <TextBlock x:Name="CompletionTitleText" Text="执行完成" FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" />
@@ -454,7 +466,7 @@
 
                             <Border Grid.Row="1" Background="{DynamicResource CompletionInnerBrush}" BorderBrush="{DynamicResource CompletionInnerBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,18,0,14">
                                 <StackPanel>
-                                    <TextBlock Text="输出文件夹" FontWeight="SemiBold" Foreground="{DynamicResource FieldTextBrush}" />
+                                    <TextBlock x:Name="CompletionOutputLabel" Text="输出文件夹" FontWeight="SemiBold" Foreground="{DynamicResource FieldTextBrush}" />
                                     <TextBlock x:Name="CompletionOutputText" Text="-" TextWrapping="Wrap" Margin="0,6,0,0" Foreground="{DynamicResource MutedBrush}" />
                                 </StackPanel>
                             </Border>
@@ -466,19 +478,21 @@
                                         <TextBlock DockPanel.Dock="Right" Text="最近一次" Foreground="{DynamicResource MutedBrush}" />
                                     </DockPanel>
 
-                                    <Grid Margin="0,0,0,9">
+                                    <TextBlock x:Name="NoProvinceResultHint" Text="选择省份后显示输出项" Foreground="{DynamicResource MutedBrush}" Margin="0,0,0,9" />
+
+                                    <Grid x:Name="Stage1ResultRow" Margin="0,0,0,9">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="64" />
                                             <ColumnDefinition Width="74" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="阶段一报告" Foreground="{DynamicResource FieldTextBrush}" />
+                                        <TextBlock x:Name="Stage1ResultLabel" Text="阶段一报告" Foreground="{DynamicResource FieldTextBrush}" />
                                         <Border Grid.Column="1" Background="{DynamicResource ResultPillBrush}" CornerRadius="11" Padding="8,2" HorizontalAlignment="Left">
                                             <TextBlock x:Name="Stage1ResultStatus" Text="等待" Foreground="{DynamicResource SuccessBrush}" FontSize="12" />
                                         </Border>
                                         <TextBlock x:Name="Stage1ResultCount" Grid.Column="2" Text="-" HorizontalAlignment="Right" Foreground="{DynamicResource FieldTextBrush}" />
                                     </Grid>
-                                    <Grid Margin="0,0,0,9">
+                                    <Grid x:Name="ProxyResultRow" Margin="0,0,0,9">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="64" />
@@ -490,7 +504,7 @@
                                         </Border>
                                         <TextBlock x:Name="ProxyResultCount" Grid.Column="2" Text="-" HorizontalAlignment="Right" Foreground="{DynamicResource FieldTextBrush}" />
                                     </Grid>
-                                    <Grid Margin="0,0,0,9">
+                                    <Grid x:Name="IntermediaryResultRow" Margin="0,0,0,9">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="64" />
@@ -502,7 +516,7 @@
                                         </Border>
                                         <TextBlock x:Name="IntermediaryResultCount" Grid.Column="2" Text="-" HorizontalAlignment="Right" Foreground="{DynamicResource FieldTextBrush}" />
                                     </Grid>
-                                    <Grid Margin="0,0,0,9">
+                                    <Grid x:Name="SummaryResultRow" Margin="0,0,0,9">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="64" />
@@ -514,7 +528,7 @@
                                         </Border>
                                         <TextBlock x:Name="SummaryResultCount" Grid.Column="2" Text="-" HorizontalAlignment="Right" Foreground="{DynamicResource FieldTextBrush}" />
                                     </Grid>
-                                    <Grid Margin="0,0,0,9">
+                                    <Grid x:Name="EmployeeRewardResultRow" Margin="0,0,0,9">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="64" />
@@ -526,7 +540,7 @@
                                         </Border>
                                         <TextBlock x:Name="EmployeeRewardResultCount" Grid.Column="2" Text="-" HorizontalAlignment="Right" Foreground="{DynamicResource FieldTextBrush}" />
                                     </Grid>
-                                    <DockPanel LastChildFill="False">
+                                    <DockPanel x:Name="FinishedAtRow" LastChildFill="False">
                                         <TextBlock DockPanel.Dock="Left" Text="完成时间" Foreground="{DynamicResource MutedBrush}" />
                                         <TextBlock x:Name="FinishedAtText" DockPanel.Dock="Right" Text="-" Foreground="{DynamicResource FieldTextBrush}" />
                                     </DockPanel>

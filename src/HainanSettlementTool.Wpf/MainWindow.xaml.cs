@@ -141,6 +141,7 @@ namespace HainanSettlementTool.Wpf
             }
 
             UpdateProvinceUi();
+            ResetResults();
             SaveInputs();
         }
 
@@ -1030,6 +1031,8 @@ namespace HainanSettlementTool.Wpf
 
             MainSettlementTab.Header = !hasProvince ? "结算流程" : chongqing ? "阶段一：台账更新" : "代理费结算";
             EmployeeRewardTab.Visibility = hainan ? Visibility.Visible : Visibility.Collapsed;
+            ProvinceEmptyPanel.Visibility = hasProvince ? Visibility.Collapsed : Visibility.Visible;
+            StageOnePanel.Visibility = hasProvince ? Visibility.Visible : Visibility.Collapsed;
             StageTwoPanel.Visibility = hainan ? Visibility.Visible : Visibility.Collapsed;
             Grid.SetColumnSpan(StageOnePanel, hainan ? 1 : 2);
             StageOnePanel.Margin = hainan ? new Thickness(0, 0, 8, 0) : new Thickness(0);
@@ -1059,6 +1062,7 @@ namespace HainanSettlementTool.Wpf
             CleanPowerButton.IsEnabled = !_isBusy && hasProvince;
             RunStage2Button.IsEnabled = !_isBusy && hainan;
             RunEmployeeRewardButton.IsEnabled = !_isBusy && hainan;
+            UpdateResultVisibility(province);
             SharedSettingsCaption.Text = !hasProvince
                 ? "请先选择结算省份；选择后会显示对应省份的可用功能"
                 : chongqing
@@ -1174,6 +1178,44 @@ namespace HainanSettlementTool.Wpf
             }
         }
 
+        private void UpdateResultVisibility(ProvinceCode? province)
+        {
+            var hasProvince = province.HasValue;
+            var hainan = province == ProvinceCode.Hainan;
+            var chongqing = province == ProvinceCode.Chongqing;
+            var hainanVisibility = hainan ? Visibility.Visible : Visibility.Collapsed;
+
+            NoProvinceResultHint.Visibility = hasProvince ? Visibility.Collapsed : Visibility.Visible;
+            Stage1ResultRow.Visibility = hasProvince ? Visibility.Visible : Visibility.Collapsed;
+            ProxyResultRow.Visibility = hainanVisibility;
+            IntermediaryResultRow.Visibility = hainanVisibility;
+            SummaryResultRow.Visibility = hainanVisibility;
+            EmployeeRewardResultRow.Visibility = hainanVisibility;
+            FinishedAtRow.Visibility = hasProvince ? Visibility.Visible : Visibility.Collapsed;
+
+            if (!hasProvince)
+            {
+                Stage1ResultLabel.Text = "阶段输出";
+                CompletionOutputLabel.Text = "输出文件夹";
+                return;
+            }
+
+            Stage1ResultLabel.Text = chongqing ? "阶段一台账更新" : "阶段一报告";
+            CompletionOutputLabel.Text = "输出文件夹";
+        }
+
+        private void SetCompletionWaiting()
+        {
+            var province = SelectedProvinceOrNull();
+            var hasProvince = province.HasValue;
+            CompletionIconCircle.Background = hasProvince ? BrushOf("SuccessBrush") : BrushOf("AccentBrush");
+            CompletionIconText.Text = hasProvince ? "\uE73E" : "\uE946";
+            CompletionTitleText.Text = hasProvince ? "等待生成结果" : "等待选择省份";
+            CompletionDetailText.Text = hasProvince ? "运行完成后会在这里显示输出位置" : "选择结算省份后会显示对应输出项";
+            CompletionOutputText.Text = hasProvince ? "尚未生成" : "尚未选择省份";
+            UpdateResultVisibility(province);
+        }
+
         private void ResetResults()
         {
             Stage1ResultStatus.Text = "等待";
@@ -1188,15 +1230,15 @@ namespace HainanSettlementTool.Wpf
             EmployeeRewardResultCount.Text = "-";
             FinishedAtText.Text = "-";
             _lastOutputDirectory = null;
-            CompletionTitleText.Text = "等待生成结果";
-            CompletionDetailText.Text = "运行完成后会在这里显示输出位置";
-            CompletionOutputText.Text = "尚未生成";
+            SetCompletionWaiting();
             CompletionCard.Visibility = Visibility.Visible;
         }
 
         private void ShowCompletion(string title, string detail, string outputDirectory)
         {
             _lastOutputDirectory = outputDirectory;
+            CompletionIconCircle.Background = BrushOf("SuccessBrush");
+            CompletionIconText.Text = "\uE73E";
             CompletionTitleText.Text = title;
             CompletionDetailText.Text = detail;
             CompletionOutputText.Text = outputDirectory;
