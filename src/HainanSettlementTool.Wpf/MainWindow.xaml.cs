@@ -1307,20 +1307,18 @@ namespace HainanSettlementTool.Wpf
 
             if (plan.RequiresConfirmation)
             {
-                message.AppendLine();
-                message.AppendLine("预检发现以下项目，请确认后再继续：");
-                foreach (var issue in plan.Issues.Take(12))
+                var dialog = new ProvinceStage1LedgerPreflightWindow(options, plan)
                 {
-                    var customer = string.IsNullOrWhiteSpace(issue.CustomerName) ? string.Empty : "：" + issue.CustomerName;
-                    message.AppendLine("- " + issue.Category + customer + "；" + issue.Message);
+                    Owner = this
+                };
+
+                if (dialog.ShowDialog() == true)
+                {
+                    options.ManualCustomerMatches = dialog.ManualCustomerMatches;
+                    return true;
                 }
 
-                if (plan.Issues.Count > 12)
-                {
-                    message.AppendLine("- 其余 " + (plan.Issues.Count - 12) + " 项会写入更新报告。");
-                }
-
-                return ConfirmAction("确认重庆台账更新", "预检发现需要确认的项目", message.ToString(), "继续写入副本");
+                return false;
             }
 
             message.AppendLine();

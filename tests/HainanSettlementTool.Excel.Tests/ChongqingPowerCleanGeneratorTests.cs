@@ -172,7 +172,69 @@ namespace HainanSettlementTool.Excel.Tests
             }
         }
 
-        private static void WriteChongqingWorkbook(string path, bool includeNegative = false)
+        [TestMethod]
+        public void UpdateLedgerUsesManualCustomerMatchForChongqingAlias()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var raw = Path.Combine(root, "2026年05月售电公司电量确认结算单.xlsx");
+                var ledger = Path.Combine(root, "重庆2026年售电结算台账.xlsx");
+                var outputDirectory = Path.Combine(root, "out");
+                WriteChongqingWorkbook(raw, customerBName: "测试客户B旧名");
+                WriteChongqingLedger(ledger, customerBName: "测试客户B新名");
+                var gateway = new ClosedXmlStage1ExcelGateway();
+                var options = new ProvinceStage1LedgerUpdateOptions
+                {
+                    Province = ProvinceCode.Chongqing,
+                    Month = 5,
+                    LedgerPath = ledger,
+                    RawDetailPath = raw,
+                    OutputDirectory = outputDirectory
+                };
+
+                var plan = gateway.PlanLedgerUpdate(options);
+                CollectionAssert.Contains(plan.PowerOnlyCustomers, "测试客户B旧名");
+                CollectionAssert.Contains(plan.LedgerOnlyCustomers, "测试客户B新名");
+
+                options.ManualCustomerMatches.Add(new ProvinceStage1CustomerMatch
+                {
+                    SourceCustomerName = "测试客户B旧名",
+                    TargetCustomerName = "测试客户B新名"
+                });
+
+                var result = gateway.UpdateLedger(options);
+
+                Assert.AreEqual(2, result.MatchedRows);
+                Assert.AreEqual(1, result.ManualMatchedRows);
+                Assert.AreEqual(2, result.UpdatedPowerRows);
+                Assert.AreEqual(1, result.ManualCustomerMatches.Count);
+                Assert.AreEqual("测试客户B旧名", result.ManualCustomerMatches[0].SourceCustomerName);
+                Assert.AreEqual("测试客户B新名", result.ManualCustomerMatches[0].TargetCustomerName);
+
+                using (var updated = new XLWorkbook(result.OutputLedgerPath))
+                {
+                    var updatedSheet = updated.Worksheet("Sheet1");
+                    var customerA = FindLedgerRow(updatedSheet, "测试客户A");
+                    var customerB = FindLedgerRow(updatedSheet, "测试客户B新名");
+                    Assert.AreEqual(31.5, updatedSheet.Cell(customerA, 8).GetDouble(), 0.00001);
+                    Assert.AreEqual(12, updatedSheet.Cell(customerB, 8).GetDouble(), 0.00001);
+                    Assert.AreEqual(4, updatedSheet.Cell(customerB, 9).GetDouble(), 0.00001);
+                    Assert.AreEqual(8, updatedSheet.Cell(customerB, 10).GetDouble(), 0.00001);
+                }
+
+                var report = JObject.Parse(File.ReadAllText(result.ReportPath));
+                Assert.AreEqual(1, (int)report["manualMatchedRows"]);
+                Assert.AreEqual("测试客户B旧名", (string)report["manualCustomerMatches"][0]["sourceCustomerName"]);
+                Assert.AreEqual("测试客户B新名", (string)report["manualCustomerMatches"][0]["targetCustomerName"]);
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        private static void WriteChongqingWorkbook(string path, bool includeNegative = false, string customerBName = "测试客户B")
         {
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             using (var workbook = new XLWorkbook())
@@ -200,15 +262,15 @@ namespace HainanSettlementTool.Excel.Tests
                 WriteRow(ws, row++, "测试客户A", "A-002", "M3", "高峰", 5.0);
                 WriteRow(ws, row++, "测试客户A", "A-002", "M3", "平段", 1.0);
                 WriteRow(ws, row++, "测试客户A", "A-002", "M3", "低谷", 3.0);
-                WriteRow(ws, row++, "测试客户B", "B-001", "M4", "尖峰", includeNegative ? -1.0 : 4.0);
-                WriteRow(ws, row++, "测试客户B", "B-001", "M4", "高峰", 8.0);
+                WriteRow(ws, row++, customerBName, "B-001", "M4", "尖峰", includeNegative ? -1.0 : 4.0);
+                WriteRow(ws, row++, customerBName, "B-001", "M4", "高峰", 8.0);
                 ws.Cell(row, 1).Value = "确认人：";
 
                 workbook.SaveAs(path);
             }
         }
 
-        private static void WriteChongqingLedger(string path)
+        private static void WriteChongqingLedger(string path, string customerBName = "测试客户B")
         {
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             using (var workbook = new XLWorkbook())
@@ -236,7 +298,7 @@ namespace HainanSettlementTool.Excel.Tests
                 ws.Cell("N3").Value = "谷_平";
 
                 WriteLedgerRow(ws, 4, 1, "测试客户A");
-                WriteLedgerRow(ws, 5, 2, "测试客户B");
+                WriteLedgerRow(ws, 5, 2, customerBName);
                 WriteLedgerRow(ws, 6, 3, "台账独有客户");
                 workbook.SaveAs(path);
             }

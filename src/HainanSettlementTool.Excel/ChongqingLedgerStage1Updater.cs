@@ -44,7 +44,7 @@ namespace HainanSettlementTool.Excel
                 foreach (var ledgerRow in context.LedgerRows)
                 {
                     ChongqingPowerCleanGenerator.ChongqingPowerAggregateRow powerRow;
-                    if (!context.PowerRowsByKey.TryGetValue(ledgerRow.Key, out powerRow))
+                    if (!context.PowerRowsByLedgerKey.TryGetValue(ledgerRow.Key, out powerRow))
                     {
                         continue;
                     }
@@ -72,9 +72,11 @@ namespace HainanSettlementTool.Excel
                     PowerCustomerRows = context.Plan.PowerCustomerRows,
                     MatchedRows = context.Plan.MatchedRows,
                     UpdatedPowerRows = updatedRows,
+                    ManualMatchedRows = context.Plan.ManualMatchedRows,
                     MultiAccountRows = context.Plan.MultiAccountRows,
                     SkippedRows = context.Plan.MissingInLedgerRows,
                     TotalPower = Math.Round(context.PowerData.CustomerRows.Sum(row => row.Total), 4),
+                    ManualCustomerMatches = context.Plan.ManualCustomerMatches,
                     Warnings = context.Plan.Warnings,
                     Issues = context.Plan.Issues
                 };
@@ -96,6 +98,7 @@ namespace HainanSettlementTool.Excel
             var map = FindLedgerMap(worksheet, options.Month);
             var ledgerRows = ReadLedgerRows(worksheet, map);
             var powerRowsByKey = powerData.CustomerRows.ToDictionary(row => TextUtil.CustomerKey(row.CustomerName));
+            var ledgerRowsByKey = ledgerRows.ToDictionary(row => row.Key);
             var accountNumbersByKey = powerData.AccountRows
                 .GroupBy(row => TextUtil.CustomerKey(row.CustomerName))
                 .ToDictionary(
@@ -106,15 +109,44 @@ namespace HainanSettlementTool.Excel
                         .Distinct(StringComparer.Ordinal)
                         .OrderBy(value => value, StringComparer.Ordinal)
                         .ToList());
+            var exactMatchedKeys = ledgerRowsByKey.Keys.Intersect(powerRowsByKey.Keys).ToList();
+            var manualMatches = ResolveManualMatches(options.ManualCustomerMatches, ledgerRowsByKey, powerRowsByKey, exactMatchedKeys);
+            var powerRowsByLedgerKey = new Dictionary<string, ChongqingPowerCleanGenerator.ChongqingPowerAggregateRow>();
+            var powerKeyByLedgerKey = new Dictionary<string, string>();
 
-            var plan = BuildPlan(options, powerData, worksheet, map, ledgerRows, powerRowsByKey, accountNumbersByKey);
+            foreach (var key in exactMatchedKeys)
+            {
+                powerRowsByLedgerKey[key] = powerRowsByKey[key];
+                powerKeyByLedgerKey[key] = key;
+            }
+
+            foreach (var match in manualMatches)
+            {
+                var sourceKey = TextUtil.CustomerKey(match.SourceCustomerName);
+                var targetKey = TextUtil.CustomerKey(match.TargetCustomerName);
+                powerRowsByLedgerKey[targetKey] = powerRowsByKey[sourceKey];
+                powerKeyByLedgerKey[targetKey] = sourceKey;
+            }
+
+            var plan = BuildPlan(
+                options,
+                powerData,
+                worksheet,
+                map,
+                ledgerRows,
+                ledgerRowsByKey,
+                powerRowsByKey,
+                powerRowsByLedgerKey,
+                powerKeyByLedgerKey,
+                accountNumbersByKey,
+                manualMatches);
             return new LedgerUpdateContext
             {
                 Worksheet = worksheet,
                 Map = map,
                 PowerData = powerData,
                 LedgerRows = ledgerRows,
-                PowerRowsByKey = powerRowsByKey,
+                PowerRowsByLedgerKey = powerRowsByLedgerKey,
                 AccountNumbersByKey = accountNumbersByKey,
                 Plan = plan
             };
@@ -126,11 +158,15 @@ namespace HainanSettlementTool.Excel
             IXLWorksheet worksheet,
             LedgerMap map,
             IList<LedgerCustomerRow> ledgerRows,
+            IDictionary<string, LedgerCustomerRow> ledgerRowsByKey,
             IDictionary<string, ChongqingPowerCleanGenerator.ChongqingPowerAggregateRow> powerRowsByKey,
-            IDictionary<string, List<string>> accountNumbersByKey)
+            IDictionary<string, ChongqingPowerCleanGenerator.ChongqingPowerAggregateRow> powerRowsByLedgerKey,
+            IDictionary<string, string> powerKeyByLedgerKey,
+            IDictionary<string, List<string>> accountNumbersByKey,
+            IList<ProvinceStage1CustomerMatch> manualMatches)
         {
-            var ledgerRowsByKey = ledgerRows.ToDictionary(row => row.Key);
-            var matchedKeys = ledgerRowsByKey.Keys.Intersect(powerRowsByKey.Keys).ToList();
+            var matchedKeys = powerRowsByLedgerKey.Keys.ToList();
+            var matchedPowerKeys = new HashSet<string>(powerKeyByLedgerKey.Values);
             var plan = new ProvinceStage1LedgerUpdatePlan
             {
                 Province = ProvinceCode.Chongqing,
@@ -139,6 +175,8 @@ namespace HainanSettlementTool.Excel
                 LedgerCustomerRows = ledgerRows.Count,
                 PowerCustomerRows = powerData.CustomerRows.Count,
                 MatchedRows = matchedKeys.Count,
+                ManualMatchedRows = manualMatches.Count,
+                ManualCustomerMatches = manualMatches.ToList(),
                 Warnings = new List<string>(powerData.Warnings)
             };
 
@@ -150,12 +188,18 @@ namespace HainanSettlementTool.Excel
             foreach (var key in matchedKeys)
             {
                 var ledgerRow = ledgerRowsByKey[key];
-                var powerRow = powerRowsByKey[key];
-                var accounts = accountNumbersByKey.ContainsKey(key) ? accountNumbersByKey[key] : new List<string>();
+                var powerRow = powerRowsByLedgerKey[key];
+                var powerKey = powerKeyByLedgerKey[key];
+                var accounts = accountNumbersByKey.ContainsKey(powerKey) ? accountNumbersByKey[powerKey] : new List<string>();
                 if (accounts.Count > 1)
                 {
                     plan.MultiAccountRows++;
                     AddIssue(plan, "多户号客户", "提示", ledgerRow.CustomerName, "该客户在电量明细中存在多个户号；本次仅写入汇总电量，不会写入电力用户编码列。");
+                }
+
+                if (powerKey != key)
+                {
+                    AddIssue(plan, "人工匹配客户", "警告", ledgerRow.CustomerName, "电量客户“" + powerRow.CustomerName + "”将按本次人工确认写入该台账客户。");
                 }
 
                 if (!IsBlankPower(worksheet, ledgerRow.RowNumber, map) && !SamePowerVector(worksheet, ledgerRow.RowNumber, map, powerRow))
@@ -165,17 +209,19 @@ namespace HainanSettlementTool.Excel
                 }
             }
 
-            var missingInLedger = powerRowsByKey.Keys.Except(ledgerRowsByKey.Keys).ToList();
+            var missingInLedger = powerRowsByKey.Keys.Except(matchedPowerKeys).ToList();
             foreach (var key in missingInLedger)
             {
                 plan.MissingInLedgerRows++;
+                plan.PowerOnlyCustomers.Add(powerRowsByKey[key].CustomerName);
                 AddIssue(plan, "电量客户不在台账", "警告", powerRowsByKey[key].CustomerName, "清洗结果中的客户在台账中找不到，继续后不会新增该客户行。");
             }
 
-            var missingInPower = ledgerRowsByKey.Keys.Except(powerRowsByKey.Keys).ToList();
+            var missingInPower = ledgerRowsByKey.Keys.Except(matchedKeys).ToList();
             foreach (var key in missingInPower)
             {
                 plan.MissingInPowerRows++;
+                plan.LedgerOnlyCustomers.Add(ledgerRowsByKey[key].CustomerName);
                 AddIssue(plan, "台账客户不在电量表", "提示", ledgerRowsByKey[key].CustomerName, "台账客户在清洗结果中找不到，继续后该行目标月份电量不会更新。");
             }
 
@@ -194,6 +240,77 @@ namespace HainanSettlementTool.Excel
             }
 
             return plan;
+        }
+
+        private static List<ProvinceStage1CustomerMatch> ResolveManualMatches(
+            IList<ProvinceStage1CustomerMatch> matches,
+            IDictionary<string, LedgerCustomerRow> ledgerRowsByKey,
+            IDictionary<string, ChongqingPowerCleanGenerator.ChongqingPowerAggregateRow> powerRowsByKey,
+            IList<string> exactMatchedKeys)
+        {
+            var resolved = new List<ProvinceStage1CustomerMatch>();
+            if (matches == null || matches.Count == 0)
+            {
+                return resolved;
+            }
+
+            var exactMatched = new HashSet<string>(exactMatchedKeys);
+            var sourceKeys = new HashSet<string>();
+            var targetKeys = new HashSet<string>();
+            foreach (var match in matches)
+            {
+                if (match == null)
+                {
+                    continue;
+                }
+
+                var sourceName = TextUtil.S(match.SourceCustomerName);
+                var targetName = TextUtil.S(match.TargetCustomerName);
+                if (string.IsNullOrWhiteSpace(sourceName) || string.IsNullOrWhiteSpace(targetName))
+                {
+                    continue;
+                }
+
+                var sourceKey = TextUtil.CustomerKey(sourceName);
+                var targetKey = TextUtil.CustomerKey(targetName);
+                if (!powerRowsByKey.ContainsKey(sourceKey))
+                {
+                    throw new InvalidOperationException("人工匹配的电量客户在清洗结果中不存在：" + sourceName);
+                }
+
+                if (!ledgerRowsByKey.ContainsKey(targetKey))
+                {
+                    throw new InvalidOperationException("人工匹配的台账客户不存在：" + targetName);
+                }
+
+                if (exactMatched.Contains(sourceKey))
+                {
+                    throw new InvalidOperationException("人工匹配的电量客户已按名称精确匹配，无需再手动匹配：" + sourceName);
+                }
+
+                if (exactMatched.Contains(targetKey))
+                {
+                    throw new InvalidOperationException("人工匹配的台账客户已按名称精确匹配，不能被其他电量客户覆盖：" + targetName);
+                }
+
+                if (!sourceKeys.Add(sourceKey))
+                {
+                    throw new InvalidOperationException("同一个电量客户不能重复人工匹配：" + sourceName);
+                }
+
+                if (!targetKeys.Add(targetKey))
+                {
+                    throw new InvalidOperationException("同一个台账客户不能被多个电量客户人工匹配：" + targetName);
+                }
+
+                resolved.Add(new ProvinceStage1CustomerMatch
+                {
+                    SourceCustomerName = powerRowsByKey[sourceKey].CustomerName,
+                    TargetCustomerName = ledgerRowsByKey[targetKey].CustomerName
+                });
+            }
+
+            return resolved;
         }
 
         private static IXLWorksheet FindLedgerWorksheet(XLWorkbook workbook)
@@ -379,6 +496,12 @@ namespace HainanSettlementTool.Excel
                 powerCustomerRows = result.PowerCustomerRows,
                 matchedRows = result.MatchedRows,
                 updatedPowerRows = result.UpdatedPowerRows,
+                manualMatchedRows = result.ManualMatchedRows,
+                manualCustomerMatches = result.ManualCustomerMatches.Select(match => new
+                {
+                    sourceCustomerName = match.SourceCustomerName,
+                    targetCustomerName = match.TargetCustomerName
+                }),
                 multiAccountRows = result.MultiAccountRows,
                 skippedRows = result.SkippedRows,
                 totalPower = result.TotalPower,
@@ -416,7 +539,7 @@ namespace HainanSettlementTool.Excel
             public LedgerMap Map { get; set; }
             public ChongqingPowerCleanGenerator.ChongqingPowerDataSet PowerData { get; set; }
             public List<LedgerCustomerRow> LedgerRows { get; set; }
-            public Dictionary<string, ChongqingPowerCleanGenerator.ChongqingPowerAggregateRow> PowerRowsByKey { get; set; }
+            public Dictionary<string, ChongqingPowerCleanGenerator.ChongqingPowerAggregateRow> PowerRowsByLedgerKey { get; set; }
             public Dictionary<string, List<string>> AccountNumbersByKey { get; set; }
             public ProvinceStage1LedgerUpdatePlan Plan { get; set; }
         }

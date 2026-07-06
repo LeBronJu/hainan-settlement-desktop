@@ -214,6 +214,7 @@ Current behavior:
 - Output main sheet `用户电量汇总` aggregates by customer name. Output detail sheet `户号明细` retains account-number rows for audit and later ledger-update work.
 - Missing customer name, missing account number, invalid period, non-numeric power, and negative power stop generation as serious source-data errors.
 - Ledger update matches by `电力用户名称`, not `电力用户编码`.
+- WPF preflight can collect one-time manual customer matches from unmatched power customers to ledger-only customers; these mappings are passed through `ProvinceStage1CustomerMatch`, used only for the current output copy, and written to the JSON report.
 - Ledger update does not fill `电力用户编码` / B-column account numbers; account numbers remain in the cleaned detail workbook and report for traceability.
 - Ledger update writes only target-month `总实际电量（兆瓦时）` and `尖/峰/平/谷` into a copied ledger. It does not overwrite the source ledger.
 - Missing/new/ledger-only customers, possible alias candidates, multiple-account customers, month mismatch, and existing target-month power differences are surfaced in a WPF confirmation before writing and also written to the JSON report.
@@ -221,7 +222,7 @@ Current behavior:
 Known limits:
 
 - Chongqing Stage 2 settlement generation is not implemented.
-- Customer-name alias mapping is not automatic; possible aliases are reported and require user judgment.
+- Customer-name alias mapping is not automatic or persistent; possible aliases are reported and the WPF preflight lets the user choose one-time manual matches for the current run.
 - Unmatched customers are not automatically inserted into the Chongqing ledger.
 - Current regressions use synthetic workbooks; no real Chongqing workbook is committed.
 
@@ -731,6 +732,29 @@ Observed result:
 - `git diff --check` passed with CRLF normalization warnings only.
 - No real Excel, CSV, image, PDF, or generated sensitive output file appears in `git status`.
 
+Chongqing Stage 1 one-time manual customer matching on 2026-07-06:
+
+```powershell
+dotnet msbuild .\src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Debug
+dotnet test .\tests\HainanSettlementTool.Excel.Tests\HainanSettlementTool.Excel.Tests.csproj /p:Configuration=Debug --filter ChongqingPowerCleanGeneratorTests
+dotnet test .\tests\HainanSettlementTool.Core.Tests\HainanSettlementTool.Core.Tests.csproj /p:Configuration=Debug --filter UpdateProvinceStage1LedgerReturnsSharedSummaryLines
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Debug /m
+.\scripts\package_wpf_release.ps1
+```
+
+Observed result:
+
+- Added `ProvinceStage1CustomerMatch` and manual-match lists on Chongqing Stage 1 ledger update options, plans, and results.
+- Added a WPF Stage 1 preflight window that lets the user map unmatched cleaned power customers to ledger-only customers for the current run only.
+- Manual matches are validated as one source customer to one target ledger customer; duplicate target selections are blocked before writing.
+- `ChongqingLedgerStage1Updater` now writes exact matches plus confirmed manual matches into the copied ledger and records manual matches in the JSON update report.
+- Synthetic alias test verifies a cleaned power customer with an old name can be written into a ledger customer row with a different current name.
+- Full Debug test suite passed: Core 18 tests and Excel 18 tests.
+- Debug build passed for Core, Excel, WinForms, and WPF.
+- Win10/11 WPF test package generated at `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260706-171820.zip`.
+- Package contents checked for the WPF executable, config, Core/Excel DLLs, and ClosedXML DLL.
+
 ## Documentation Rule
 
 Documentation is now part of the development contract:
@@ -776,6 +800,7 @@ UI:
 - `src/HainanSettlementTool.Wpf/MainWindow.xaml`
 - `src/HainanSettlementTool.Wpf/MainWindow.xaml.cs`
 - `src/HainanSettlementTool.Wpf/Stage2PreflightWindow.xaml`
+- `src/HainanSettlementTool.Wpf/ProvinceStage1LedgerPreflightWindow.xaml`
 
 Packaging/docs:
 
@@ -791,8 +816,8 @@ Packaging/docs:
 
 ## Next Steps
 
-1. Let the user test the Chongqing `清洗并更新台账` WPF flow, especially the preflight dialog wording for unmatched, alias-candidate, and multi-account customers.
-2. Decide whether unmatched possible alias customers should support a user-maintained alias table later, or remain manual review only.
+1. Let the user test the Chongqing `清洗并更新台账` WPF flow, especially the one-time manual matching window for the old-name/current-name customer case and multi-account reminders.
+2. Decide later whether repeated manual matches should remain one-time only or support a user-maintained alias table.
 3. Decide whether future Chongqing months should require the target month block to already exist in the ledger, or whether the app should copy the previous month block and create the new month block.
 4. Decide whether to cut a Win10/11 acceptance release from the accepted WPF package or rebuild a fresh release package from `main`.
 5. Continue quality work with WPF as the default UI target; avoid WinForms parity work unless it is a bugfix, build/package compatibility issue, or explicitly requested.

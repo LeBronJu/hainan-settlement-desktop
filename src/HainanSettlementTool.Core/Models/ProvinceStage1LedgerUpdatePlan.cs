@@ -10,11 +10,15 @@ namespace HainanSettlementTool.Core.Models
         public int LedgerCustomerRows { get; set; }
         public int PowerCustomerRows { get; set; }
         public int MatchedRows { get; set; }
+        public int ManualMatchedRows { get; set; }
         public int MultiAccountRows { get; set; }
         public int ExistingDifferentPowerRows { get; set; }
         public int MissingInLedgerRows { get; set; }
         public int MissingInPowerRows { get; set; }
         public int AliasCandidateRows { get; set; }
+        public List<string> PowerOnlyCustomers { get; set; } = new List<string>();
+        public List<string> LedgerOnlyCustomers { get; set; } = new List<string>();
+        public List<ProvinceStage1CustomerMatch> ManualCustomerMatches { get; set; } = new List<ProvinceStage1CustomerMatch>();
         public List<string> Warnings { get; set; } = new List<string>();
         public List<ProvinceStage1LedgerUpdateIssue> Issues { get; set; } = new List<ProvinceStage1LedgerUpdateIssue>();
 
