@@ -32,7 +32,7 @@ The stable local reference folder is for future comparison/orientation only; do 
 
 - Current branch: `codex/chongqing-stage1-clean-power`
 - Branch purpose: add the first multi-province Stage 1 module for Chongqing power-data cleaning.
-- Previous uncommitted WPF small-window work was stashed before this branch as `wpf-small-window-quality before chongqing work`; do not drop it unless it has been intentionally reviewed or reapplied.
+- Previous uncommitted WPF small-window work was reviewed on 2026-07-06. The action-row `DockPanel LastChildFill="False"` fixes were already present on the Chongqing branch, the remaining `MinHeight="720"` fix was reapplied, and the old stash was dropped.
 - Employee reward module has been merged to `main` from `codex/employee-reward-module`. The user completed practical testing on 2026-07-02 and reported no blocking issues.
 - Latest employee reward feature commit before this handoff update: `feb933f Add employee reward module`
 - `main` now contains the employee reward module and WPF theme support after `v1.0.1`, but no newer release tag has been cut yet.
@@ -626,6 +626,23 @@ Authorized Chongqing Stage 1 real sample smoke on 2026-07-06:
 - JSON report result: source sheet `sheet1`, raw rows 212, customer rows 26, account rows 46, total power 12887.548 MWh, and one skipped non-power tail row.
 - Generated customer summary matched the manual cleaned workbook on customer count, total power, and every row-level numeric power vector. One customer-name text difference remained between the raw transaction-center source and the manual cleaned workbook; the matching numeric vector confirms it is a name/alias difference, not a power calculation difference.
 
+WPF small-window stash cleanup on 2026-07-06:
+
+```powershell
+dotnet msbuild .\src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Debug
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+```
+
+Observed result:
+
+- The historical `wpf-small-window-quality before chongqing work` stash was reviewed instead of blindly popped.
+- Current branch already contained the action-row `DockPanel LastChildFill="False"` fixes.
+- The remaining WPF launch-window fix was reapplied by setting `MinHeight` to 720 while keeping the default launch height at 900.
+- WPF Debug build passed.
+- Full Debug test suite passed: Core 17 tests, Excel 16 tests.
+- The reviewed stash was dropped after its remaining change was reapplied.
+- Win10/11 WPF test package generated at `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260706-143742.zip`.
+
 ## Documentation Rule
 
 Documentation is now part of the development contract:
@@ -689,7 +706,6 @@ Packaging/docs:
 1. Let the user review the Chongqing Stage 1 real-smoke output shape and the one customer-name alias difference against business expectations.
 2. Decide whether to include a `户号` column in the main Chongqing summary later or keep the current two-sheet design: user summary plus account detail.
 3. Continue toward Chongqing ledger update only after the cleaned power workbook is accepted.
-4. Review and either reapply or discard the stashed `wpf-small-window-quality before chongqing work` changes.
-5. Decide whether to cut a Win10/11 acceptance release from the accepted WPF package or rebuild a fresh release package from `main`.
-6. Continue quality work with WPF as the default UI target; avoid WinForms parity work unless it is a bugfix, build/package compatibility issue, or explicitly requested.
-7. Consider adding sanitized employee reward, Stage 2, Chongqing, and `.xls` fixture workbooks later; current regressions use dynamically generated synthetic workbooks and local authorized smoke only.
+4. Decide whether to cut a Win10/11 acceptance release from the accepted WPF package or rebuild a fresh release package from `main`.
+5. Continue quality work with WPF as the default UI target; avoid WinForms parity work unless it is a bugfix, build/package compatibility issue, or explicitly requested.
+6. Consider adding sanitized employee reward, Stage 2, Chongqing, and `.xls` fixture workbooks later; current regressions use dynamically generated synthetic workbooks and local authorized smoke only.
