@@ -1,6 +1,7 @@
 # Agent Instructions
 
-This repository is the standalone C# desktop project for Hainan retail electricity settlement automation.
+This repository is the standalone C# desktop project for multi-province retail electricity settlement automation.
+Hainan is the mature first province module; Chongqing is being added as the second province module, starting with Stage 1 power-data cleaning.
 
 ## Safety Rules
 
@@ -21,8 +22,8 @@ The C# version is being built as a maintainable Windows desktop app. It should e
 ## Repository Layout
 
 - `HainanSettlementTool.sln`: solution file.
-- `src/HainanSettlementTool.WinForms/`: Win7/8 maintenance UI. Keep it buildable and fix blocking bugs, but do not add new features or UX improvements unless the user explicitly asks.
-- `src/HainanSettlementTool.Wpf/`: Win10/11 WPF main UI. New UI features and UX improvements belong here by default.
+- `src/HainanSettlementTool.WinForms/`: Win7/8 maintenance UI for the existing Hainan workflow. Keep it buildable and fix blocking bugs, but do not add new province features or UX improvements unless the user explicitly asks.
+- `src/HainanSettlementTool.Wpf/`: Win10/11 WPF main UI. New province entries, new UI features, and UX improvements belong here by default.
 - `src/HainanSettlementTool.Core/`: business models, services, and interfaces.
 - `src/HainanSettlementTool.Excel/`: ClosedXML workbook reading/writing.
 - `docs/architecture.md`: layering and migration boundary.
@@ -65,6 +66,8 @@ This is a single-context repo. See `docs/agents/domain.md`.
 
 ## Current Functional Boundary
 
+The app is evolving from a Hainan-only desktop tool into a multi-province settlement automation tool. Keep province-specific business rules isolated behind province/module naming. Do not add broad `if Hainan / if Chongqing` branches in shared logic when a province-specific service or Excel generator is the cleaner boundary.
+
 Stage 1 currently supports:
 
 - Read an existing power workbook, or build one from `.xlsx`/`.xls`/`.csv` raw detail.
@@ -86,6 +89,15 @@ Stage 1 and Stage 2 still do not:
 - Auto-fill volatile business fields such as负责人 or 项目开发人.
 - Change ledger customer names to match summary/payment-account names.
 - Treat irregular January/February 2026 data as generic rules.
+
+Chongqing Stage 1 currently targets only power-data cleaning:
+
+- Input: Chongqing trading-center electricity confirmation statement (`.xlsx/.xls/.csv`).
+- Preferred sheet: `sheet1`; fallback to the first sheet when `sheet1` does not exist.
+- Required headers: `用户名称`, `户号`, `时段`, `用电量`.
+- Unit: `兆瓦时`; do not reuse Hainan's `万千瓦时` unit.
+- Output: Chongqing retail-side power processing workbook plus JSON validation report.
+- Aggregation: by user name for the main summary, with account-number detail retained for audit.
 
 ## Business Rules To Preserve
 

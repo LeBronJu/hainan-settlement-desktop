@@ -1,6 +1,6 @@
 # Handoff
 
-Last updated: 2026-07-02
+Last updated: 2026-07-06
 
 ## Project
 
@@ -26,10 +26,13 @@ The stable local reference folder is for future comparison/orientation only; do 
 - Stable local reference folder: `D:\Document\文件处理\稳定参考版海南结算`. It is for future comparison/orientation only; do not read real workbook contents there without explicit user authorization for the current task.
 - Employee reward reference folder recorded by the user on 2026-07-02: `D:\Document\文件处理\稳定参考版海南结算\电量奖励参考`. It was inspected read-only for the employee reward design; the implemented module uses the files as output-shape references, not runtime inputs.
 - Repository-safe real smoke entry point: `scripts/run_real_smoke.ps1`. It accepts paths as parameters and must not hard-code real production paths.
+- Chongqing local working root mentioned by the user: `C:\Users\juqx2\Desktop\2026年-重庆`. Treat files under this root as real business data. On 2026-07-06 the user authorized read-only inspection of one Chongqing transaction-center source workbook and one manually cleaned comparison workbook for designing the Chongqing Stage 1 cleaning module. Do not commit those files or generated outputs.
 
 ## Current Git State
 
-- Current branch: `main`
+- Current branch: `codex/chongqing-stage1-clean-power`
+- Branch purpose: add the first multi-province Stage 1 module for Chongqing power-data cleaning.
+- Previous uncommitted WPF small-window work was stashed before this branch as `wpf-small-window-quality before chongqing work`; do not drop it unless it has been intentionally reviewed or reapplied.
 - Employee reward module has been merged to `main` from `codex/employee-reward-module`. The user completed practical testing on 2026-07-02 and reported no blocking issues.
 - Latest employee reward feature commit before this handoff update: `feb933f Add employee reward module`
 - `main` now contains the employee reward module and WPF theme support after `v1.0.1`, but no newer release tag has been cut yet.
@@ -185,6 +188,36 @@ Known limits:
 - The implementation generates an internal layout based on the reference workbooks instead of copying the reference templates. The user completed practical testing on 2026-07-02 and reported no blocking issues, but a formal release has not been cut yet.
 - Win7/8 WinForms has no employee reward UI entry; this follows the maintenance-only WinForms policy.
 
+### Chongqing Stage 1 Power Cleaning
+
+Inputs:
+
+- Chongqing trading-center electricity confirmation statement (`.xlsx`, `.xls`, or `.csv`).
+- Settlement month from the file title/name, with the UI month as fallback.
+- Shared output folder.
+
+Outputs:
+
+- `x月重庆零售侧用户电量数据处理表.xlsx`.
+- `x月重庆零售侧用户电量校验报告.json`.
+
+Current behavior:
+
+- The module is exposed only in the Win10/11 WPF app through the new province selector. Selecting `重庆` shows the Stage 1 account-update area and currently enables only `只清洗电量数据`.
+- Excel input prefers the `sheet1` worksheet and falls back to the first sheet when `sheet1` is absent. CSV input is read as a single table.
+- Required headers are `用户名称`, `户号`, `时段`, and `用电量`.
+- Unit is `兆瓦时`; this must remain separate from Hainan's `万千瓦时` Stage 1 ledger unit.
+- Period values map as `尖峰` -> `尖`, `高峰` -> `峰`, `平段` -> `平`, `低谷` -> `谷`.
+- Output main sheet `用户电量汇总` aggregates by customer name. Output detail sheet `户号明细` retains account-number rows for audit and later ledger-update work.
+- Missing customer name, missing account number, invalid period, non-numeric power, and negative power stop generation as serious source-data errors.
+
+Known limits:
+
+- Chongqing Stage 1 does not yet update a Chongqing ledger.
+- Chongqing Stage 2 settlement generation is not implemented.
+- Customer-name alias mapping against a future Chongqing ledger is not implemented.
+- Current regressions use synthetic workbooks; no real Chongqing workbook is committed.
+
 ## UI State
 
 Two desktop entries exist and should continue to coexist:
@@ -198,6 +231,7 @@ Do not add WinForms-only features or UX improvements by default. New UI work sho
 Stage 2 workflow handling keeps WPF responsible for the confirmation dialog and progress UI, while Core `SettlementWorkflow` owns the preflight plan and the confirmed/cancelled generation decision.
 The employee reward module currently exists only in the WPF app as a separate tab. It reuses the shared output folder and has its own start/end month selectors.
 The WPF app supports UI theme selection in the custom title bar: `跟随系统`, `浅色`, and `深色`. The setting is stored in the existing WPF input snapshot XML. This is UI-only; generated Excel workbooks remain theme-independent, light, and print-safe.
+The WPF app now has a business-province selector. `海南` keeps the mature Stage 1, Stage 2, and employee reward entries. `重庆` currently exposes only Stage 1 power cleaning; Hainan-only Stage 2 and employee reward UI entries are hidden when Chongqing is selected.
 
 ## Latest Verification
 
@@ -565,6 +599,33 @@ Observed result:
 - Excel tests: 14 passed.
 - Debug build passes for Core, Excel, WinForms, and WPF.
 
+Chongqing Stage 1 power-cleaning branch verification on 2026-07-06:
+
+```powershell
+dotnet test .\tests\HainanSettlementTool.Core.Tests\HainanSettlementTool.Core.Tests.csproj /p:Configuration=Debug --filter CleanProvinceStage1PowerDataReturnsSharedSummaryLines
+dotnet test .\tests\HainanSettlementTool.Excel.Tests\HainanSettlementTool.Excel.Tests.csproj /p:Configuration=Debug --filter ChongqingPowerCleanGeneratorTests
+dotnet msbuild .\src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Debug
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Debug /m
+```
+
+Observed result:
+
+- New Core workflow test passed.
+- New Excel tests passed, including Chongqing customer/account aggregation and negative-power stop behavior.
+- WPF Debug build passed.
+- Full Debug test suite passed: Core 17 tests, Excel 16 tests.
+- Debug build passed for Core, Excel, WinForms, and WPF.
+
+Authorized Chongqing Stage 1 real sample smoke on 2026-07-06:
+
+- Input source workbook inspected read-only: `C:\Users\juqx2\Desktop\2026年-重庆\重庆\重庆2026年电量确认结算单\2026年05月售电公司电量确认结算单.xlsx`
+- Manual comparison workbook inspected read-only: `C:\Users\juqx2\Desktop\2026年-重庆\数据清洗—5月用户电量统计表.xlsx`
+- Output folder: `C:\Users\juqx2\Desktop\2026年-重庆\test\codex-chongqing-smoke-20260706-142318`
+- The generator produced `5月重庆零售侧用户电量数据处理表.xlsx` and `5月重庆零售侧用户电量校验报告.json`.
+- JSON report result: source sheet `sheet1`, raw rows 212, customer rows 26, account rows 46, total power 12887.548 MWh, and one skipped non-power tail row.
+- Generated customer summary matched the manual cleaned workbook on customer count, total power, and every row-level numeric power vector. One customer-name text difference remained between the raw transaction-center source and the manual cleaned workbook; the matching numeric vector confirms it is a name/alias difference, not a power calculation difference.
+
 ## Documentation Rule
 
 Documentation is now part of the development contract:
@@ -625,8 +686,10 @@ Packaging/docs:
 
 ## Next Steps
 
-1. Decide whether to cut a Win10/11 acceptance release from the accepted WPF package or rebuild a fresh release package from `main`.
-2. Continue quality work with WPF as the default UI target; avoid WinForms parity work unless it is a bugfix, build/package compatibility issue, or explicitly requested.
-3. Consider adding sanitized employee reward fixture workbooks later; current regressions use dynamically generated synthetic workbooks and a local temporary real smoke.
-4. Consider adding sanitized Stage 2 fixture workbooks later; current regressions use dynamically generated synthetic workbooks.
-5. Consider adding a sanitized `.xls` fixture later; real `.xls` smoke passed, but the repository still has no committed `.xls` regression fixture.
+1. Let the user review the Chongqing Stage 1 real-smoke output shape and the one customer-name alias difference against business expectations.
+2. Decide whether to include a `户号` column in the main Chongqing summary later or keep the current two-sheet design: user summary plus account detail.
+3. Continue toward Chongqing ledger update only after the cleaned power workbook is accepted.
+4. Review and either reapply or discard the stashed `wpf-small-window-quality before chongqing work` changes.
+5. Decide whether to cut a Win10/11 acceptance release from the accepted WPF package or rebuild a fresh release package from `main`.
+6. Continue quality work with WPF as the default UI target; avoid WinForms parity work unless it is a bugfix, build/package compatibility issue, or explicitly requested.
+7. Consider adding sanitized employee reward, Stage 2, Chongqing, and `.xls` fixture workbooks later; current regressions use dynamically generated synthetic workbooks and local authorized smoke only.

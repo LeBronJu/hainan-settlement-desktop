@@ -69,17 +69,21 @@
 
                             <Grid Grid.Row="1" Margin="0,16,0,8">
                                 <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="70" />
+                                    <ColumnDefinition Width="130" />
                                     <ColumnDefinition Width="86" />
-                                    <ColumnDefinition Width="210" />
+                                    <ColumnDefinition Width="170" />
                                     <ColumnDefinition Width="126" />
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="88" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock x:Name="SettlementMonthLabel" Grid.Column="0" Text="结算月份" VerticalAlignment="Center" Foreground="{DynamicResource FieldTextBrush}" />
-                                <ComboBox x:Name="MonthCombo" Grid.Column="1" Style="{StaticResource ModernComboBox}" />
-                                <TextBlock Grid.Column="2" Text="结果输出文件夹" VerticalAlignment="Center" Margin="34,0,0,0" Foreground="{DynamicResource FieldTextBrush}" />
-                                <TextBox x:Name="OutputDirBox" Grid.Column="3" Style="{StaticResource ModernTextBox}" IsReadOnly="True" />
-                                <Button Grid.Column="4" Content="打开" Style="{StaticResource SecondaryButton}" Margin="10,0,0,0" Click="BrowseOutputDir_Click" />
+                                <TextBlock Text="业务省份" VerticalAlignment="Center" Foreground="{DynamicResource FieldTextBrush}" />
+                                <ComboBox x:Name="ProvinceCombo" Grid.Column="1" Style="{StaticResource ModernComboBox}" SelectionChanged="ProvinceCombo_SelectionChanged" />
+                                <TextBlock x:Name="SettlementMonthLabel" Grid.Column="2" Text="结算月份" VerticalAlignment="Center" Margin="18,0,0,0" Foreground="{DynamicResource FieldTextBrush}" />
+                                <ComboBox x:Name="MonthCombo" Grid.Column="3" Style="{StaticResource ModernComboBox}" />
+                                <TextBlock Grid.Column="4" Text="结果输出文件夹" VerticalAlignment="Center" Margin="26,0,0,0" Foreground="{DynamicResource FieldTextBrush}" />
+                                <TextBox x:Name="OutputDirBox" Grid.Column="5" Style="{StaticResource ModernTextBox}" IsReadOnly="True" />
+                                <Button Grid.Column="6" Content="打开" Style="{StaticResource SecondaryButton}" Margin="10,0,0,0" Click="BrowseOutputDir_Click" />
                             </Grid>
 
                             <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,2,0,0">
@@ -94,7 +98,7 @@
                                 Style="{StaticResource ModernTabControl}"
                                 ItemContainerStyle="{StaticResource ModernTabItem}"
                                 SelectionChanged="MainTabControl_SelectionChanged">
-                        <TabItem Header="代理费结算">
+                        <TabItem x:Name="MainSettlementTab" Header="代理费结算">
                             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -102,7 +106,7 @@
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
 
-                        <Border Grid.Column="0" Style="{StaticResource CardBorder}" BorderBrush="{DynamicResource StageOneBorderBrush}" Margin="0,0,8,0">
+                        <Border x:Name="StageOnePanel" Grid.Column="0" Style="{StaticResource CardBorder}" BorderBrush="{DynamicResource StageOneBorderBrush}" Margin="0,0,8,0">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="78" />
@@ -117,15 +121,15 @@
                                                     <Path Stroke="{DynamicResource AccentBrush}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M9,8 H16 M9,12 H16 M9,16 H14" />
                                                 </Canvas>
                                             </Viewbox>
-                                            <TextBlock Text="阶段一：写入电量到台账" Margin="12,0,0,0" FontSize="19" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center" />
+                                            <TextBlock x:Name="Stage1TitleText" Text="阶段一：写入电量到台账" Margin="12,0,0,0" FontSize="19" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center" />
                                         </StackPanel>
-                                        <TextBlock Text="整理电量并写入基础台账，输出检查报告" Style="{StaticResource CaptionText}" Margin="36,8,0,0" />
+                                        <TextBlock x:Name="Stage1CaptionText" Text="整理电量并写入基础台账，输出检查报告" Style="{StaticResource CaptionText}" Margin="36,8,0,0" />
                                     </StackPanel>
                                 </Border>
 
                                 <StackPanel Grid.Row="1" Margin="20,14,20,18">
-                                    <TextBlock Text="基础台账（必填）" Style="{StaticResource FieldLabel}" Margin="0,0,0,4" />
-                                    <Grid>
+                                    <TextBlock x:Name="BaseLedgerLabel" Text="基础台账（必填）" Style="{StaticResource FieldLabel}" Margin="0,0,0,4" />
+                                    <Grid x:Name="BaseLedgerRow">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="82" />
@@ -134,8 +138,8 @@
                                         <Button Grid.Column="1" Content="浏览" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" Click="BrowseBaseLedger_Click" />
                                     </Grid>
 
-                                    <TextBlock Text="电量处理表" Style="{StaticResource FieldLabel}" />
-                                    <Grid>
+                                    <TextBlock x:Name="PowerLabel" Text="电量处理表" Style="{StaticResource FieldLabel}" />
+                                    <Grid x:Name="PowerRow">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="82" />
@@ -144,7 +148,7 @@
                                         <Button Grid.Column="1" Content="浏览" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" Click="BrowsePower_Click" />
                                     </Grid>
 
-                                    <TextBlock Text="原始零售侧明细" Style="{StaticResource FieldLabel}" />
+                                    <TextBlock x:Name="RawDetailLabel" Text="原始零售侧明细" Style="{StaticResource FieldLabel}" />
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
@@ -154,8 +158,8 @@
                                         <Button Grid.Column="1" Content="浏览" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" Click="BrowseRawDetail_Click" />
                                     </Grid>
 
-                                    <TextBlock Text="参考台账（可选）" Style="{StaticResource FieldLabel}" />
-                                    <Grid>
+                                    <TextBlock x:Name="ReferenceLedgerLabel" Text="参考台账（可选）" Style="{StaticResource FieldLabel}" />
+                                    <Grid x:Name="ReferenceLedgerRow">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="82" />
@@ -174,7 +178,7 @@
                                         <Button x:Name="RunStage1Button" Style="{StaticResource PrimaryButton}" Click="RunStage1_Click">
                                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                                 <TextBlock Text="&#xE768;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" />
-                                                <TextBlock Text="开始 执行阶段一" Margin="8,0,0,0" VerticalAlignment="Center" />
+                                                <TextBlock x:Name="RunStage1ButtonText" Text="开始 执行阶段一" Margin="8,0,0,0" VerticalAlignment="Center" />
                                             </StackPanel>
                                         </Button>
                                         <Button x:Name="CleanPowerButton" Grid.Column="1" Content="只清洗电量" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" Click="CleanPower_Click" />
@@ -184,7 +188,7 @@
                             </Grid>
                         </Border>
 
-                        <Border Grid.Column="1" Style="{StaticResource CardBorder}" BorderBrush="{DynamicResource StageTwoBorderBrush}" Margin="8,0,0,0">
+                        <Border x:Name="StageTwoPanel" Grid.Column="1" Style="{StaticResource CardBorder}" BorderBrush="{DynamicResource StageTwoBorderBrush}" Margin="8,0,0,0">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="78" />
@@ -262,7 +266,7 @@
                     </Grid>
                             </ScrollViewer>
                         </TabItem>
-                        <TabItem Header="员工电量奖励">
+                        <TabItem x:Name="EmployeeRewardTab" Header="员工电量奖励">
                             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                             <Border Style="{StaticResource CardBorder}" BorderBrush="{DynamicResource RewardBorderBrush}">
                                 <Grid>

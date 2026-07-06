@@ -16,6 +16,7 @@ namespace HainanSettlementTool.Wpf
         public string IntermediaryTemplateDirectory { get; set; }
         public string SummaryTemplatePath { get; set; }
         public string RewardLedgerPath { get; set; }
+        public string ProvinceCode { get; set; }
         public string ThemeMode { get; set; }
     }
 

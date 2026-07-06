@@ -35,6 +35,7 @@ namespace HainanSettlementTool.Wpf
             InitializeComponent();
 
             InitializeThemeCombo(_themeMode);
+            InitializeProvinceCombo(snapshot.ProvinceCode);
 
             for (var month = 2; month <= 12; month++)
             {
@@ -131,6 +132,17 @@ namespace HainanSettlementTool.Wpf
             SaveInputs();
         }
 
+        private void ProvinceCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_loadingInputs)
+            {
+                return;
+            }
+
+            UpdateProvinceUi();
+            SaveInputs();
+        }
+
         private void SystemEvents_UserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
         {
             if (_themeMode != ThemeService.SystemMode)
@@ -157,7 +169,10 @@ namespace HainanSettlementTool.Wpf
 
         private void BrowseRawDetail_Click(object sender, RoutedEventArgs e)
         {
-            BrowseFile(RawDetailBox, "选择原始零售侧明细", "Excel/CSV|*.xlsx;*.xls;*.csv|Excel 文件|*.xlsx;*.xls|CSV 文件|*.csv|所有文件|*.*");
+            var title = SelectedProvince() == ProvinceCode.Chongqing
+                ? "选择重庆交易中心电量确认结算单"
+                : "选择原始零售侧明细";
+            BrowseFile(RawDetailBox, title, "Excel/CSV|*.xlsx;*.xls;*.csv|Excel 文件|*.xlsx;*.xls|CSV 文件|*.csv|所有文件|*.*");
         }
 
         private void BrowseReferenceLedger_Click(object sender, RoutedEventArgs e)
@@ -299,6 +314,12 @@ namespace HainanSettlementTool.Wpf
 
         private async void CleanPower_Click(object sender, RoutedEventArgs e)
         {
+            if (SelectedProvince() == ProvinceCode.Chongqing)
+            {
+                await RunProvinceStage1CleanPowerAsync();
+                return;
+            }
+
             string rawDetailPath;
             string outputPath;
             string outputDirectory;
@@ -355,6 +376,73 @@ namespace HainanSettlementTool.Wpf
                 Stage1ResultCount.Text = result.Report.PowerRows + " 个客户";
                 FinishedAtText.Text = DateTime.Now.ToString("HH:mm:ss");
                 ShowCompletion("电量清洗完成", "电量处理表已生成", outputDirectory);
+            }
+            catch (Exception ex)
+            {
+                SetStepFailed();
+                SetProgress(100, "执行失败");
+                AddLog(ex.Message, "错误");
+                ShowError(ex);
+            }
+            finally
+            {
+                SetBusy(false);
+            }
+        }
+
+        private async Task RunProvinceStage1CleanPowerAsync()
+        {
+            ProvinceStage1CleanOptions options;
+            try
+            {
+                options = CreateProvinceStage1CleanOptions();
+                SaveInputs();
+
+                var message = "即将清洗重庆交易中心电量确认结算单。\n\n输出内容：用户电量汇总、户号明细、JSON校验报告\n输出文件夹：\n" + options.OutputDirectory;
+                if (MessageBox.Show(this, message, "确认清洗重庆电量", MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK)
+                {
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowError(ex);
+                return;
+            }
+
+            SetBusy(true);
+            ResetResults();
+            ResetProgress("正在清洗重庆电量...", "生成阶段一电量处理表");
+            SetProgress(10, "检查输入文件");
+            SetStepRunning(0);
+            AddLog("开始清洗重庆阶段一电量数据。", "重庆");
+
+            try
+            {
+                StageWorkflowResult<ProvinceStage1CleanResult> result = null;
+                await Task.Run(() =>
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        SetStepDone(0);
+                        SetStepRunning(1);
+                        SetProgress(35, "读取交易中心电量确认结算单");
+                    });
+
+                    result = CreateWorkflow().CleanProvinceStage1PowerData(options, LogThreadSafe);
+                });
+
+                SetStepDone(1);
+                SetStepDone(2);
+                SetStepDone(3);
+                SetStepDone(4);
+                SetProgress(100, "重庆电量清洗完成");
+                LogSummary(result.SummaryLines);
+
+                Stage1ResultStatus.Text = "成功";
+                Stage1ResultCount.Text = result.Report.CustomerRows + " 个客户";
+                FinishedAtText.Text = DateTime.Now.ToString("HH:mm:ss");
+                ShowCompletion("重庆电量清洗完成", "电量处理表、户号明细和校验报告已生成", options.OutputDirectory);
             }
             catch (Exception ex)
             {
@@ -616,13 +704,25 @@ namespace HainanSettlementTool.Wpf
             };
         }
 
+        private ProvinceStage1CleanOptions CreateProvinceStage1CleanOptions()
+        {
+            return new ProvinceStage1CleanOptions
+            {
+                Province = SelectedProvince(),
+                Month = SelectedMonthOrZero(),
+                RawDetailPath = RawDetailBox.Text.Trim(),
+                OutputDirectory = OutputDirBox.Text.Trim()
+            };
+        }
+
         private static SettlementWorkflow CreateWorkflow()
         {
             var gateway = new ClosedXmlStage1ExcelGateway();
             return new SettlementWorkflow(
                 new Stage1Service(gateway),
                 new Stage2Service(gateway),
-                new EmployeeRewardService(gateway));
+                new EmployeeRewardService(gateway),
+                new ProvinceStage1Service(gateway));
         }
 
         private void LogSummary(IEnumerable<string> summaryLines)
@@ -643,6 +743,11 @@ namespace HainanSettlementTool.Wpf
             }
 
             return MonthCombo.SelectedIndex + 2;
+        }
+
+        private int SelectedMonthOrZero()
+        {
+            return MonthCombo.SelectedIndex < 0 ? 0 : MonthCombo.SelectedIndex + 2;
         }
 
         private int SelectedRewardStartMonth()
@@ -675,6 +780,15 @@ namespace HainanSettlementTool.Wpf
             _loadingInputs = false;
         }
 
+        private void InitializeProvinceCombo(string provinceCode)
+        {
+            _loadingInputs = true;
+            ProvinceCombo.Items.Add("海南");
+            ProvinceCombo.Items.Add("重庆");
+            ProvinceCombo.SelectedIndex = string.Equals(provinceCode, ProvinceCode.Chongqing.ToString(), StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+            _loadingInputs = false;
+        }
+
         private static int ThemeIndex(string mode)
         {
             switch (ThemeService.NormalizeMode(mode))
@@ -699,6 +813,11 @@ namespace HainanSettlementTool.Wpf
                 default:
                     return ThemeService.SystemMode;
             }
+        }
+
+        private ProvinceCode SelectedProvince()
+        {
+            return ProvinceCombo.SelectedIndex == 1 ? ProvinceCode.Chongqing : ProvinceCode.Hainan;
         }
 
         private bool ConfirmRun(string stageName, int month, string outputDirectory)
@@ -752,8 +871,54 @@ namespace HainanSettlementTool.Wpf
 
             MonthCombo.IsEnabled = monthEnabled;
             SettlementMonthLabel.Foreground = monthEnabled ? BrushOf("FieldTextBrush") : BrushOf("MutedBrush");
-            SharedSettingsCaption.Text = employeeRewardSelected
-                ? "员工电量奖励使用本页的开始/结束月份，输出仍保存到这个文件夹中"
+            UpdateProvinceUi();
+            if (employeeRewardSelected)
+            {
+                SharedSettingsCaption.Text = "员工电量奖励使用本页的开始/结束月份，输出仍保存到这个文件夹中";
+            }
+        }
+
+        private void UpdateProvinceUi()
+        {
+            if (ProvinceCombo == null || StageOnePanel == null)
+            {
+                return;
+            }
+
+            var chongqing = SelectedProvince() == ProvinceCode.Chongqing;
+            if (chongqing && MainTabControl.SelectedItem == EmployeeRewardTab)
+            {
+                MainTabControl.SelectedItem = MainSettlementTab;
+            }
+
+            MainSettlementTab.Header = chongqing ? "阶段一：台账更新" : "代理费结算";
+            EmployeeRewardTab.Visibility = chongqing ? Visibility.Collapsed : Visibility.Visible;
+            StageTwoPanel.Visibility = chongqing ? Visibility.Collapsed : Visibility.Visible;
+            Grid.SetColumnSpan(StageOnePanel, chongqing ? 2 : 1);
+            StageOnePanel.Margin = chongqing ? new Thickness(0) : new Thickness(0, 0, 8, 0);
+
+            Stage1TitleText.Text = chongqing ? "阶段一：台账更新" : "阶段一：写入电量到台账";
+            Stage1CaptionText.Text = chongqing
+                ? "清洗交易中心电量确认结算单，生成重庆标准电量处理表"
+                : "整理电量并写入基础台账，输出检查报告";
+            RawDetailLabel.Text = chongqing ? "交易中心电量确认结算单（必填）" : "原始零售侧明细";
+            RunStage1ButtonText.Text = chongqing ? "清洗并更新台账（暂未开放）" : "开始 执行阶段一";
+            CleanPowerButton.Content = chongqing ? "只清洗电量数据" : "只清洗电量";
+
+            var hainanVisibility = chongqing ? Visibility.Collapsed : Visibility.Visible;
+            BaseLedgerLabel.Visibility = hainanVisibility;
+            BaseLedgerRow.Visibility = hainanVisibility;
+            PowerLabel.Visibility = hainanVisibility;
+            PowerRow.Visibility = hainanVisibility;
+            ReferenceLedgerLabel.Visibility = hainanVisibility;
+            ReferenceLedgerRow.Visibility = hainanVisibility;
+            CopyReferenceExistingCheckBox.Visibility = hainanVisibility;
+
+            RunStage1Button.IsEnabled = !_isBusy && !chongqing;
+            RunStage2Button.IsEnabled = !_isBusy && !chongqing;
+            RunEmployeeRewardButton.IsEnabled = !_isBusy && !chongqing;
+            SharedSettingsCaption.Text = chongqing
+                ? "重庆当前开放阶段一的只清洗电量数据，输出仍保存到这个文件夹中"
                 : "阶段一和阶段二生成的所有文件都会保存到这个文件夹中";
         }
 
@@ -929,6 +1094,7 @@ namespace HainanSettlementTool.Wpf
                     IntermediaryTemplateDirectory = IntermediaryTemplateDirBox.Text.Trim(),
                     SummaryTemplatePath = SummaryTemplateBox.Text.Trim(),
                     RewardLedgerPath = RewardLedgerBox.Text.Trim(),
+                    ProvinceCode = SelectedProvince().ToString(),
                     ThemeMode = _themeMode
                 });
             }

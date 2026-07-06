@@ -4,7 +4,7 @@ using HainanSettlementTool.Core.Services;
 
 namespace HainanSettlementTool.Excel
 {
-    public sealed class ClosedXmlStage1ExcelGateway : IStage1ExcelGateway, IStage2ExcelGateway, IEmployeeRewardExcelGateway
+    public sealed class ClosedXmlStage1ExcelGateway : IStage1ExcelGateway, IStage2ExcelGateway, IEmployeeRewardExcelGateway, IProvinceStage1ExcelGateway
     {
         private readonly PowerWorkbookReader _powerWorkbookReader = new PowerWorkbookReader();
         private readonly RawDetailReader _rawDetailReader = new RawDetailReader();
@@ -12,6 +12,7 @@ namespace HainanSettlementTool.Excel
         private readonly LedgerStage1Updater _ledgerUpdater = new LedgerStage1Updater();
         private readonly Stage2SettlementGenerator _stage2Generator = new Stage2SettlementGenerator();
         private readonly EmployeeRewardGenerator _employeeRewardGenerator = new EmployeeRewardGenerator();
+        private readonly ChongqingPowerCleanGenerator _chongqingPowerCleanGenerator = new ChongqingPowerCleanGenerator();
 
         public List<PowerRow> ReadPowerRows(string powerPath)
         {
@@ -36,6 +37,16 @@ namespace HainanSettlementTool.Excel
         public Stage1Report UpdateLedger(Stage1Options options)
         {
             return _ledgerUpdater.Update(options, this);
+        }
+
+        public ProvinceStage1CleanResult CleanPowerData(ProvinceStage1CleanOptions options)
+        {
+            if (options.Province == ProvinceCode.Chongqing)
+            {
+                return _chongqingPowerCleanGenerator.Generate(options);
+            }
+
+            throw new System.NotSupportedException("当前省份暂未接入多省份阶段一电量清洗。");
         }
 
         public Stage2Report GenerateSettlement(Stage2Options options)
