@@ -61,7 +61,7 @@
                     BorderThickness="1"
                     CornerRadius="6"
                     Padding="14">
-                <TextBlock Text="可将清洗结果中的客户手动匹配到台账客户。本次选择只用于当前生成的台账副本，不会保存为长期别名规则；未选择的客户不会写入台账。"
+                <TextBlock Text="可将电量表中未匹配的客户手动匹配到台账客户。本次选择只用于当前生成的台账副本，不会保存为长期别名规则；每个待判断客户都必须手动选择匹配目标或明确选择本月不写入。"
                            Foreground="{DynamicResource FieldTextBrush}"
                            TextWrapping="Wrap" />
             </Border>
@@ -90,6 +90,39 @@
                                            FontWeight="SemiBold" />
                             </DockPanel>
 
+                            <Border x:Name="MatchingContextPanel"
+                                    Background="{DynamicResource PanelBrush}"
+                                    BorderBrush="{DynamicResource BorderBrushSoft}"
+                                    BorderThickness="1"
+                                    CornerRadius="5"
+                                    Padding="12"
+                                    Margin="0,12,0,0">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="电量表客户不在台账"
+                                                   Foreground="{DynamicResource TextBrush}"
+                                                   FontWeight="SemiBold" />
+                                        <TextBlock x:Name="PowerOnlySummaryText"
+                                                   Margin="0,5,0,0"
+                                                   Foreground="{DynamicResource FieldTextBrush}"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Row="1" Margin="0,10,0,0">
+                                        <TextBlock Text="可选台账客户名称"
+                                                   Foreground="{DynamicResource TextBrush}"
+                                                   FontWeight="SemiBold" />
+                                        <TextBlock x:Name="LedgerOnlySummaryText"
+                                                   Margin="0,5,0,0"
+                                                   Foreground="{DynamicResource FieldTextBrush}"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
                             <ItemsControl x:Name="ManualMatchList" Margin="0,12,0,0">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
@@ -106,7 +139,7 @@
                                                     <ColumnDefinition Width="*" />
                                                 </Grid.ColumnDefinitions>
                                                 <StackPanel Grid.Column="0">
-                                                    <TextBlock Text="清洗客户"
+                                                    <TextBlock Text="待匹配客户名称"
                                                                Foreground="{DynamicResource MutedBrush}"
                                                                FontSize="12" />
                                                     <TextBlock Text="{Binding SourceCustomerName}"
@@ -124,25 +157,40 @@
                                                            HorizontalAlignment="Center"
                                                            VerticalAlignment="Center" />
                                                 <StackPanel Grid.Column="2">
-                                                    <TextBlock Text="台账客户"
+                                                    <TextBlock Text="选择台账客户名称（必选）"
                                                                Foreground="{DynamicResource MutedBrush}"
                                                                FontSize="12" />
                                                     <ComboBox ItemsSource="{Binding TargetOptions}"
-                                                              DisplayMemberPath="DisplayText"
                                                               SelectedValuePath="CustomerName"
                                                               SelectedValue="{Binding SelectedTargetName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                              TextSearch.TextPath="DisplayText"
+                                                              IsTextSearchEnabled="True"
                                                               Style="{StaticResource ModernComboBox}"
-                                                              Margin="0,5,0,0" />
+                                                              Margin="0,5,0,0">
+                                                        <ComboBox.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <TextBlock Text="{Binding DisplayText}"
+                                                                           TextTrimming="CharacterEllipsis" />
+                                                            </DataTemplate>
+                                                        </ComboBox.ItemTemplate>
+                                                    </ComboBox>
                                                 </StackPanel>
                                             </Grid>
                                         </Border>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
+                            <TextBlock x:Name="NoManualMatchRowsText"
+                                       Text="当前没有可执行的手动匹配；仅提示台账和电量表客户差异。"
+                                       Foreground="{DynamicResource MutedBrush}"
+                                       Margin="0,12,0,0"
+                                       TextWrapping="Wrap"
+                                       Visibility="Collapsed" />
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{DynamicResource PanelSoftBrush}"
+                    <Border x:Name="OtherIssuePanel"
+                            Background="{DynamicResource PanelSoftBrush}"
                             BorderBrush="{DynamicResource BorderBrushSoft}"
                             BorderThickness="1"
                             CornerRadius="6"

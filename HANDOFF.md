@@ -214,7 +214,7 @@ Current behavior:
 - Output main sheet `用户电量汇总` aggregates by customer name. Output detail sheet `户号明细` retains account-number rows for audit and later ledger-update work.
 - Missing customer name, missing account number, invalid period, non-numeric power, and negative power stop generation as serious source-data errors.
 - Ledger update matches by `电力用户名称`, not `电力用户编码`.
-- WPF preflight can collect one-time manual customer matches from unmatched power customers to ledger-only customers; these mappings are passed through `ProvinceStage1CustomerMatch`, used only for the current output copy, and written to the JSON report.
+- WPF preflight can collect one-time manual customer matches from unmatched power customers to ledger-only customers; each displayed unmatched customer must be explicitly mapped to a ledger customer or explicitly marked as not written for the month. These mappings are passed through `ProvinceStage1CustomerMatch`, used only for the current output copy, and written to the JSON report.
 - Ledger update does not fill `电力用户编码` / B-column account numbers; account numbers remain in the cleaned detail workbook and report for traceability.
 - Ledger update writes only target-month `总实际电量（兆瓦时）` and `尖/峰/平/谷` into a copied ledger. It does not overwrite the source ledger.
 - Missing/new/ledger-only customers, possible alias candidates, multiple-account customers, month mismatch, and existing target-month power differences are surfaced in a WPF confirmation before writing and also written to the JSON report.
@@ -775,6 +775,29 @@ Observed result:
 - WPF `MessageBox` search had no matches.
 - No real Excel, CSV, image, PDF, or generated sensitive output file appears in `git status`.
 - Win10/11 WPF test package generated at `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260706-173120.zip`.
+- Package contents checked for the WPF executable, config, Core/Excel DLLs, and ClosedXML DLL.
+
+WPF Chongqing preflight manual matching polish on 2026-07-06:
+
+```powershell
+dotnet msbuild .\src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Debug
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Debug /m
+.\scripts\package_wpf_release.ps1
+```
+
+Observed result:
+
+- The preflight manual-match dialog now uses clearer labels: unmatched source rows are shown as `待匹配客户名称`, and the right side is `选择台账客户名称（必选）`.
+- The ledger-customer dropdown now renders `CustomerTargetOption.DisplayText` through an item template and `ToString()` fallback, so it no longer displays the WPF view-model type name.
+- Manual matching rows no longer default to silent no-write. The user must explicitly choose a ledger customer or choose `不匹配，本月不写入`; otherwise confirmation is blocked with a validation message.
+- `电量客户不在台账` and `台账客户不在电量表` are presented inside the customer manual-matching area, while `其它预检项目` only contains the remaining non-matching warnings.
+- Full Debug test suite passed: Core 18 tests and Excel 18 tests.
+- Debug build passed for Core, Excel, WinForms, and WPF.
+- `git diff --check` passed with CRLF normalization warnings only.
+- WPF `MessageBox` search had no matches.
+- No real Excel, CSV, image, PDF, or generated sensitive output file appears in `git status`.
+- Win10/11 WPF test package generated at `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260706-173952.zip`.
 - Package contents checked for the WPF executable, config, Core/Excel DLLs, and ClosedXML DLL.
 
 ## Documentation Rule
