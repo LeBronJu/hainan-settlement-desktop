@@ -105,7 +105,7 @@ namespace HainanSettlementTool.Excel.Tests
         }
 
         [TestMethod]
-        public void UpdateLedgerWritesChongqingPowerAndAccountCodesToCopiedLedger()
+        public void UpdateLedgerWritesChongqingPowerOnlyToCopiedLedger()
         {
             var root = CreateTempRoot();
             try
@@ -132,13 +132,12 @@ namespace HainanSettlementTool.Excel.Tests
                 Assert.AreEqual(3, plan.LedgerCustomerRows);
                 Assert.AreEqual(2, plan.PowerCustomerRows);
                 Assert.AreEqual(2, plan.MatchedRows);
-                Assert.AreEqual(2, plan.CodeFillRows);
                 Assert.AreEqual(1, plan.MultiAccountRows);
                 Assert.AreEqual(1, plan.MissingInPowerRows);
                 Assert.IsTrue(File.Exists(result.OutputLedgerPath));
                 Assert.IsTrue(File.Exists(result.ReportPath));
                 Assert.AreEqual(2, result.UpdatedPowerRows);
-                Assert.AreEqual(2, result.CodeFillRows);
+                Assert.AreEqual(1, result.MultiAccountRows);
 
                 using (var original = new XLWorkbook(ledger))
                 using (var updated = new XLWorkbook(result.OutputLedgerPath))
@@ -150,8 +149,8 @@ namespace HainanSettlementTool.Excel.Tests
                     var customerC = FindLedgerRow(updatedSheet, "台账独有客户");
 
                     Assert.AreEqual(string.Empty, originalSheet.Cell(customerA, 2).GetString());
-                    Assert.AreEqual("A-001、A-002", updatedSheet.Cell(customerA, 2).GetString());
-                    Assert.AreEqual("B-001", updatedSheet.Cell(customerB, 2).GetString());
+                    Assert.AreEqual(string.Empty, updatedSheet.Cell(customerA, 2).GetString());
+                    Assert.AreEqual(string.Empty, updatedSheet.Cell(customerB, 2).GetString());
                     Assert.AreEqual(31.5, updatedSheet.Cell(customerA, 8).GetDouble(), 0.00001);
                     Assert.AreEqual(3.5, updatedSheet.Cell(customerA, 9).GetDouble(), 0.00001);
                     Assert.AreEqual(17, updatedSheet.Cell(customerA, 10).GetDouble(), 0.00001);
@@ -165,7 +164,7 @@ namespace HainanSettlementTool.Excel.Tests
                 Assert.AreEqual("重庆", (string)report["province"]);
                 Assert.AreEqual(5, (int)report["month"]);
                 Assert.AreEqual(2, (int)report["updatedPowerRows"]);
-                Assert.AreEqual(2, (int)report["codeFillRows"]);
+                Assert.AreEqual(1, (int)report["multiAccountRows"]);
             }
             finally
             {

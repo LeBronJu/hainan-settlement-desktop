@@ -1301,7 +1301,7 @@ namespace HainanSettlementTool.Wpf
             var message = new StringBuilder();
             message.AppendLine("结算月份：2026年" + options.Month + "月");
             message.AppendLine("匹配客户：" + plan.MatchedRows + " / " + plan.PowerCustomerRows);
-            message.AppendLine("预计补齐电力用户编码：" + plan.CodeFillRows + " 行");
+            message.AppendLine("多户号客户：" + plan.MultiAccountRows + " 行（仅提示，不写入B列）");
             message.AppendLine("输出文件夹：");
             message.AppendLine(options.OutputDirectory);
 

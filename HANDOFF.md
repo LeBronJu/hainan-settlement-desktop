@@ -214,9 +214,9 @@ Current behavior:
 - Output main sheet `用户电量汇总` aggregates by customer name. Output detail sheet `户号明细` retains account-number rows for audit and later ledger-update work.
 - Missing customer name, missing account number, invalid period, non-numeric power, and negative power stop generation as serious source-data errors.
 - Ledger update matches by `电力用户名称`, not `电力用户编码`.
-- Ledger update can fill `电力用户编码` from the power-detail `户号`; multiple account numbers are joined with `、` and surfaced in the preflight confirmation.
+- Ledger update does not fill `电力用户编码` / B-column account numbers; account numbers remain in the cleaned detail workbook and report for traceability.
 - Ledger update writes only target-month `总实际电量（兆瓦时）` and `尖/峰/平/谷` into a copied ledger. It does not overwrite the source ledger.
-- Missing/new/ledger-only customers, possible alias candidates, multiple-account customers, month mismatch, account-code differences, and existing target-month power differences are surfaced in a WPF confirmation before writing and also written to the JSON report.
+- Missing/new/ledger-only customers, possible alias candidates, multiple-account customers, month mismatch, and existing target-month power differences are surfaced in a WPF confirmation before writing and also written to the JSON report.
 
 Known limits:
 
@@ -676,7 +676,7 @@ Authorized Chongqing ledger read-only structure analysis on 2026-07-06:
 - Ledger inspected read-only: `C:\Users\juqx2\Desktop\2026年-重庆\重庆2026年售电结算台账20260609.xlsx`
 - Structure: one `Sheet1`, 30 rows, 194 columns, three-level header, customer data rows 4-29, 26 customer rows.
 - Fixed fields found in row 2 include `电力用户编码`, `电力用户名称`, `合同年用电量（兆瓦时）`, `履约开始月份`, `履约结束月份`, `项目开发人`, `代理或自营`, and `负责人`.
-- The `电力用户编码` column is blank for all 26 rows, confirming that the next ledger-update step cannot rely on account number/code matching unless the user later decides to populate it.
+- The `电力用户编码` column is blank for all 26 rows. Because Chongqing customers can have multiple account numbers, the app no longer auto-fills this column and does not use it as a matching key.
 - Current customer rows have no blank customer names, no blank负责人, no blank项目开发人, and no duplicate customer names. Business type count is 7 self-operated and 19 proxy rows.
 - Month blocks were identified by row-1 merged headers. Existing blocks cover January through May 2026. The May block starts at `FI`: total actual power in `FI`, periods in `FJ:FM` (`尖/峰/平/谷`), coefficient columns in `FN:FO`, and downstream benefit fields after that.
 - The current May ledger power values already match the generated Chongqing cleaned power output on customer count, total power, and every numeric power vector. The same one customer-name text difference remains, so the next module needs an alias/mismatch report rather than silent fuzzy matching.
@@ -706,8 +706,30 @@ Authorized Chongqing Stage 1 ledger update real smoke on 2026-07-06:
 - Output folder: `C:\Users\juqx2\Desktop\2026年-重庆\test\codex-chongqing-ledger-update-smoke-20260706-153825`
 - Generated output ledger: `5月重庆售电结算台账-阶段一更新.xlsx`
 - Generated report: `5月重庆阶段一台账更新报告.json`
-- Real-smoke preflight required confirmation: 25 matched customer rows, 25 account-code fill rows, 7 multi-account rows, 1 power customer not in ledger, 1 ledger customer not in power table, 1 possible alias candidate, and 0 existing target-month power differences.
-- The smoke wrote 25 matched rows into the copied ledger and did not modify the original ledger.
+- Real-smoke preflight required confirmation: 25 matched customer rows, 7 multi-account rows, 1 power customer not in ledger, 1 ledger customer not in power table, 1 possible alias candidate, and 0 existing target-month power differences.
+- The smoke wrote 25 matched power rows into the copied ledger and did not modify the original ledger or fill B-column account codes.
+
+Chongqing Stage 1 B-column account-code policy update on 2026-07-06:
+
+```powershell
+dotnet test .\tests\HainanSettlementTool.Core.Tests\HainanSettlementTool.Core.Tests.csproj /p:Configuration=Debug --filter UpdateProvinceStage1LedgerReturnsSharedSummaryLines
+dotnet test .\tests\HainanSettlementTool.Excel.Tests\HainanSettlementTool.Excel.Tests.csproj /p:Configuration=Debug --filter ChongqingPowerCleanGeneratorTests
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Debug /m
+git diff --check
+git status --short | Select-String -Pattern '\.(xlsx|xls|csv|png|jpg|jpeg|pdf)$'
+```
+
+Observed result:
+
+- User decided Chongqing B-column `电力用户编码` should not be automatically maintained because one customer may have multiple account numbers.
+- `ChongqingLedgerStage1Updater` now writes only target-month power columns and never writes or compares B-column account codes.
+- WPF preflight now shows multi-account customers as a reminder only, with wording that B column is not written.
+- Synthetic Chongqing ledger update test now verifies B-column values stay blank while power columns are written.
+- Full Debug test suite passed: Core 18 tests and Excel 17 tests.
+- Debug build passed for Core, Excel, WinForms, and WPF.
+- `git diff --check` passed with CRLF normalization warnings only.
+- No real Excel, CSV, image, PDF, or generated sensitive output file appears in `git status`.
 
 ## Documentation Rule
 
@@ -769,7 +791,7 @@ Packaging/docs:
 
 ## Next Steps
 
-1. Let the user test the Chongqing `清洗并更新台账` WPF flow, especially the preflight dialog wording and the generated B-column account-code format for multi-account customers.
+1. Let the user test the Chongqing `清洗并更新台账` WPF flow, especially the preflight dialog wording for unmatched, alias-candidate, and multi-account customers.
 2. Decide whether unmatched possible alias customers should support a user-maintained alias table later, or remain manual review only.
 3. Decide whether future Chongqing months should require the target month block to already exist in the ledger, or whether the app should copy the previous month block and create the new month block.
 4. Decide whether to cut a Win10/11 acceptance release from the accepted WPF package or rebuild a fresh release package from `main`.

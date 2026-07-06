@@ -41,22 +41,12 @@ namespace HainanSettlementTool.Excel
                 FileAccessGuard.RequireWritableWorkbook(outputPath, "重庆台账更新输出文件");
 
                 var updatedRows = 0;
-                var codeFillRows = 0;
                 foreach (var ledgerRow in context.LedgerRows)
                 {
                     ChongqingPowerCleanGenerator.ChongqingPowerAggregateRow powerRow;
                     if (!context.PowerRowsByKey.TryGetValue(ledgerRow.Key, out powerRow))
                     {
                         continue;
-                    }
-
-                    var accountText = AccountText(context.AccountNumbersByKey.ContainsKey(ledgerRow.Key)
-                        ? context.AccountNumbersByKey[ledgerRow.Key]
-                        : new List<string>());
-                    if (!string.IsNullOrWhiteSpace(accountText) && CellText(context.Worksheet.Cell(ledgerRow.RowNumber, context.Map.AccountCodeColumn)) != accountText)
-                    {
-                        context.Worksheet.Cell(ledgerRow.RowNumber, context.Map.AccountCodeColumn).Value = accountText;
-                        codeFillRows++;
                     }
 
                     context.Worksheet.Cell(ledgerRow.RowNumber, context.Map.TotalColumn).Value = powerRow.Total;
@@ -82,7 +72,6 @@ namespace HainanSettlementTool.Excel
                     PowerCustomerRows = context.Plan.PowerCustomerRows,
                     MatchedRows = context.Plan.MatchedRows,
                     UpdatedPowerRows = updatedRows,
-                    CodeFillRows = codeFillRows,
                     MultiAccountRows = context.Plan.MultiAccountRows,
                     SkippedRows = context.Plan.MissingInLedgerRows,
                     TotalPower = Math.Round(context.PowerData.CustomerRows.Sum(row => row.Total), 4),
@@ -163,24 +152,10 @@ namespace HainanSettlementTool.Excel
                 var ledgerRow = ledgerRowsByKey[key];
                 var powerRow = powerRowsByKey[key];
                 var accounts = accountNumbersByKey.ContainsKey(key) ? accountNumbersByKey[key] : new List<string>();
-                var accountText = AccountText(accounts);
                 if (accounts.Count > 1)
                 {
                     plan.MultiAccountRows++;
-                    AddIssue(plan, "多户号客户", "提示", ledgerRow.CustomerName, "该客户在电量明细中存在多个户号；继续后会用顿号合并写入电力用户编码列。");
-                }
-
-                if (!string.IsNullOrWhiteSpace(accountText))
-                {
-                    var currentAccountText = CellText(worksheet.Cell(ledgerRow.RowNumber, map.AccountCodeColumn));
-                    if (string.IsNullOrWhiteSpace(currentAccountText))
-                    {
-                        plan.CodeFillRows++;
-                    }
-                    else if (!SameAccountSet(currentAccountText, accounts))
-                    {
-                        AddIssue(plan, "电力用户编码差异", "警告", ledgerRow.CustomerName, "台账现有电力用户编码与电量明细户号不一致；继续后会按电量明细户号写入副本。");
-                    }
+                    AddIssue(plan, "多户号客户", "提示", ledgerRow.CustomerName, "该客户在电量明细中存在多个户号；本次仅写入汇总电量，不会写入电力用户编码列。");
                 }
 
                 if (!IsBlankPower(worksheet, ledgerRow.RowNumber, map) && !SamePowerVector(worksheet, ledgerRow.RowNumber, map, powerRow))
@@ -236,13 +211,7 @@ namespace HainanSettlementTool.Excel
 
         private static LedgerMap FindLedgerMap(IXLWorksheet worksheet, int month)
         {
-            var accountCodeColumn = FindHeaderColumn(worksheet, "电力用户编码");
             var customerNameColumn = FindHeaderColumn(worksheet, "电力用户名称");
-            if (accountCodeColumn <= 0)
-            {
-                throw new InvalidOperationException("重庆台账中未找到表头“电力用户编码”。");
-            }
-
             var totalColumn = FindMonthStartColumn(worksheet, month);
             if (CellText(worksheet.Cell(2, totalColumn)) != "总实际电量（兆瓦时）"
                 || CellText(worksheet.Cell(2, totalColumn + 1)) != "实际电量（兆瓦时）"
@@ -256,7 +225,6 @@ namespace HainanSettlementTool.Excel
 
             return new LedgerMap
             {
-                AccountCodeColumn = accountCodeColumn,
                 CustomerNameColumn = customerNameColumn,
                 TotalColumn = totalColumn,
                 SharpColumn = totalColumn + 1,
@@ -381,22 +349,6 @@ namespace HainanSettlementTool.Excel
             return Math.Abs(left - right) < 0.001;
         }
 
-        private static string AccountText(IList<string> accounts)
-        {
-            return accounts == null || accounts.Count == 0 ? string.Empty : string.Join("、", accounts);
-        }
-
-        private static bool SameAccountSet(string currentText, IList<string> accounts)
-        {
-            var current = TextUtil.S(currentText)
-                .Split(new[] { '、', ',', '，', ';', '；', '/', ' ' }, StringSplitOptions.RemoveEmptyEntries)
-                .Select(TextUtil.S)
-                .Where(value => value.Length > 0)
-                .OrderBy(value => value, StringComparer.Ordinal)
-                .ToList();
-            return current.SequenceEqual(accounts.OrderBy(value => value, StringComparer.Ordinal));
-        }
-
         private static void AddIssue(ProvinceStage1LedgerUpdatePlan plan, string category, string severity, string customerName, string message)
         {
             plan.Issues.Add(new ProvinceStage1LedgerUpdateIssue
@@ -427,7 +379,6 @@ namespace HainanSettlementTool.Excel
                 powerCustomerRows = result.PowerCustomerRows,
                 matchedRows = result.MatchedRows,
                 updatedPowerRows = result.UpdatedPowerRows,
-                codeFillRows = result.CodeFillRows,
                 multiAccountRows = result.MultiAccountRows,
                 skippedRows = result.SkippedRows,
                 totalPower = result.TotalPower,
@@ -472,7 +423,6 @@ namespace HainanSettlementTool.Excel
 
         private sealed class LedgerMap
         {
-            public int AccountCodeColumn { get; set; }
             public int CustomerNameColumn { get; set; }
             public int TotalColumn { get; set; }
             public int SharpColumn { get; set; }

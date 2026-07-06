@@ -10,7 +10,6 @@ namespace HainanSettlementTool.Core.Models
         public int LedgerCustomerRows { get; set; }
         public int PowerCustomerRows { get; set; }
         public int MatchedRows { get; set; }
-        public int CodeFillRows { get; set; }
         public int MultiAccountRows { get; set; }
         public int ExistingDifferentPowerRows { get; set; }
         public int MissingInLedgerRows { get; set; }

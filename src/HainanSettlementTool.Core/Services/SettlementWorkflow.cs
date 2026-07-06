@@ -120,7 +120,7 @@ namespace HainanSettlementTool.Core.Services
                     "输出台账：" + report.OutputLedgerPath,
                     "报告：" + report.ReportPath,
                     "匹配客户：" + report.MatchedRows + "，写入电量：" + report.UpdatedPowerRows,
-                    "补齐电力用户编码：" + report.CodeFillRows,
+                    "多户号提示：" + report.MultiAccountRows,
                     "合计电量：" + report.TotalPower.ToString("0.####") + " " + report.Unit
                 });
         }

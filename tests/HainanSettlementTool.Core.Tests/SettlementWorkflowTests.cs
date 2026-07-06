@@ -141,7 +141,7 @@ namespace HainanSettlementTool.Core.Tests
                         "输出台账：" + gateway.ProvinceStage1LedgerUpdateResult.OutputLedgerPath,
                         "报告：" + gateway.ProvinceStage1LedgerUpdateResult.ReportPath,
                         "匹配客户：2，写入电量：2",
-                        "补齐电力用户编码：2",
+                        "多户号提示：1",
                         "合计电量：12.3456 兆瓦时"
                     },
                     result.SummaryLines.ToArray());
@@ -404,7 +404,7 @@ namespace HainanSettlementTool.Core.Tests
                 LedgerCustomerRows = 2,
                 PowerCustomerRows = 2,
                 MatchedRows = 2,
-                CodeFillRows = 2
+                MultiAccountRows = 1
             };
 
             public readonly ProvinceStage1LedgerUpdateResult ProvinceStage1LedgerUpdateResult = new ProvinceStage1LedgerUpdateResult
@@ -416,7 +416,7 @@ namespace HainanSettlementTool.Core.Tests
                 ReportPath = "chongqing-ledger-report.json",
                 MatchedRows = 2,
                 UpdatedPowerRows = 2,
-                CodeFillRows = 2,
+                MultiAccountRows = 1,
                 TotalPower = 12.3456
             };
 

@@ -15,7 +15,6 @@ namespace HainanSettlementTool.Core.Models
         public int PowerCustomerRows { get; set; }
         public int MatchedRows { get; set; }
         public int UpdatedPowerRows { get; set; }
-        public int CodeFillRows { get; set; }
         public int MultiAccountRows { get; set; }
         public int SkippedRows { get; set; }
         public double TotalPower { get; set; }
