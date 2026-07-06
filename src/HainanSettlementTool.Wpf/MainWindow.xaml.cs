@@ -35,7 +35,7 @@ namespace HainanSettlementTool.Wpf
             InitializeComponent();
 
             InitializeThemeCombo(_themeMode);
-            InitializeProvinceCombo(snapshot.ProvinceCode);
+            InitializeProvinceCombo();
 
             for (var month = 2; month <= 12; month++)
             {
@@ -169,7 +169,14 @@ namespace HainanSettlementTool.Wpf
 
         private void BrowseRawDetail_Click(object sender, RoutedEventArgs e)
         {
-            var title = SelectedProvince() == ProvinceCode.Chongqing
+            var province = SelectedProvinceOrNull();
+            if (!province.HasValue)
+            {
+                ShowErrorMessage("请选择结算省份后再选择电量文件。");
+                return;
+            }
+
+            var title = province.Value == ProvinceCode.Chongqing
                 ? "选择重庆交易中心电量确认结算单"
                 : "选择原始零售侧明细";
             BrowseFile(RawDetailBox, title, "Excel/CSV|*.xlsx;*.xls;*.csv|Excel 文件|*.xlsx;*.xls|CSV 文件|*.csv|所有文件|*.*");
@@ -314,7 +321,14 @@ namespace HainanSettlementTool.Wpf
 
         private async void CleanPower_Click(object sender, RoutedEventArgs e)
         {
-            if (SelectedProvince() == ProvinceCode.Chongqing)
+            var province = SelectedProvinceOrNull();
+            if (!province.HasValue)
+            {
+                ShowErrorMessage("请选择结算省份后再清洗电量数据。");
+                return;
+            }
+
+            if (province.Value == ProvinceCode.Chongqing)
             {
                 await RunProvinceStage1CleanPowerAsync();
                 return;
@@ -332,7 +346,7 @@ namespace HainanSettlementTool.Wpf
                 SaveInputs();
 
                 var message = "即将清洗原始零售侧明细并生成电量处理表。\n\n输出文件：\n" + outputPath;
-                if (MessageBox.Show(this, message, "确认清洗电量", MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK)
+                if (!ConfirmAction("确认清洗电量", "即将清洗电量数据", message, "开始清洗"))
                 {
                     return;
                 }
@@ -399,7 +413,7 @@ namespace HainanSettlementTool.Wpf
                 SaveInputs();
 
                 var message = "即将清洗重庆交易中心电量确认结算单。\n\n输出内容：用户电量汇总、户号明细、JSON校验报告\n输出文件夹：\n" + options.OutputDirectory;
-                if (MessageBox.Show(this, message, "确认清洗重庆电量", MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK)
+                if (!ConfirmAction("确认清洗重庆电量", "即将清洗重庆电量数据", message, "开始清洗"))
                 {
                     return;
                 }
@@ -780,12 +794,12 @@ namespace HainanSettlementTool.Wpf
             _loadingInputs = false;
         }
 
-        private void InitializeProvinceCombo(string provinceCode)
+        private void InitializeProvinceCombo()
         {
             _loadingInputs = true;
             ProvinceCombo.Items.Add("海南");
             ProvinceCombo.Items.Add("重庆");
-            ProvinceCombo.SelectedIndex = string.Equals(provinceCode, ProvinceCode.Chongqing.ToString(), StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+            ProvinceCombo.SelectedIndex = -1;
             _loadingInputs = false;
         }
 
@@ -817,7 +831,26 @@ namespace HainanSettlementTool.Wpf
 
         private ProvinceCode SelectedProvince()
         {
-            return ProvinceCombo.SelectedIndex == 1 ? ProvinceCode.Chongqing : ProvinceCode.Hainan;
+            var province = SelectedProvinceOrNull();
+            if (!province.HasValue)
+            {
+                throw new InvalidOperationException("请选择结算省份。");
+            }
+
+            return province.Value;
+        }
+
+        private ProvinceCode? SelectedProvinceOrNull()
+        {
+            switch (ProvinceCombo.SelectedIndex)
+            {
+                case 0:
+                    return ProvinceCode.Hainan;
+                case 1:
+                    return ProvinceCode.Chongqing;
+                default:
+                    return null;
+            }
         }
 
         private bool ConfirmRun(string stageName, int month, string outputDirectory)
@@ -835,7 +868,7 @@ namespace HainanSettlementTool.Wpf
                 ? "2026年" + options.StartMonth + "月"
                 : "2026年" + options.StartMonth + "-" + options.EndMonth + "月";
             var message = "即将生成员工电量奖励表。\n\n期间：" + period + "\n输出文件夹：\n" + options.OutputDirectory;
-            return MessageBox.Show(this, message, "确认生成员工电量奖励", MessageBoxButton.OKCancel, MessageBoxImage.Question) == MessageBoxResult.OK;
+            return ConfirmAction("确认生成员工电量奖励", "即将生成员工电量奖励", message, "开始生成");
         }
 
         private bool ConfirmStage2Preflight(Stage2PreflightReport report)
@@ -885,27 +918,32 @@ namespace HainanSettlementTool.Wpf
                 return;
             }
 
-            var chongqing = SelectedProvince() == ProvinceCode.Chongqing;
+            var province = SelectedProvinceOrNull();
+            var hasProvince = province.HasValue;
+            var hainan = province == ProvinceCode.Hainan;
+            var chongqing = province == ProvinceCode.Chongqing;
             if (chongqing && MainTabControl.SelectedItem == EmployeeRewardTab)
             {
                 MainTabControl.SelectedItem = MainSettlementTab;
             }
 
-            MainSettlementTab.Header = chongqing ? "阶段一：台账更新" : "代理费结算";
-            EmployeeRewardTab.Visibility = chongqing ? Visibility.Collapsed : Visibility.Visible;
-            StageTwoPanel.Visibility = chongqing ? Visibility.Collapsed : Visibility.Visible;
-            Grid.SetColumnSpan(StageOnePanel, chongqing ? 2 : 1);
-            StageOnePanel.Margin = chongqing ? new Thickness(0) : new Thickness(0, 0, 8, 0);
+            MainSettlementTab.Header = !hasProvince ? "结算流程" : chongqing ? "阶段一：台账更新" : "代理费结算";
+            EmployeeRewardTab.Visibility = hainan ? Visibility.Visible : Visibility.Collapsed;
+            StageTwoPanel.Visibility = hainan ? Visibility.Visible : Visibility.Collapsed;
+            Grid.SetColumnSpan(StageOnePanel, hainan ? 1 : 2);
+            StageOnePanel.Margin = hainan ? new Thickness(0, 0, 8, 0) : new Thickness(0);
 
-            Stage1TitleText.Text = chongqing ? "阶段一：台账更新" : "阶段一：写入电量到台账";
-            Stage1CaptionText.Text = chongqing
+            Stage1TitleText.Text = !hasProvince ? "请先选择结算省份" : chongqing ? "阶段一：台账更新" : "阶段一：写入电量到台账";
+            Stage1CaptionText.Text = !hasProvince
+                ? "不同省份的结算口径不同，必须先选择省份再执行。"
+                : chongqing
                 ? "清洗交易中心电量确认结算单，生成重庆标准电量处理表"
                 : "整理电量并写入基础台账，输出检查报告";
-            RawDetailLabel.Text = chongqing ? "交易中心电量确认结算单（必填）" : "原始零售侧明细";
+            RawDetailLabel.Text = !hasProvince ? "电量文件（先选择省份）" : chongqing ? "交易中心电量确认结算单（必填）" : "原始零售侧明细";
             RunStage1ButtonText.Text = chongqing ? "清洗并更新台账（暂未开放）" : "开始 执行阶段一";
             CleanPowerButton.Content = chongqing ? "只清洗电量数据" : "只清洗电量";
 
-            var hainanVisibility = chongqing ? Visibility.Collapsed : Visibility.Visible;
+            var hainanVisibility = hainan ? Visibility.Visible : Visibility.Collapsed;
             BaseLedgerLabel.Visibility = hainanVisibility;
             BaseLedgerRow.Visibility = hainanVisibility;
             PowerLabel.Visibility = hainanVisibility;
@@ -914,10 +952,13 @@ namespace HainanSettlementTool.Wpf
             ReferenceLedgerRow.Visibility = hainanVisibility;
             CopyReferenceExistingCheckBox.Visibility = hainanVisibility;
 
-            RunStage1Button.IsEnabled = !_isBusy && !chongqing;
-            RunStage2Button.IsEnabled = !_isBusy && !chongqing;
-            RunEmployeeRewardButton.IsEnabled = !_isBusy && !chongqing;
-            SharedSettingsCaption.Text = chongqing
+            RunStage1Button.IsEnabled = !_isBusy && hainan;
+            CleanPowerButton.IsEnabled = !_isBusy && hasProvince;
+            RunStage2Button.IsEnabled = !_isBusy && hainan;
+            RunEmployeeRewardButton.IsEnabled = !_isBusy && hainan;
+            SharedSettingsCaption.Text = !hasProvince
+                ? "请先选择结算省份；选择后会显示对应省份的可用功能"
+                : chongqing
                 ? "重庆当前开放阶段一的只清洗电量数据，输出仍保存到这个文件夹中"
                 : "阶段一和阶段二生成的所有文件都会保存到这个文件夹中";
         }
@@ -1094,7 +1135,7 @@ namespace HainanSettlementTool.Wpf
                     IntermediaryTemplateDirectory = IntermediaryTemplateDirBox.Text.Trim(),
                     SummaryTemplatePath = SummaryTemplateBox.Text.Trim(),
                     RewardLedgerPath = RewardLedgerBox.Text.Trim(),
-                    ProvinceCode = SelectedProvince().ToString(),
+                    ProvinceCode = SelectedProvinceOrNull()?.ToString() ?? string.Empty,
                     ThemeMode = _themeMode
                 });
             }
@@ -1131,7 +1172,25 @@ namespace HainanSettlementTool.Wpf
 
         private void ShowError(Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "出错了", MessageBoxButton.OK, MessageBoxImage.Error);
+            ShowErrorMessage(ex.Message);
+        }
+
+        private void ShowErrorMessage(string message)
+        {
+            var dialog = new ModernDialogWindow("出错了", "需要先处理这个问题", message, "知道了", null, ModernDialogKind.Error)
+            {
+                Owner = this
+            };
+            dialog.ShowDialog();
+        }
+
+        private bool ConfirmAction(string title, string heading, string message, string primaryButtonText)
+        {
+            var dialog = new ModernDialogWindow(title, heading, message, primaryButtonText, "取消", ModernDialogKind.Warning)
+            {
+                Owner = this
+            };
+            return dialog.ShowDialog() == true;
         }
 
         private void ClearStage1_Click(object sender, RoutedEventArgs e)

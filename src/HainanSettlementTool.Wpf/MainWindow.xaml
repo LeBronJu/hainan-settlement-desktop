@@ -61,6 +61,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
                             <StackPanel Orientation="Horizontal">
                                 <Border Width="4" Height="20" CornerRadius="2" Background="{DynamicResource AccentBrush}" VerticalAlignment="Center" />
@@ -70,23 +71,30 @@
                             <Grid Grid.Row="1" Margin="0,16,0,8">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="70" />
-                                    <ColumnDefinition Width="130" />
+                                    <ColumnDefinition Width="170" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="结算省份" VerticalAlignment="Center" Foreground="{DynamicResource FieldTextBrush}" />
+                                <ComboBox x:Name="ProvinceCombo" Grid.Column="1" Style="{StaticResource ModernComboBox}" SelectionChanged="ProvinceCombo_SelectionChanged" />
+                                <TextBlock Grid.Column="2" Text="请选择本次结算所属省份后再执行，避免误选或漏选。" VerticalAlignment="Center" Margin="14,0,0,0" Foreground="{DynamicResource MutedBrush}" FontSize="12" />
+                            </Grid>
+
+                            <Grid Grid.Row="2" Margin="0,6,0,8">
+                                <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="86" />
                                     <ColumnDefinition Width="170" />
                                     <ColumnDefinition Width="126" />
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="88" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="业务省份" VerticalAlignment="Center" Foreground="{DynamicResource FieldTextBrush}" />
-                                <ComboBox x:Name="ProvinceCombo" Grid.Column="1" Style="{StaticResource ModernComboBox}" SelectionChanged="ProvinceCombo_SelectionChanged" />
-                                <TextBlock x:Name="SettlementMonthLabel" Grid.Column="2" Text="结算月份" VerticalAlignment="Center" Margin="18,0,0,0" Foreground="{DynamicResource FieldTextBrush}" />
-                                <ComboBox x:Name="MonthCombo" Grid.Column="3" Style="{StaticResource ModernComboBox}" />
-                                <TextBlock Grid.Column="4" Text="结果输出文件夹" VerticalAlignment="Center" Margin="26,0,0,0" Foreground="{DynamicResource FieldTextBrush}" />
-                                <TextBox x:Name="OutputDirBox" Grid.Column="5" Style="{StaticResource ModernTextBox}" IsReadOnly="True" />
-                                <Button Grid.Column="6" Content="打开" Style="{StaticResource SecondaryButton}" Margin="10,0,0,0" Click="BrowseOutputDir_Click" />
+                                <TextBlock x:Name="SettlementMonthLabel" Text="结算月份" VerticalAlignment="Center" Foreground="{DynamicResource FieldTextBrush}" />
+                                <ComboBox x:Name="MonthCombo" Grid.Column="1" Style="{StaticResource ModernComboBox}" />
+                                <TextBlock Grid.Column="2" Text="结果输出文件夹" VerticalAlignment="Center" Margin="26,0,0,0" Foreground="{DynamicResource FieldTextBrush}" />
+                                <TextBox x:Name="OutputDirBox" Grid.Column="3" Style="{StaticResource ModernTextBox}" IsReadOnly="True" />
+                                <Button Grid.Column="4" Content="打开" Style="{StaticResource SecondaryButton}" Margin="10,0,0,0" Click="BrowseOutputDir_Click" />
                             </Grid>
 
-                            <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,2,0,0">
+                            <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,2,0,0">
                                 <TextBlock Text="&#xE946;" Style="{StaticResource IconText}" Foreground="{DynamicResource MutedBrush}" FontSize="13" />
                                 <TextBlock x:Name="SharedSettingsCaption" Text="阶段一和阶段二生成的所有文件都会保存到这个文件夹中" Style="{StaticResource CaptionText}" Margin="7,0,0,0" />
                             </StackPanel>

@@ -58,6 +58,7 @@ This is a single-context repo. See `docs/agents/domain.md`.
 - Excel layer owns workbook reading/writing and template copying.
 - Keep stage boundaries explicit.
 - Win7/8 WinForms is in maintenance mode. Do not spend quality/refactor work on WinForms parity unless needed for compilation, packaging, blocking bugfixes, shared Core/Excel behavior changes, or explicit user authorization.
+- WPF confirmation, warning, and error dialogs must use project-native modern WPF windows/styles. Do not add system `MessageBox` prompts to new WPF flows; keep OS-native dialogs only for file/folder pickers where appropriate.
 - Keep documentation current without creating noise. Each code, config, script, packaging, release, workflow, architecture, business-rule, UI-behavior, test-process, or task-state change must end with a documentation impact judgment.
 - Final responses for development work must explicitly include documentation impact judgment, validation performed, and work intentionally not done when applicable. This is required even when no documentation was updated. Missing the documentation impact judgment means the task is not complete.
 - Update only documents whose responsibility is affected. User-visible behavior usually affects `README.md` and `HANDOFF.md`; business rules affect `CONTEXT.md`; module boundaries affect `AGENTS.md` plus an ADR or dated dev-note; release and packaging changes affect `README.md`, `HANDOFF.md`, and `docs/RELEASE_CHECKLIST.md`; branch state, validation results, or next steps affect `HANDOFF.md`.
