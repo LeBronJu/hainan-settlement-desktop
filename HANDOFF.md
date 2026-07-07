@@ -30,8 +30,10 @@ The stable local reference folder is for future comparison/orientation only; do 
 
 ## Current Git State
 
-- Current branch: `codex/wpf-path-picker-controller`
-- Branch purpose: continue today's WPF-first quality mainline by extracting file/folder picker entry points from `MainWindow.xaml.cs`.
+- Current branch: `main`
+- Local `main` is ahead of `origin/main` after merging `codex/wpf-path-picker-controller`; remote push has not been performed in this session.
+- Merged branch: `codex/wpf-path-picker-controller` through `c2ce2b5 Add Chongqing customer decisions`, with local merge commit `4911e47 Merge Chongqing stage one WPF updates`.
+- Branch purpose now complete: Chongqing Stage 1 power cleaning/ledger update, WPF province UI, WPF controller decomposition slices, Chongqing target-month block copy, customer-resolution decisions, and WPF display-title fixes are on local `main`.
 - Previous dialog branch: `codex/wpf-dialog-controller`, pushed through `191b0ff Extract WPF dialog controller`.
 - Previous naming branch: `codex/province-neutral-naming`, pushed through `2f93013 Clarify province-neutral naming boundaries`.
 - The Chongqing target-month block fix is isolated on `codex/chongqing-month-block-copy` and was pushed through `e45d358 Document WPF Chongqing test package`.
@@ -39,7 +41,7 @@ The stable local reference folder is for future comparison/orientation only; do 
 - Previous uncommitted WPF small-window work was reviewed on 2026-07-06. The action-row `DockPanel LastChildFill="False"` fixes were already present on the Chongqing branch, the remaining `MinHeight="720"` fix was reapplied, and the old stash was dropped.
 - Employee reward module has been merged to `main` from `codex/employee-reward-module`. The user completed practical testing on 2026-07-02 and reported no blocking issues.
 - Latest employee reward feature commit before this handoff update: `feb933f Add employee reward module`
-- `main` now contains the employee reward module and WPF theme support after `v1.0.1`, but no newer release tag has been cut yet.
+- `main` now contains the employee reward module, WPF theme support, and Chongqing Stage 1 power cleaning/ledger update after `v1.0.1`, but no newer release tag has been cut yet.
 - Quality branch `codex/real-smoke-runner` has been reviewed and merged.
 - Stage 2 workbook template fixes have been merged from `codex/stage2-summary-detail-template-fixes`.
 - Stage 2 special-row/template cleanup has been merged to `main`. It fixes new-subject borrowed-template history, adds preflight handling for previous-month special detail rows, and improves the WPF preflight confirmation layout.
@@ -50,17 +52,22 @@ The stable local reference folder is for future comparison/orientation only; do 
 - Win10/11 WPF is the primary UI entry for new features and UX work.
 - Win7/8 WinForms remains part of `main` as a maintenance compatibility entry: keep it buildable, packageable, and fix blocking bugs only unless explicitly requested.
 - Win7/8 and Win10/11 share Core/Excel logic but remain separate desktop apps.
-- Latest local WPF test package:
+- Latest local acceptance packages built from local `main`:
+  - Win10/11 WPF: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-140505.zip`
+  - Win10/11 WPF unpacked directory: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-140505`
+  - Win7/8 WinForms maintenance package: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win7-8-Release-20260707-140515.zip`
+  - Win7/8 WinForms unpacked directory: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win7-8-Release-20260707-140515`
+- Previous local WPF test package from `codex/wpf-path-picker-controller`:
   - `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-115127.zip`
   - unpacked directory: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-115127`
-  - built from `codex/wpf-path-picker-controller` after implementing Chongqing customer-resolution decisions and WPF display-title fixes.
+  - built after implementing Chongqing customer-resolution decisions and WPF display-title fixes.
 - Previous local WPF test package from the Chongqing month-block branch:
   - `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-105743.zip`
   - unpacked directory: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-105743`
   - built from `codex/chongqing-month-block-copy` after `074401a` and `f60d325`.
 - Do not add real ledgers, customer data, settlement outputs, screenshots, or finance/payment data to git.
 
-Use `git status --short --branch` before editing. The expected handoff worktree should be clean on the current `codex/` development branch unless the user explicitly authorizes merging to `main`; no real Excel files or generated settlement outputs should be tracked.
+Use `git status --short --branch` before editing. The expected handoff worktree should be clean on local `main`; no real Excel files or generated settlement outputs should be tracked.
 
 ## Release 1.0.1
 
@@ -1037,6 +1044,36 @@ Observed result:
 - Package content was checked and includes the Win10/11 exe, `.exe.config`, required `.dll` files, and `README.txt`.
 - No real Excel, real ledger, customer data, screenshots, or settlement outputs were read for this implementation/validation.
 
+Main merge and acceptance packages on 2026-07-07:
+
+```powershell
+git merge --no-ff codex/wpf-path-picker-controller -m "Merge Chongqing stage one WPF updates"
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Debug /m
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Release /m
+git diff --check
+rg "MessageBox" -n src\HainanSettlementTool.Wpf
+.\scripts\check_build_portability.ps1
+.\scripts\package_wpf_release.ps1
+.\scripts\package_release.ps1
+```
+
+Observed result:
+
+- Local `main` merged `codex/wpf-path-picker-controller` with merge commit `4911e47 Merge Chongqing stage one WPF updates`.
+- Full Debug test suite passed on `main`: Core 18 tests, Excel 20 tests.
+- A first concurrent Debug build attempt hit a transient file lock because tests were still using `HainanSettlementTool.Core.dll`; a sequential rerun passed for Core, Excel, WinForms, WPF, and both test projects.
+- Release build passed for Core, Excel, WinForms, WPF, and both test projects.
+- `git diff --check` passed.
+- WPF `MessageBox` search had no matches.
+- Build portability check passed.
+- Win10/11 WPF acceptance package created at `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-140505.zip`.
+- Win7/8 maintenance package created at `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win7-8-Release-20260707-140515.zip`.
+- Both package directories were checked for the executable, `.exe.config`, required `.dll` files, and `README.txt`.
+- No real Excel, real ledger, customer data, screenshots, or settlement outputs were read for this merge/package validation.
+- No formal tag or GitHub Release was created.
+- Remote push was not performed.
+
 ## Documentation Rule
 
 Documentation is now part of the development contract:
@@ -1111,9 +1148,9 @@ Packaging/docs:
 
 ## Next Steps
 
-1. Have the user test `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-115127.zip` against a Chongqing work copy.
-2. If the user authorizes a real-data smoke, run it read-only against specifically authorized Chongqing input files and write outputs only to an explicitly selected test/output folder.
-3. If user testing accepts the Chongqing month-block and customer-resolution behavior, merge the relevant `codex/` branch chain to `main` with user authorization, then decide whether to rebuild a Win10/11 acceptance package or cut a formal release.
-4. Continue WPF quality work after the Chongqing bugfix branch is accepted; next low-risk `MainWindow.xaml.cs` decomposition candidate remains log control. Avoid WinForms parity work unless it is a bugfix, build/package compatibility issue, or explicitly requested.
+1. Have the user test the local `main` acceptance package `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-140505.zip` against a Chongqing work copy.
+2. If the user accepts this package, decide whether to push local `main` to `origin/main`, cut a formal release, or keep it as a local acceptance build.
+3. If the user authorizes a real-data smoke, run it read-only against specifically authorized Chongqing input files and write outputs only to an explicitly selected test/output folder.
+4. Continue WPF quality work on a separate `codex/` branch only after preserving the current `main` acceptance package state. The next low-risk `MainWindow.xaml.cs` decomposition candidate remains log control. Avoid WinForms parity work unless it is a bugfix, build/package compatibility issue, or explicitly requested.
 5. Decide later whether repeated manual matches should remain one-time only or support a user-maintained alias table.
 6. Consider adding sanitized employee reward, Stage 2, Chongqing, and `.xls` fixture workbooks later; current regressions use dynamically generated synthetic workbooks and local authorized smoke only.

@@ -13,8 +13,7 @@ GitHub 仓库：
 - 最新正式版本：`v1.0.1`
 - Release 页面：`https://github.com/LeBronJu/hainan-settlement-desktop/releases/tag/v1.0.1`
 - 当前主线：`main`
-- `main` 已包含 `v1.0.1` 之后合入的员工电量奖励和 Win10/11 WPF 主题支持；这些改动尚未打新 tag 或正式发版。
-- 当前开发分支正在接入重庆阶段一电量数据清洗和台账更新。
+- `main` 已包含 `v1.0.1` 之后合入的员工电量奖励、Win10/11 WPF 主题支持，以及重庆阶段一电量数据清洗和台账更新；这些改动尚未打新 tag 或正式发版。
 - 当前正式包：
   - `HainanSettlementTool-Win7-8-v1.0.1.zip`
   - `HainanSettlementTool-Win10-11-v1.0.1.zip`
