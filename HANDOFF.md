@@ -32,6 +32,7 @@ The stable local reference folder is for future comparison/orientation only; do 
 
 - Current branch: `codex/chongqing-stage1-clean-power`
 - Branch purpose: add the first multi-province Stage 1 module for Chongqing power-data cleaning and ledger update.
+- Multi-province readiness note: `docs/dev-notes/multi-province-readiness-2026-07-07.md`. Read it before new-province onboarding, WPF province UI, Core multi-province workflow, or Excel multi-province adapter work.
 - Previous uncommitted WPF small-window work was reviewed on 2026-07-06. The action-row `DockPanel LastChildFill="False"` fixes were already present on the Chongqing branch, the remaining `MinHeight="720"` fix was reapplied, and the old stash was dropped.
 - Employee reward module has been merged to `main` from `codex/employee-reward-module`. The user completed practical testing on 2026-07-02 and reported no blocking issues.
 - Latest employee reward feature commit before this handoff update: `feb933f Add employee reward module`
@@ -800,6 +801,17 @@ Observed result:
 - Win10/11 WPF test package generated at `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260706-173952.zip`.
 - Package contents checked for the WPF executable, config, Core/Excel DLLs, and ClosedXML DLL.
 
+Multi-province readiness architecture self-audit on 2026-07-07:
+
+Observed result:
+
+- Added `docs/dev-notes/multi-province-readiness-2026-07-07.md`.
+- Identified the main third-province readiness debt: WPF province UI/profile logic, Excel province-stage adapter dispatch, Core province-stage validation, stable preflight issue codes, and province onboarding contract tests.
+- Recorded P0/P1/P2 readiness order so future new-province work can first reduce the highest-risk coupling instead of adding more scattered province branches.
+- Updated `AGENTS.md` and this handoff so future sessions read the readiness note before new-province onboarding, WPF province UI, Core multi-province workflow, or Excel multi-province adapter work.
+- Recorded the project collaboration rule that Codex subagents/spawning/parallel exploration are allowed for safe efficiency, with user warning/confirmation reserved for high-risk operations.
+- No build or test run was required; this was a documentation-only architecture audit.
+
 ## Documentation Rule
 
 Documentation is now part of the development contract:
@@ -808,6 +820,7 @@ Documentation is now part of the development contract:
 - Read the owning document before changing a responsibility area: `CONTEXT.md` for settlement rules, `docs/architecture.md` for module seams or workflow structure, `README.md` for user-facing setup/package status, and `docs/RELEASE_CHECKLIST.md` for release or packaging.
 - Repeat the relevant reading gate after context compaction, a long pause, or a task direction change.
 - This is a local single-developer project. Pull requests are optional; after a feature branch is committed and pushed, local merge to `main` is acceptable when the user authorizes it.
+- Codex subagents, spawning, parallel exploration, and other efficiency tools are allowed for this project when they materially speed up safe work. Routine low-risk use does not require repeated confirmation; pause and warn or ask only before high-risk operations such as reading real business files outside an authorized scope, modifying production/user workbooks, destructive git commands, merging to `main`, tagging/releasing, deleting/moving large file trees, or actions that could affect settlement correctness or sensitive data.
 - Every code, config, script, packaging, business-rule, UI-behavior, test-workflow, or task-state change must end with a documentation impact judgment.
 - Update only documents whose responsibility is affected; do not rewrite unaffected docs for process compliance.
 - Business-rule changes must check `CONTEXT.md`; module-boundary changes must check `AGENTS.md` and an ADR or dev note; release/packaging changes must check `README.md` and `docs/RELEASE_CHECKLIST.md`; branch state, validation results, or next steps must check this `HANDOFF.md`.

@@ -1,7 +1,7 @@
 # Agent Instructions
 
 This repository is the standalone C# desktop project for multi-province retail electricity settlement automation.
-Hainan is the mature first province module; Chongqing is being added as the second province module, starting with Stage 1 power-data cleaning.
+Hainan is the mature first province module; Chongqing is being added as the second province module, starting with Stage 1 power-data cleaning and ledger update.
 
 ## Safety Rules
 
@@ -49,9 +49,11 @@ This is a single-context repo. See `docs/agents/domain.md`.
 
 - Start every project work session by checking the branch and reading current project instructions before editing. Minimum gate: run `git status --short --branch`, then read `AGENTS.md` and `HANDOFF.md`. Do not rely only on chat history, memory, or a prior agent summary.
 - Before changing an area, read that area's owning document: business settlement rules require `CONTEXT.md`; module boundaries or workflow seams require `docs/architecture.md`; release/packaging requires `docs/RELEASE_CHECKLIST.md`; user-visible setup or package status requires `README.md`; current branch/task state requires `HANDOFF.md`.
+- Before new-province onboarding, WPF province UI, Core multi-province workflow, or Excel multi-province adapter work, also read `docs/dev-notes/multi-province-readiness-2026-07-07.md` and use its P0/P1/P2 readiness order.
 - If context was compacted, the thread was resumed after a pause, or the task direction changed, repeat the relevant reading gate before making further edits.
 - Do not make development changes directly on `main` or `master`. Create a development branch first, using the `codex/` prefix unless the user requests another branch name.
 - This is a local single-developer project. Pull requests are optional; it is acceptable to commit and push a `codex/` branch, then merge locally to `main` when the user authorizes it. Still run the documented validation and documentation-impact checks before merging or releasing.
+- This project allows Codex subagents, spawning, parallel exploration, and other efficiency tools when they materially speed up safe work. Do not repeatedly ask for permission before routine low-risk use. Pause and warn or ask only before high-risk operations such as reading real business files outside an authorized scope, modifying production/user workbooks, destructive git commands, merging to `main`, tagging/releasing, deleting/moving large file trees, or any action that could affect settlement correctness or sensitive data.
 - If an issue is uncertain, ambiguous, or risky, especially when it may affect settlement correctness, workbook safety, or user-visible business rules, stop and analyze it explicitly for the user. Do not encode a guess; ask the user to decide.
 - UI must not contain Excel parsing, matching, amount calculation, or workbook template rules.
 - Core must not reference ClosedXML, WinForms, WPF, or file-format implementation details.
