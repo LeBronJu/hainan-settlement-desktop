@@ -30,8 +30,9 @@ The stable local reference folder is for future comparison/orientation only; do 
 
 ## Current Git State
 
-- Current branch: `main`
-- Local `main` contains the accepted 2026-07-07 WPF package state after merging `codex/wpf-path-picker-controller`, then merges the follow-up `codex/wpf-log-controller` WPF quality slice. Verify synchronization with `git status --short --branch` at session start.
+- Current branch: `codex/chongqing-stage2-analysis`
+- Branch purpose: read-only analysis of the authorized Chongqing 2026 folder and first-pass Chongqing Stage 2 design notes. This branch is based on `main` after `6e47d17 Document WPF log controller test package`.
+- Local `main` contains the accepted 2026-07-07 WPF package state after merging `codex/wpf-path-picker-controller`, then merges the follow-up `codex/wpf-log-controller` WPF quality slice.
 - Merged branch: `codex/wpf-path-picker-controller` through `c2ce2b5 Add Chongqing customer decisions`, with local merge commit `4911e47 Merge Chongqing stage one WPF updates`.
 - Merged branch: `codex/wpf-log-controller`, which extracts run-log append/clear/save behavior from `MainWindow.xaml.cs` into `MainWindowLogController`.
 - Branch purpose now complete: Chongqing Stage 1 power cleaning/ledger update, WPF province UI, WPF controller decomposition slices, Chongqing target-month block copy, customer-resolution decisions, and WPF display-title fixes are on local `main`.
@@ -39,6 +40,7 @@ The stable local reference folder is for future comparison/orientation only; do 
 - Previous naming branch: `codex/province-neutral-naming`, pushed through `2f93013 Clarify province-neutral naming boundaries`.
 - The Chongqing target-month block fix is isolated on `codex/chongqing-month-block-copy` and was pushed through `e45d358 Document WPF Chongqing test package`.
 - Multi-province readiness note: `docs/dev-notes/multi-province-readiness-2026-07-07.md`. Read it before new-province onboarding, WPF province UI, Core multi-province workflow, or Excel multi-province adapter work.
+- Chongqing Stage 2 analysis note: `docs/dev-notes/chongqing-stage2-analysis-2026-07-07.md`. It records the 2026-07-07 read-only inspection of the authorized Chongqing folder, workbook structures, proposed first implementation boundary, and open questions.
 - Previous uncommitted WPF small-window work was reviewed on 2026-07-06. The action-row `DockPanel LastChildFill="False"` fixes were already present on the Chongqing branch, the remaining `MinHeight="720"` fix was reapplied, and the old stash was dropped.
 - Employee reward module has been merged to `main` from `codex/employee-reward-module`. The user completed practical testing on 2026-07-02 and reported no blocking issues.
 - Latest employee reward feature commit before this handoff update: `feb933f Add employee reward module`
@@ -72,7 +74,7 @@ The stable local reference folder is for future comparison/orientation only; do 
   - built from `codex/chongqing-month-block-copy` after `074401a` and `f60d325`.
 - Do not add real ledgers, customer data, settlement outputs, screenshots, or finance/payment data to git.
 
-Use `git status --short --branch` before editing. The expected handoff worktree should be clean on local `main`; no real Excel files or generated settlement outputs should be tracked.
+Use `git status --short --branch` before editing. The expected handoff worktree should be clean on `codex/chongqing-stage2-analysis`; no real Excel files or generated settlement outputs should be tracked.
 
 ## Release 1.0.1
 
@@ -1118,6 +1120,23 @@ Observed result:
 - This is a local Win10/11 WPF machine-test package only; no formal tag or GitHub Release was created.
 - No real Excel, real ledger, customer data, screenshots, or settlement outputs were read for this packaging validation.
 
+Chongqing Stage 2 read-only analysis on 2026-07-07:
+
+```powershell
+Get-ChildItem -LiteralPath "C:\Users\juqx2\Desktop\2026年-重庆" -Recurse -File
+```
+
+Observed result:
+
+- User authorized read-only inspection of `C:\Users\juqx2\Desktop\2026年-重庆` for Chongqing Stage 2 analysis.
+- Inspected workbook structures only: folder layout, sheet names, dimensions, top headers, month blocks, formulas, and aggregate consistency. No files were modified or copied into the repo.
+- Added `docs/dev-notes/chongqing-stage2-analysis-2026-07-07.md` with a sanitized design note. It does not include customer lists or detailed sensitive amounts.
+- Latest Chongqing ledger has 1-5 month blocks; each month block has 30 columns covering power, intermediation, refund electricity, agent收益, overcharge, and remarks.
+- Latest Chongqing summary uses one main `汇总表` plus payment-party monthly sheets such as `清能5月` and `清辉5月`; each month block contains `代理费/居间费/退补电费/费用合计/当月抵扣/当月实际支付`.
+- Current 5月 ledger aggregates match the 5月 summary totals for代理费 and退补电费; no effective 5月居间 rows were observed.
+- Agent and refund workbooks already contain 6月 blank/template sheets. Chongqing Stage 2 must support rewriting an existing target month sheet/block instead of always inserting one.
+- No code, build, package, or release action was performed for this analysis.
+
 ## Documentation Rule
 
 Documentation is now part of the development contract:
@@ -1193,9 +1212,10 @@ Packaging/docs:
 
 ## Next Steps
 
-1. Have the user test the local Win10/11 WPF package `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-150019.zip` if they want a build that includes the WPF log-controller merge.
-2. Continue the mainline with Chongqing Stage 2 requirements/design and implementation planning before any new formal release/tag.
-3. Decide whether repeated manual matches should remain one-time only or support a user-maintained alias table.
-4. If the user authorizes a real-data smoke, run it read-only against specifically authorized Chongqing input files and write outputs only to an explicitly selected test/output folder.
-5. Avoid WinForms parity work unless it is a bugfix, build/package compatibility issue, or explicitly requested.
-6. Consider adding sanitized employee reward, Stage 2, Chongqing, and `.xls` fixture workbooks later; current regressions use dynamically generated synthetic workbooks and local authorized smoke only.
+1. Review the open questions in `docs/dev-notes/chongqing-stage2-analysis-2026-07-07.md` with the user before encoding Chongqing Stage 2 business defaults.
+2. If accepted, start `codex/chongqing-stage2` implementation from the analysis note: Core model/options/preflight first, then Excel generator, then WPF entry.
+3. Use the authorized Chongqing folder only read-only unless the user explicitly authorizes a specific smoke/output directory; never overwrite files in place.
+4. Have the user test the local Win10/11 WPF package `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-150019.zip` if they want a build that includes the WPF log-controller merge.
+5. Decide whether repeated manual matches should remain one-time only or support a user-maintained alias table.
+6. Avoid WinForms parity work unless it is a bugfix, build/package compatibility issue, or explicitly requested.
+7. Consider adding sanitized employee reward, Stage 2, Chongqing, and `.xls` fixture workbooks later; current regressions use dynamically generated synthetic workbooks and local authorized smoke only.
