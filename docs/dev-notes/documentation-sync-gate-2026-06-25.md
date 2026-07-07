@@ -27,6 +27,15 @@ Every code, config, script, packaging, business-rule, UI-behavior, test-workflow
 
 Development final responses should also include validation performed and any intentionally unfinished work.
 
+For any documentation-affecting change that will be committed, run:
+
+```powershell
+.\scripts\check_docs_guardrails.ps1
+git diff --check
+```
+
+If the guardrail script fails, fix the handoff size, document routing, status markers, or real-data authorization wording before final response.
+
 ## Document Responsibilities
 
 - `README.md`: user-facing scope, setup, build, packaging, release, and notable behavior.
@@ -39,6 +48,7 @@ Development final responses should also include validation performed and any int
 - `docs/CHANGELOG.md`: completed high-signal milestones that should remain discoverable without expanding `HANDOFF.md`.
 - `docs/RELEASE_CHECKLIST.md`: merge, release, packaging, and documentation gates.
 - `docs/dev-notes/`: dated investigations, architecture notes, and lightweight governance decisions.
+- `scripts/check_docs_guardrails.ps1`: automated guardrail for handoff size, required status markers, document routing, and historical real-data authorization wording.
 
 If a future `TASK_BOARD.md` or `AI_HANDOFF.md` exists, use it for active task tracking or agent-specific handoff notes rather than expanding user-facing docs.
 
@@ -56,4 +66,5 @@ Do not append long historical build/test logs or investigation narratives to `HA
 - Completed milestone that matters historically but is no longer the current handoff: update `docs/CHANGELOG.md`.
 - Documentation-only cleanup: update `docs/README.md` when ownership, routing, status taxonomy, or canonical links change.
 - Real-data analysis or smoke: update the relevant dev note or `HANDOFF.md` with authorization scope, safety boundary, output location, and whether the authorization is historical-only or still active.
+- Handoff begins accumulating old logs, code indexes, or repeated release history: move completed history to `docs/CHANGELOG.md` or a dated dev note, then run `.\scripts\check_docs_guardrails.ps1`.
 - Temporary local setup or new-machine exploration that does not enter the project mainline: no project document update is required; state that explicitly.

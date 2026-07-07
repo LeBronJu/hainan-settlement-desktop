@@ -97,6 +97,13 @@ dotnet msbuild ".\HainanSettlementTool.sln" /restore /p:Configuration=Debug /m
 .\scripts\check_build_portability.ps1
 ```
 
+文档相关改动收工前运行：
+
+```powershell
+.\scripts\check_docs_guardrails.ps1
+git diff --check
+```
+
 仓库保留过参数化 real smoke 脚本用于授权真实工作副本验收；该脚本目前需要随已重命名的服务/网关刷新后再作为可运行入口使用。脚本不会内置真实数据路径，输出应写到指定 `OutputRoot` 下的新目录：
 
 ```powershell

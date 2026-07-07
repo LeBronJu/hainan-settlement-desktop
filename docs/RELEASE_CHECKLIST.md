@@ -17,6 +17,7 @@ Run these checks unless the user explicitly narrows the release scope:
 dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
 dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Release /m
 .\scripts\check_build_portability.ps1
+.\scripts\check_docs_guardrails.ps1
 git diff --check
 .\scripts\package_release.ps1
 .\scripts\package_wpf_release.ps1

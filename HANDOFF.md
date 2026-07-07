@@ -146,6 +146,7 @@ Key implementation constraints:
 
 - Use `docs/README.md` as the canonical document map and task reading router.
 - Use `docs/CHANGELOG.md` for completed high-signal milestone history.
+- Use `scripts/check_docs_guardrails.ps1` before finishing documentation-affecting changes.
 - Keep this file concise. It should not accumulate long historical build logs, detailed investigations, or duplicate code indexes.
 
 ## Latest Validation
@@ -161,7 +162,7 @@ Most recent documentation validation:
 - 2026-07-07 documentation cleanup created `docs/README.md` and `docs/hainan-stage2-current-behavior.md`.
 - Dev notes were marked as current task/current policy/current module/current process/historical where appropriate.
 - Stale wording scan and `git diff --check` passed for that cleanup before commit `48c4921`.
-- Current documentation quality pass compressed `HANDOFF.md`, added `docs/CHANGELOG.md`, unified reading gates, and expanded task-based document routing. Validation scope is `git diff --check` plus stale wording/status scans.
+- Current documentation quality pass compressed `HANDOFF.md`, added `docs/CHANGELOG.md`, unified reading gates, expanded task-based document routing, and added `scripts/check_docs_guardrails.ps1`. Validation scope is the guardrail script, `git diff --check`, and stale wording/status scans.
 
 For new code changes, rerun focused tests and builds. For pure documentation changes, run at least `git diff --check` plus targeted stale-wording/link scans.
 

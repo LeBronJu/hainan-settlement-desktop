@@ -8,6 +8,7 @@
 
 - 文档结构整理：新增 `docs/README.md` 作为文档地图，新增 `docs/hainan-stage2-current-behavior.md` 收敛海南阶段二当前行为；将 dev note 标记为当前任务、当前架构、当前流程、当前模块、当前政策或历史记录。
 - Handoff 压缩：`HANDOFF.md` 从历史流水文档改为当前交接页，只保留分支状态、安全边界、最新包、当前验证摘要、重庆二阶段提醒和下一步。
+- 文档守护脚本：新增 `scripts/check_docs_guardrails.ps1`，用于检查 `HANDOFF.md` 行数、重复长章节、文档地图必要路由、dev-note/current-behavior 状态行和历史真实数据授权措辞。
 - 重庆阶段二分析：完成授权只读结构分析，形成 `docs/dev-notes/chongqing-stage2-analysis-2026-07-07.md`。关键结论包括重庆 30 列月度块、隐藏列保留、汇总表 `当年费用总计` 锚点、代理/居间/退补三类结算、代理少回收电能量电费、退补分段电价，以及新增汇总主体支付方需要预检显式选择。
 - WPF log-controller：合入低风险 WPF 解耦切片，新增 `MainWindowLogController` 管理日志追加、清空和保存；不改变结算计算、Excel 行为或用户可见日志文本。
 - WPF log-controller 测试包：生成 `HainanSettlementTool-Win10-11-Release-20260707-150019.zip` 供本机测试；没有创建正式 tag 或 GitHub Release。

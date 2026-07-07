@@ -68,6 +68,7 @@ This is a single-context repo. See `docs/agents/domain.md`.
 - Final responses for development work must explicitly include documentation impact judgment, validation performed, and work intentionally not done when applicable. This is required even when no documentation was updated. Missing the documentation impact judgment means the task is not complete.
 - Update only documents whose responsibility is affected. User-visible behavior usually affects `README.md` and `HANDOFF.md`; business rules affect `CONTEXT.md`; module boundaries affect `AGENTS.md` plus an ADR or dated dev-note; release and packaging changes affect `README.md`, `HANDOFF.md`, and `docs/RELEASE_CHECKLIST.md`; branch state, validation results, or next steps affect `HANDOFF.md`.
 - Keep `HANDOFF.md` short and current. Do not append long historical build/test logs or full investigation narratives; put durable analysis in `docs/dev-notes/`, mature behavior in `docs/*-current-behavior.md`, and rely on git history for old handoff snapshots.
+- Before finishing any documentation-affecting change, run `.\scripts\check_docs_guardrails.ps1` unless the change is explicitly temporary and not being committed. If it fails, fix the documentation routing/status/handoff issue before final response.
 - Temporary local setup or new-machine exploration that does not enter the project mainline can state that no project docs were needed.
 - For temporary investigations or one-off architecture notes, add or update a dated file under `docs/dev-notes/`.
 

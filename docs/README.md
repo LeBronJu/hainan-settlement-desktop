@@ -13,6 +13,7 @@
 | `docs/hainan-stage2-current-behavior.md` | 海南阶段二当前实现行为和已验证规则。 | 参考海南阶段二、为重庆阶段二借鉴工程形态时。 |
 | `docs/RELEASE_CHECKLIST.md` | 正式 tag / GitHub Release 前的验证和文档 gate。 | 正式发版、打 tag、上传 release assets 时。 |
 | `docs/CHANGELOG.md` | 高信号历史里程碑索引。 | 需要了解项目演进历史，但不需要旧 handoff 全量流水时。 |
+| `scripts/check_docs_guardrails.ps1` | 文档守护检查脚本。 | 文档相关改动收工前运行，防止 handoff 再膨胀或状态/路由缺失。 |
 
 ## 专题和任务说明
 
@@ -63,4 +64,6 @@
 - 已完成的重要历史里程碑放 `docs/CHANGELOG.md`；详细命令输出、旧 handoff 快照和中间流水交给 git history。
 - dev note 顶部必须写明状态。允许状态包括：当前任务 note、当前架构 note、当前流程 note、当前模块 note、当前政策 note、当前/历史工具 note、历史架构审查和执行记录。
 - current-behavior 文档顶部必须写明状态：当前行为文档。
+- `HANDOFF.md` 超过 250 行、重新出现 Useful Files / Documentation Map 这类长索引章节，或追加长 release 历史章节，视为文档结构退化；应拆到 `docs/CHANGELOG.md` 或 `docs/dev-notes/`。
+- 文档相关改动收工前运行 `.\scripts\check_docs_guardrails.ps1` 和 `git diff --check`。
 - 改代码、规则、发布、脚本或任务状态后，按 `docs/dev-notes/documentation-sync-gate-2026-06-25.md` 做文档影响判断。
