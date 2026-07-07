@@ -9,6 +9,7 @@ This is a single-context repo.
 Expected domain docs:
 
 - `docs/README.md` for the current documentation map and source-of-truth index
+- `docs/CHANGELOG.md` for completed high-signal milestone history
 - `CONTEXT.md` at the repo root, if present
 - `docs/adr/` for architectural decisions, if present
 - `docs/architecture.md` for current layering and migration boundaries

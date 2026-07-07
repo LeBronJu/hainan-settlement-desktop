@@ -1,7 +1,7 @@
 # Agent Instructions
 
 This repository is the standalone C# desktop project for multi-province retail electricity settlement automation.
-Hainan is the mature first province module. Chongqing Stage 1 power cleaning and ledger update are implemented; Chongqing Stage 2 is under analysis/implementation.
+Hainan is the mature first province module. Chongqing Stage 1 power cleaning and ledger update are implemented; Chongqing Stage 2 is in design/implementation preparation and is not implemented current behavior.
 
 ## Safety Rules
 
@@ -27,11 +27,12 @@ The C# version is being built as a maintainable Windows desktop app. It should e
 - `src/HainanSettlementTool.Core/`: business models, services, and interfaces.
 - `src/HainanSettlementTool.Excel/`: ClosedXML workbook reading/writing.
 - `docs/README.md`: documentation map and current source-of-truth index.
+- `docs/CHANGELOG.md`: high-signal completed milestone history.
 - `docs/architecture.md`: layering and migration boundary.
 - `docs/hainan-stage2-current-behavior.md`: current Hainan Stage 2 behavior and validation summary.
 - `CONTEXT.md`: domain vocabulary and settlement rules.
 - `docs/dev-notes/`: architecture reviews, robustness priorities, and one-off technical notes.
-- `HANDOFF.md`: current state for future sessions.
+- `HANDOFF.md`: concise current handoff for future sessions.
 
 ## Agent skills
 
@@ -49,8 +50,8 @@ This is a single-context repo. See `docs/agents/domain.md`.
 
 ## Engineering Rules
 
-- Start every project work session by checking the branch and reading current project instructions before editing. Minimum gate: run `git status --short --branch`, then read `AGENTS.md` and `HANDOFF.md`. Do not rely only on chat history, memory, or a prior agent summary.
-- Before changing an area, read that area's owning document: business settlement rules require `CONTEXT.md`; module boundaries or workflow seams require `docs/architecture.md`; release/packaging requires `docs/RELEASE_CHECKLIST.md`; user-visible setup or package status requires `README.md`; current branch/task state requires `HANDOFF.md`. If ownership is unclear, read `docs/README.md` first.
+- Start every project work session by checking the branch and reading current project instructions before editing. Minimum gate: run `git status --short --branch`, then read `AGENTS.md`, `HANDOFF.md`, and `docs/README.md`. Do not rely only on chat history, memory, or a prior agent summary.
+- Before changing an area, use `docs/README.md` to identify the owning document: business settlement rules require `CONTEXT.md`; module boundaries or workflow seams require `docs/architecture.md`; release/packaging requires `docs/RELEASE_CHECKLIST.md`; user-visible setup or package status requires `README.md`; current branch/task state requires `HANDOFF.md`.
 - Before new-province onboarding, WPF province UI, Core multi-province workflow, or Excel multi-province adapter work, also read `docs/dev-notes/multi-province-readiness-2026-07-07.md` and use its P0/P1/P2 readiness order.
 - If context was compacted, the thread was resumed after a pause, or the task direction changed, repeat the relevant reading gate before making further edits.
 - Do not make development changes directly on `main` or `master`. Create a development branch first, using the `codex/` prefix unless the user requests another branch name.
@@ -66,6 +67,7 @@ This is a single-context repo. See `docs/agents/domain.md`.
 - Keep documentation current without creating noise. Each code, config, script, packaging, release, workflow, architecture, business-rule, UI-behavior, test-process, or task-state change must end with a documentation impact judgment.
 - Final responses for development work must explicitly include documentation impact judgment, validation performed, and work intentionally not done when applicable. This is required even when no documentation was updated. Missing the documentation impact judgment means the task is not complete.
 - Update only documents whose responsibility is affected. User-visible behavior usually affects `README.md` and `HANDOFF.md`; business rules affect `CONTEXT.md`; module boundaries affect `AGENTS.md` plus an ADR or dated dev-note; release and packaging changes affect `README.md`, `HANDOFF.md`, and `docs/RELEASE_CHECKLIST.md`; branch state, validation results, or next steps affect `HANDOFF.md`.
+- Keep `HANDOFF.md` short and current. Do not append long historical build/test logs or full investigation narratives; put durable analysis in `docs/dev-notes/`, mature behavior in `docs/*-current-behavior.md`, and rely on git history for old handoff snapshots.
 - Temporary local setup or new-machine exploration that does not enter the project mainline can state that no project docs were needed.
 - For temporary investigations or one-off architecture notes, add or update a dated file under `docs/dev-notes/`.
 

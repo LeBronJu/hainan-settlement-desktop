@@ -45,6 +45,7 @@ src/
   HainanSettlementTool.Excel/      # ClosedXML / ExcelDataReader 文件读写实现
 docs/
   README.md                        # 文档地图：当前准绳、专题文档、历史 dev note
+  CHANGELOG.md                     # 高信号历史里程碑索引
   architecture.md                  # 分层和迁移边界
   hainan-stage2-current-behavior.md # 海南阶段二当前行为
   RELEASE_CHECKLIST.md             # 正式发版前检查清单

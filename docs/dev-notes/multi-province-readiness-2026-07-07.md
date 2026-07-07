@@ -24,7 +24,27 @@
    - Win7/8 WinForms 保持维护模式。
    - 新省份 UI 和体验优化不应再要求 WinForms 同步实现。
 
-## 主要技术债
+## 执行状态摘要
+
+本文件保留原始自查发现，也记录 2026-07-07 已完成的低风险预布局切片。阅读时不要把下方每个“问题”都当成仍未处理。
+
+已完成第一版：
+
+- WPF `ProvinceUiProfile` 集中省份 UI 能力和文案。
+- Excel 内部 `IProvinceStage1Adapter` / `ChongqingProvinceStage1Adapter` seam。
+- `ProvinceStage1LedgerUpdateIssue.Kind` 稳定 issue code。
+- WPF 进度、结果、弹窗、路径选择和日志 controller 拆分。
+- 省份显示名、Hainan Stage 1/2 服务名、组合型 ClosedXML gateway 等低风险命名中性化。
+- 重庆客户处理决定模型和 WPF 预检交互；海南阶段一保持原有自动新增流程。
+
+仍待处理：
+
+- `ProvinceStage1Service` 的“是否支持”和通用必填项仍偏重庆专用，第三个省接入前应继续收敛到省份能力 seam。
+- `MainWindow.xaml.cs` 仍保留 workflow 编排和输入状态应用逻辑，后续可继续低风险拆分。
+- 项目名、命名空间、程序集名和发布包名暂不做一次性大迁移。
+- 完整 MVVM、持久化客户别名表、跨省通用阶段二抽象仍是 P2。
+
+## 原始自查发现（含已解决项）
 
 ### 1. 省份能力和 UI 文案分散
 
