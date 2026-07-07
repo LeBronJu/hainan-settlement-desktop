@@ -101,7 +101,9 @@ namespace HainanSettlementTool.Wpf
 
         private static bool IsManualMatchingIssue(ProvinceStage1LedgerUpdateIssue issue)
         {
-            return issue.Category == "电量客户不在台账"
+            return issue.Kind == ProvinceStage1LedgerUpdateIssueKinds.PowerCustomerMissingInLedger
+                || issue.Kind == ProvinceStage1LedgerUpdateIssueKinds.LedgerCustomerMissingInPower
+                || issue.Category == "电量客户不在台账"
                 || issue.Category == "台账客户不在电量表";
         }
 

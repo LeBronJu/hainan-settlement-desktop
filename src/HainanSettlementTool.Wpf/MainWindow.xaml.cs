@@ -161,9 +161,8 @@ namespace HainanSettlementTool.Wpf
 
         private void BrowseBaseLedger_Click(object sender, RoutedEventArgs e)
         {
-            var title = SelectedProvinceOrNull() == ProvinceCode.Chongqing
-                ? "选择重庆售电结算台账"
-                : "选择基础台账";
+            var profile = SelectedProfileOrNull();
+            var title = profile?.BaseLedgerDialogTitle ?? "选择基础台账";
             BrowseExcel(BaseLedgerBox, title);
         }
 
@@ -174,17 +173,14 @@ namespace HainanSettlementTool.Wpf
 
         private void BrowseRawDetail_Click(object sender, RoutedEventArgs e)
         {
-            var province = SelectedProvinceOrNull();
-            if (!province.HasValue)
+            var profile = SelectedProfileOrNull();
+            if (profile == null)
             {
                 ShowErrorMessage("请选择结算省份后再选择电量文件。");
                 return;
             }
 
-            var title = province.Value == ProvinceCode.Chongqing
-                ? "选择重庆交易中心电量确认结算单"
-                : "选择原始零售侧明细";
-            BrowseFile(RawDetailBox, title, "Excel/CSV|*.xlsx;*.xls;*.csv|Excel 文件|*.xlsx;*.xls|CSV 文件|*.csv|所有文件|*.*");
+            BrowseFile(RawDetailBox, profile.RawDetailDialogTitle, "Excel/CSV|*.xlsx;*.xls;*.csv|Excel 文件|*.xlsx;*.xls|CSV 文件|*.csv|所有文件|*.*");
         }
 
         private void BrowseReferenceLedger_Click(object sender, RoutedEventArgs e)
@@ -261,17 +257,29 @@ namespace HainanSettlementTool.Wpf
 
         private async void RunStage1_Click(object sender, RoutedEventArgs e)
         {
-            var province = SelectedProvinceOrNull();
-            if (!province.HasValue)
+            var profile = SelectedProfileOrNull();
+            if (profile == null)
             {
                 ShowErrorMessage("请选择结算省份后再执行阶段一。");
                 return;
             }
 
-            if (province.Value == ProvinceCode.Chongqing)
+            if (!profile.SupportsStage1LedgerUpdate)
             {
-                await RunProvinceStage1LedgerUpdateAsync();
+                ShowErrorMessage(profile.DisplayName + "暂未开放阶段一台账更新。");
                 return;
+            }
+
+            switch (profile.Province)
+            {
+                case ProvinceCode.Hainan:
+                    break;
+                case ProvinceCode.Chongqing:
+                    await RunProvinceStage1LedgerUpdateAsync();
+                    return;
+                default:
+                    ShowErrorMessage(profile.DisplayName + "暂未接入阶段一台账更新。");
+                    return;
             }
 
             Stage1Options options;
@@ -339,17 +347,29 @@ namespace HainanSettlementTool.Wpf
 
         private async void CleanPower_Click(object sender, RoutedEventArgs e)
         {
-            var province = SelectedProvinceOrNull();
-            if (!province.HasValue)
+            var profile = SelectedProfileOrNull();
+            if (profile == null)
             {
                 ShowErrorMessage("请选择结算省份后再清洗电量数据。");
                 return;
             }
 
-            if (province.Value == ProvinceCode.Chongqing)
+            if (!profile.SupportsStage1CleanPower)
             {
-                await RunProvinceStage1CleanPowerAsync();
+                ShowErrorMessage(profile.DisplayName + "暂未开放只清洗电量数据。");
                 return;
+            }
+
+            switch (profile.Province)
+            {
+                case ProvinceCode.Hainan:
+                    break;
+                case ProvinceCode.Chongqing:
+                    await RunProvinceStage1CleanPowerAsync();
+                    return;
+                default:
+                    ShowErrorMessage(profile.DisplayName + "暂未接入只清洗电量数据。");
+                    return;
             }
 
             string rawDetailPath;
@@ -899,8 +919,8 @@ namespace HainanSettlementTool.Wpf
         private void InitializeProvinceCombo()
         {
             _loadingInputs = true;
-            ProvinceCombo.Items.Add("海南");
-            ProvinceCombo.Items.Add("重庆");
+            ProvinceCombo.DisplayMemberPath = nameof(ProvinceUiProfile.DisplayName);
+            ProvinceCombo.ItemsSource = ProvinceUiProfile.Supported;
             ProvinceCombo.SelectedIndex = -1;
             _loadingInputs = false;
         }
@@ -944,15 +964,12 @@ namespace HainanSettlementTool.Wpf
 
         private ProvinceCode? SelectedProvinceOrNull()
         {
-            switch (ProvinceCombo.SelectedIndex)
-            {
-                case 0:
-                    return ProvinceCode.Hainan;
-                case 1:
-                    return ProvinceCode.Chongqing;
-                default:
-                    return null;
-            }
+            return SelectedProfileOrNull()?.Province;
+        }
+
+        private ProvinceUiProfile SelectedProfileOrNull()
+        {
+            return ProvinceCombo.SelectedItem as ProvinceUiProfile;
         }
 
         private bool ConfirmRun(string stageName, int month, string outputDirectory)
@@ -1022,52 +1039,50 @@ namespace HainanSettlementTool.Wpf
 
             var province = SelectedProvinceOrNull();
             var hasProvince = province.HasValue;
-            var hainan = province == ProvinceCode.Hainan;
-            var chongqing = province == ProvinceCode.Chongqing;
-            if (chongqing && MainTabControl.SelectedItem == EmployeeRewardTab)
+            var profile = SelectedProfileOrNull();
+            if (hasProvince && !profile.SupportsEmployeeReward && MainTabControl.SelectedItem == EmployeeRewardTab)
             {
                 MainTabControl.SelectedItem = MainSettlementTab;
             }
 
-            MainSettlementTab.Header = !hasProvince ? "结算流程" : chongqing ? "阶段一：台账更新" : "代理费结算";
-            EmployeeRewardTab.Visibility = hainan ? Visibility.Visible : Visibility.Collapsed;
+            MainSettlementTab.Header = hasProvince ? profile.MainSettlementTabHeader : "结算流程";
+            EmployeeRewardTab.Visibility = hasProvince && profile.SupportsEmployeeReward ? Visibility.Visible : Visibility.Collapsed;
             ProvinceEmptyPanel.Visibility = hasProvince ? Visibility.Collapsed : Visibility.Visible;
             StageOnePanel.Visibility = hasProvince ? Visibility.Visible : Visibility.Collapsed;
-            StageTwoPanel.Visibility = hainan ? Visibility.Visible : Visibility.Collapsed;
-            Grid.SetColumnSpan(StageOnePanel, hainan ? 1 : 2);
-            StageOnePanel.Margin = hainan ? new Thickness(0, 0, 8, 0) : new Thickness(0);
+            StageTwoPanel.Visibility = hasProvince && profile.SupportsStage2 ? Visibility.Visible : Visibility.Collapsed;
+            Grid.SetColumnSpan(StageOnePanel, hasProvince && profile.SupportsStage2 ? 1 : 2);
+            StageOnePanel.Margin = hasProvince && profile.SupportsStage2 ? new Thickness(0, 0, 8, 0) : new Thickness(0);
 
-            Stage1TitleText.Text = !hasProvince ? "请先选择结算省份" : chongqing ? "阶段一：台账更新" : "阶段一：写入电量到台账";
+            Stage1TitleText.Text = hasProvince ? profile.StageOneTitle : "请先选择结算省份";
             Stage1CaptionText.Text = !hasProvince
                 ? "不同省份的结算口径不同，必须先选择省份再执行。"
-                : chongqing
-                ? "清洗交易中心电量确认结算单，并写入重庆台账副本"
-                : "整理电量并写入基础台账，输出检查报告";
-            BaseLedgerLabel.Text = chongqing ? "重庆售电结算台账（必填）" : "基础台账（必填）";
-            RawDetailLabel.Text = !hasProvince ? "电量文件（先选择省份）" : chongqing ? "交易中心电量确认结算单（必填）" : "原始零售侧明细";
-            RunStage1ButtonText.Text = chongqing ? "清洗并更新台账" : "开始 执行阶段一";
-            CleanPowerButton.Content = chongqing ? "只清洗电量数据" : "只清洗电量";
+                : profile.StageOneCaption;
+            BaseLedgerLabel.Text = hasProvince ? profile.BaseLedgerLabel : "基础台账（先选择省份）";
+            PowerLabel.Text = hasProvince ? profile.ExistingPowerLabel : "电量处理表";
+            RawDetailLabel.Text = hasProvince ? profile.RawDetailLabel : "电量文件（先选择省份）";
+            ReferenceLedgerLabel.Text = hasProvince ? profile.ReferenceLedgerLabel : "参考台账（可选）";
+            RunStage1ButtonText.Text = hasProvince ? profile.RunStageOneButtonText : "开始 执行阶段一";
+            CleanPowerButton.Content = hasProvince ? profile.CleanPowerButtonText : "只清洗电量";
 
             var ledgerVisibility = hasProvince ? Visibility.Visible : Visibility.Collapsed;
-            var hainanVisibility = hainan ? Visibility.Visible : Visibility.Collapsed;
+            var existingPowerVisibility = hasProvince && profile.ShowsExistingPowerInput ? Visibility.Visible : Visibility.Collapsed;
+            var referenceLedgerVisibility = hasProvince && profile.ShowsReferenceLedgerInput ? Visibility.Visible : Visibility.Collapsed;
             BaseLedgerLabel.Visibility = ledgerVisibility;
             BaseLedgerRow.Visibility = ledgerVisibility;
-            PowerLabel.Visibility = hainanVisibility;
-            PowerRow.Visibility = hainanVisibility;
-            ReferenceLedgerLabel.Visibility = hainanVisibility;
-            ReferenceLedgerRow.Visibility = hainanVisibility;
-            CopyReferenceExistingCheckBox.Visibility = hainanVisibility;
+            PowerLabel.Visibility = existingPowerVisibility;
+            PowerRow.Visibility = existingPowerVisibility;
+            ReferenceLedgerLabel.Visibility = referenceLedgerVisibility;
+            ReferenceLedgerRow.Visibility = referenceLedgerVisibility;
+            CopyReferenceExistingCheckBox.Visibility = referenceLedgerVisibility;
 
-            RunStage1Button.IsEnabled = !_isBusy && hasProvince;
-            CleanPowerButton.IsEnabled = !_isBusy && hasProvince;
-            RunStage2Button.IsEnabled = !_isBusy && hainan;
-            RunEmployeeRewardButton.IsEnabled = !_isBusy && hainan;
+            RunStage1Button.IsEnabled = !_isBusy && hasProvince && profile.SupportsStage1LedgerUpdate;
+            CleanPowerButton.IsEnabled = !_isBusy && hasProvince && profile.SupportsStage1CleanPower;
+            RunStage2Button.IsEnabled = !_isBusy && hasProvince && profile.SupportsStage2;
+            RunEmployeeRewardButton.IsEnabled = !_isBusy && hasProvince && profile.SupportsEmployeeReward;
             UpdateResultVisibility(province);
             SharedSettingsCaption.Text = !hasProvince
                 ? "请先选择结算省份；选择后会显示对应省份的可用功能"
-                : chongqing
-                ? "重庆当前开放阶段一的只清洗电量数据，输出仍保存到这个文件夹中"
-                : "阶段一和阶段二生成的所有文件都会保存到这个文件夹中";
+                : profile.SharedSettingsCaption;
         }
 
         private void RefreshThemeDependentState()
@@ -1181,16 +1196,16 @@ namespace HainanSettlementTool.Wpf
         private void UpdateResultVisibility(ProvinceCode? province)
         {
             var hasProvince = province.HasValue;
-            var hainan = province == ProvinceCode.Hainan;
-            var chongqing = province == ProvinceCode.Chongqing;
-            var hainanVisibility = hainan ? Visibility.Visible : Visibility.Collapsed;
+            var profile = hasProvince ? ProvinceUiProfile.For(province.Value) : null;
+            var stageTwoVisibility = hasProvince && profile.SupportsStage2 ? Visibility.Visible : Visibility.Collapsed;
+            var employeeRewardVisibility = hasProvince && profile.SupportsEmployeeReward ? Visibility.Visible : Visibility.Collapsed;
 
             NoProvinceResultHint.Visibility = hasProvince ? Visibility.Collapsed : Visibility.Visible;
             Stage1ResultRow.Visibility = hasProvince ? Visibility.Visible : Visibility.Collapsed;
-            ProxyResultRow.Visibility = hainanVisibility;
-            IntermediaryResultRow.Visibility = hainanVisibility;
-            SummaryResultRow.Visibility = hainanVisibility;
-            EmployeeRewardResultRow.Visibility = hainanVisibility;
+            ProxyResultRow.Visibility = stageTwoVisibility;
+            IntermediaryResultRow.Visibility = stageTwoVisibility;
+            SummaryResultRow.Visibility = stageTwoVisibility;
+            EmployeeRewardResultRow.Visibility = employeeRewardVisibility;
             FinishedAtRow.Visibility = hasProvince ? Visibility.Visible : Visibility.Collapsed;
 
             if (!hasProvince)
@@ -1200,7 +1215,7 @@ namespace HainanSettlementTool.Wpf
                 return;
             }
 
-            Stage1ResultLabel.Text = chongqing ? "阶段一台账更新" : "阶段一报告";
+            Stage1ResultLabel.Text = profile.StageOneResultLabel;
             CompletionOutputLabel.Text = "输出文件夹";
         }
 

@@ -134,6 +134,13 @@ namespace HainanSettlementTool.Excel.Tests
                 Assert.AreEqual(2, plan.MatchedRows);
                 Assert.AreEqual(1, plan.MultiAccountRows);
                 Assert.AreEqual(1, plan.MissingInPowerRows);
+                Assert.IsTrue(plan.Issues.All(issue => !string.IsNullOrWhiteSpace(issue.Kind)));
+                CollectionAssert.Contains(
+                    plan.Issues.Select(issue => issue.Kind).ToList(),
+                    ProvinceStage1LedgerUpdateIssueKinds.MultiAccountCustomer);
+                CollectionAssert.Contains(
+                    plan.Issues.Select(issue => issue.Kind).ToList(),
+                    ProvinceStage1LedgerUpdateIssueKinds.LedgerCustomerMissingInPower);
                 Assert.IsTrue(File.Exists(result.OutputLedgerPath));
                 Assert.IsTrue(File.Exists(result.ReportPath));
                 Assert.AreEqual(2, result.UpdatedPowerRows);
@@ -165,6 +172,10 @@ namespace HainanSettlementTool.Excel.Tests
                 Assert.AreEqual(5, (int)report["month"]);
                 Assert.AreEqual(2, (int)report["updatedPowerRows"]);
                 Assert.AreEqual(1, (int)report["multiAccountRows"]);
+                Assert.AreEqual(
+                    ProvinceStage1LedgerUpdateIssueKinds.MultiAccountCustomer,
+                    (string)report["issues"][0]["Kind"]);
+                Assert.AreEqual("多户号客户", (string)report["issues"][0]["Category"]);
             }
             finally
             {

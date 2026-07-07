@@ -182,7 +182,7 @@ namespace HainanSettlementTool.Excel
 
             if (powerData.Month > 0 && powerData.Month != options.Month)
             {
-                AddIssue(plan, "月份不一致", "警告", null, "电量确认单识别为" + powerData.Month + "月，界面选择为" + options.Month + "月。");
+                AddIssue(plan, ProvinceStage1LedgerUpdateIssueKinds.MonthMismatch, "月份不一致", "警告", null, "电量确认单识别为" + powerData.Month + "月，界面选择为" + options.Month + "月。");
             }
 
             foreach (var key in matchedKeys)
@@ -194,18 +194,18 @@ namespace HainanSettlementTool.Excel
                 if (accounts.Count > 1)
                 {
                     plan.MultiAccountRows++;
-                    AddIssue(plan, "多户号客户", "提示", ledgerRow.CustomerName, "该客户在电量明细中存在多个户号；本次仅写入汇总电量，不会写入电力用户编码列。");
+                    AddIssue(plan, ProvinceStage1LedgerUpdateIssueKinds.MultiAccountCustomer, "多户号客户", "提示", ledgerRow.CustomerName, "该客户在电量明细中存在多个户号；本次仅写入汇总电量，不会写入电力用户编码列。");
                 }
 
                 if (powerKey != key)
                 {
-                    AddIssue(plan, "人工匹配客户", "警告", ledgerRow.CustomerName, "电量客户“" + powerRow.CustomerName + "”将按本次人工确认写入该台账客户。");
+                    AddIssue(plan, ProvinceStage1LedgerUpdateIssueKinds.ManualMatchedCustomer, "人工匹配客户", "警告", ledgerRow.CustomerName, "电量客户“" + powerRow.CustomerName + "”将按本次人工确认写入该台账客户。");
                 }
 
                 if (!IsBlankPower(worksheet, ledgerRow.RowNumber, map) && !SamePowerVector(worksheet, ledgerRow.RowNumber, map, powerRow))
                 {
                     plan.ExistingDifferentPowerRows++;
-                    AddIssue(plan, "已有电量差异", "警告", ledgerRow.CustomerName, "台账目标月份已有电量，且与清洗结果不一致；继续后会按清洗结果写入副本。");
+                    AddIssue(plan, ProvinceStage1LedgerUpdateIssueKinds.ExistingPowerDifference, "已有电量差异", "警告", ledgerRow.CustomerName, "台账目标月份已有电量，且与清洗结果不一致；继续后会按清洗结果写入副本。");
                 }
             }
 
@@ -214,7 +214,7 @@ namespace HainanSettlementTool.Excel
             {
                 plan.MissingInLedgerRows++;
                 plan.PowerOnlyCustomers.Add(powerRowsByKey[key].CustomerName);
-                AddIssue(plan, "电量客户不在台账", "警告", powerRowsByKey[key].CustomerName, "清洗结果中的客户在台账中找不到，继续后不会新增该客户行。");
+                AddIssue(plan, ProvinceStage1LedgerUpdateIssueKinds.PowerCustomerMissingInLedger, "电量客户不在台账", "警告", powerRowsByKey[key].CustomerName, "清洗结果中的客户在台账中找不到，继续后不会新增该客户行。");
             }
 
             var missingInPower = ledgerRowsByKey.Keys.Except(matchedKeys).ToList();
@@ -222,7 +222,7 @@ namespace HainanSettlementTool.Excel
             {
                 plan.MissingInPowerRows++;
                 plan.LedgerOnlyCustomers.Add(ledgerRowsByKey[key].CustomerName);
-                AddIssue(plan, "台账客户不在电量表", "提示", ledgerRowsByKey[key].CustomerName, "台账客户在清洗结果中找不到，继续后该行目标月份电量不会更新。");
+                AddIssue(plan, ProvinceStage1LedgerUpdateIssueKinds.LedgerCustomerMissingInPower, "台账客户不在电量表", "提示", ledgerRowsByKey[key].CustomerName, "台账客户在清洗结果中找不到，继续后该行目标月份电量不会更新。");
             }
 
             foreach (var powerKey in missingInLedger)
@@ -233,7 +233,7 @@ namespace HainanSettlementTool.Excel
                     if (SamePowerVector(worksheet, ledgerRowsByKey[ledgerKey].RowNumber, map, powerRow))
                     {
                         plan.AliasCandidateRows++;
-                        AddIssue(plan, "疑似名称差异", "警告", powerRow.CustomerName, "该电量客户与某个台账客户目标月份电量完全一致，可能是名称别名；请人工确认。");
+                        AddIssue(plan, ProvinceStage1LedgerUpdateIssueKinds.PossibleAlias, "疑似名称差异", "警告", powerRow.CustomerName, "该电量客户与某个台账客户目标月份电量完全一致，可能是名称别名；请人工确认。");
                         break;
                     }
                 }
@@ -466,10 +466,11 @@ namespace HainanSettlementTool.Excel
             return Math.Abs(left - right) < 0.001;
         }
 
-        private static void AddIssue(ProvinceStage1LedgerUpdatePlan plan, string category, string severity, string customerName, string message)
+        private static void AddIssue(ProvinceStage1LedgerUpdatePlan plan, string kind, string category, string severity, string customerName, string message)
         {
             plan.Issues.Add(new ProvinceStage1LedgerUpdateIssue
             {
+                Kind = kind,
                 Category = category,
                 Severity = severity,
                 CustomerName = customerName,

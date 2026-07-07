@@ -76,7 +76,7 @@
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Text="结算省份" VerticalAlignment="Center" Foreground="{DynamicResource FieldTextBrush}" />
                                 <ComboBox x:Name="ProvinceCombo" Grid.Column="1" Style="{StaticResource ModernComboBox}" SelectionChanged="ProvinceCombo_SelectionChanged" />
-                                <TextBlock Grid.Column="2" Text="请选择本次结算所属省份后再执行，避免误选或漏选。" VerticalAlignment="Center" Margin="14,0,0,0" Foreground="{DynamicResource MutedBrush}" FontSize="12" />
+                                <TextBlock Grid.Column="2" Text="请选择本次结算所属省份" VerticalAlignment="Center" Margin="14,0,0,0" Foreground="{DynamicResource MutedBrush}" FontSize="12" />
                             </Grid>
 
                             <Grid Grid.Row="2" Margin="0,6,0,8">
@@ -121,7 +121,7 @@
                                         <TextBlock Text="&#xE946;" FontFamily="Segoe MDL2 Assets" Foreground="{DynamicResource AccentBrush}" FontSize="26" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                     </Border>
                                     <TextBlock Text="请先选择结算省份" Margin="0,18,0,0" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" HorizontalAlignment="Center" />
-                                    <TextBlock Text="选择后会显示该省份可执行的结算阶段、输入文件和输出结果，避免误选或漏选。" Margin="0,10,0,0" TextWrapping="Wrap" TextAlignment="Center" Foreground="{DynamicResource FieldTextBrush}" />
+                                    <TextBlock Text="选择后会显示该省份可执行的结算阶段、输入文件和输出结果。" Margin="0,10,0,0" TextWrapping="Wrap" TextAlignment="Center" Foreground="{DynamicResource FieldTextBrush}" />
                                 </StackPanel>
                             </Grid>
                         </Border>

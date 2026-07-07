@@ -812,6 +812,32 @@ Observed result:
 - Recorded the project collaboration rule that Codex subagents/spawning/parallel exploration are allowed for safe efficiency, with user warning/confirmation reserved for high-risk operations.
 - No build or test run was required; this was a documentation-only architecture audit.
 
+Multi-province P0 readiness slice on 2026-07-07:
+
+```powershell
+dotnet msbuild .\src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Debug
+dotnet test .\tests\HainanSettlementTool.Excel.Tests\HainanSettlementTool.Excel.Tests.csproj /p:Configuration=Debug --filter ChongqingPowerCleanGeneratorTests
+dotnet test .\tests\HainanSettlementTool.Core.Tests\HainanSettlementTool.Core.Tests.csproj /p:Configuration=Debug --filter UpdateProvinceStage1LedgerReturnsSharedSummaryLines
+```
+
+Observed result:
+
+- Added WPF `ProvinceUiProfile` to centralize province display name, stage availability, Stage 1 labels, button text, result labels, and file-picker titles for Hainan and Chongqing.
+- `MainWindow` now binds the province dropdown to profile objects and uses profile capabilities for tab visibility, input-row visibility, result-row visibility, and Stage 1 button enablement.
+- Stage 1 run/clean actions now explicitly dispatch by `ProvinceCode`, so a future newly listed province will not silently run the Hainan workflow.
+- Added stable `ProvinceStage1LedgerUpdateIssue.Kind` plus `ProvinceStage1LedgerUpdateIssueKinds` while keeping Chinese `Category` for WPF display and JSON compatibility.
+- WPF Stage 1 preflight manual-matching grouping now uses stable issue kinds, with Chinese category fallback for old or hand-built issue objects.
+- Added Excel internal `IProvinceStage1Adapter` and `ChongqingProvinceStage1Adapter`; `ClosedXmlStage1ExcelGateway` now dispatches multi-province Stage 1 Excel work through an adapter dictionary instead of direct Chongqing if branches.
+- Added a repository `.vscode/settings.json` pointing VSCode at `HainanSettlementTool.sln` to reduce false WPF code-behind diagnostics.
+- Targeted WPF Debug build passed.
+- Targeted Chongqing Excel tests passed: 4 tests.
+- Targeted Core workflow test passed: 1 test.
+- Full Debug test suite passed: Core 18 tests, Excel 18 tests.
+- Debug build passed for Core, Excel, WinForms, and WPF.
+- `git diff --check` passed with CRLF normalization warnings only.
+- WPF `MessageBox` search had no matches.
+- No real Excel, CSV, image, PDF, or generated sensitive output file appears in `git status`.
+
 ## Documentation Rule
 
 Documentation is now part of the development contract:
@@ -842,6 +868,7 @@ Core:
 - `src/HainanSettlementTool.Core/Services/EmployeeRewardService.cs`
 - `src/HainanSettlementTool.Core/Services/IEmployeeRewardExcelGateway.cs`
 - `src/HainanSettlementTool.Core/Services/FileAccessGuard.cs`
+- `src/HainanSettlementTool.Core/Models/ProvinceStage1LedgerUpdateIssueKinds.cs`
 
 Excel:
 
@@ -851,12 +878,15 @@ Excel:
 - `src/HainanSettlementTool.Excel/LedgerStage1Updater.cs`
 - `src/HainanSettlementTool.Excel/Stage2SettlementGenerator.cs`
 - `src/HainanSettlementTool.Excel/EmployeeRewardGenerator.cs`
+- `src/HainanSettlementTool.Excel/IProvinceStage1Adapter.cs`
+- `src/HainanSettlementTool.Excel/ChongqingProvinceStage1Adapter.cs`
 
 UI:
 
 - `src/HainanSettlementTool.WinForms/MainForm.cs`
 - `src/HainanSettlementTool.Wpf/MainWindow.xaml`
 - `src/HainanSettlementTool.Wpf/MainWindow.xaml.cs`
+- `src/HainanSettlementTool.Wpf/ProvinceUiProfile.cs`
 - `src/HainanSettlementTool.Wpf/Stage2PreflightWindow.xaml`
 - `src/HainanSettlementTool.Wpf/ProvinceStage1LedgerPreflightWindow.xaml`
 

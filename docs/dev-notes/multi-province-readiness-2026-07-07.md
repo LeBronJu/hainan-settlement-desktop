@@ -195,11 +195,24 @@
 
 ## 建议执行顺序
 
+### 2026-07-07 P0 进展
+
+已完成三个低风险预布局切片：
+
+1. WPF 新增 `ProvinceUiProfile`，集中海南/重庆的省份显示名、可用功能、阶段一输入文案、按钮文案、结果区文案和文件选择标题。`MainWindow` 仍负责控件赋值和事件入口，但不再把海南/重庆 UI 文案散落在 `UpdateProvinceUi` 里。
+2. Excel 层新增内部 `IProvinceStage1Adapter` seam 和 `ChongqingProvinceStage1Adapter`。`ClosedXmlStage1ExcelGateway` 只按 `ProvinceCode` 分发多省份阶段一 Excel 实现，不再直接写重庆 if 分支。
+3. `ProvinceStage1LedgerUpdateIssue` 新增稳定 `Kind`，中文 `Category` 保留给展示和 JSON 兼容。WPF 预检窗口用 `Kind` 判断客户手动匹配类 issue，并保留中文 `Category` fallback。
+
+未完成且仍建议后续处理：
+
+- `ProvinceStage1Service` 仍有重庆专用支持校验；第三个省接入前应继续把“是否支持”和通用必填项收敛到更明确的省份能力 seam。
+- 完整 MVVM、持久化别名表和重庆阶段二抽象仍属于 P2，暂不展开。
+
 ### P0：第三个省接入前先做
 
-1. 建立省份能力/界面 profile，先替换 WPF `UpdateProvinceUi` 里的省份文案和可见性判断。
-2. 建立 Excel 内部省份阶段一 adapter seam，把重庆 adapter 从 `ClosedXmlStage1ExcelGateway` 的 if 分支里独立出来。
-3. 给 `ProvinceStage1LedgerUpdateIssue` 增加稳定 code / kind，避免 UI 行为依赖中文分类。
+1. 建立省份能力/界面 profile，先替换 WPF `UpdateProvinceUi` 里的省份文案和可见性判断。（已完成第一版）
+2. 建立 Excel 内部省份阶段一 adapter seam，把重庆 adapter 从 `ClosedXmlStage1ExcelGateway` 的 if 分支里独立出来。（已完成第一版）
+3. 给 `ProvinceStage1LedgerUpdateIssue` 增加稳定 code / kind，避免 UI 行为依赖中文分类。（已完成第一版）
 
 ### P1：第三个省接入时同步做
 
@@ -219,4 +232,3 @@
 ## 每次新省份工作前必须读
 
 新省份接入、WPF 省份 UI、Core 多省份 workflow、Excel 多省份 adapter 相关改动前，必须阅读本文件，并用这里的 P0/P1/P2 顺序判断是否先还技术债。
-
