@@ -17,7 +17,7 @@ namespace HainanSettlementTool.Excel
         private static readonly Dictionary<string, Tuple<int, string>> PaymentPartyOverrides =
             new Dictionary<string, Tuple<int, string>>
             {
-                { PaymentKey("海南精研科技有限公司", "代理费"), Tuple.Create(3, "清能") }
+                { PaymentKey("海南精研科技有限公司", "代理费"), Tuple.Create(3, Stage2PaymentParties.Qingneng) }
             };
 
         public Stage2Report Generate(Stage2Options options)
@@ -39,6 +39,7 @@ namespace HainanSettlementTool.Excel
             }
 
             var auditIssues = BuildPreflightIssues(options, proxyRows, interRows);
+            ValidateRequiredPaymentPartyDecisions(options, auditIssues);
             var totals = BuildSplitFiles(options, proxyRows, interRows, auditIssues);
             var warnings = new List<string>();
             var summaryPath = BuildSummary(options, totals, warnings);
@@ -234,7 +235,95 @@ namespace HainanSettlementTool.Excel
                 CompareGroupWithTemplate(options.Month, kind, owner, entity, templatePath, group.Select(item => item.Row).ToList(), issues);
             }
 
+            AddSummarySubjectPaymentIssues(options, proxyRows, interRows, issues);
             return issues;
+        }
+
+        private static void AddSummarySubjectPaymentIssues(
+            Stage2Options options,
+            IList<DetailSettlementRow> proxyRows,
+            IList<DetailSettlementRow> interRows,
+            IList<Stage2CheckIssue> issues)
+        {
+            var subjects = BuildExpectedSummarySubjects(proxyRows, interRows);
+            if (subjects.Count == 0)
+            {
+                return;
+            }
+
+            using (var workbook = new XLWorkbook(options.SummaryTemplatePath))
+            {
+                var mainSheetName = ResolveSummarySheetName(workbook, "main", true);
+                var knownKeys = new HashSet<string>(ReadSummaryMeta(workbook.Worksheet(mainSheetName))
+                    .Select(item => SummaryKey(item.Entity, item.Kind)));
+
+                foreach (var subject in subjects)
+                {
+                    if (knownKeys.Contains(SummaryKey(subject.Entity, subject.Kind)))
+                    {
+                        continue;
+                    }
+
+                    string paymentParty;
+                    if (TryGetPaymentPartyOverride(subject.Entity, subject.Kind, options.Month, out paymentParty)
+                        || TryGetPaymentPartyDecision(options, subject.Entity, subject.Kind, out paymentParty))
+                    {
+                        continue;
+                    }
+
+                    var issue = new Stage2CheckIssue
+                    {
+                        Severity = "确认",
+                        Category = "新增汇总主体支付方选择",
+                        Kind = subject.Kind,
+                        Owner = subject.Owner,
+                        Entity = subject.Entity,
+                        TemplateFile = options.SummaryTemplatePath,
+                        SheetName = mainSheetName,
+                        Message = "汇总表模板缺少" + subject.Kind + "主体“" + subject.Entity + "”，支付方无法从历史汇总主体继承。",
+                        Suggestion = "请选择本月生成时写入的支付方；本次选择只用于输出汇总表副本。",
+                        RequiresPaymentPartySelection = true
+                    };
+                    issue.AvailablePaymentParties.AddRange(Stage2PaymentParties.Supported);
+                    issues.Add(issue);
+                }
+            }
+        }
+
+        private static List<SummarySubject> BuildExpectedSummarySubjects(
+            IList<DetailSettlementRow> proxyRows,
+            IList<DetailSettlementRow> interRows)
+        {
+            return proxyRows
+                .Select(row => new SummarySubject { Kind = "代理费", Owner = row.Owner, Entity = row.Entity })
+                .Concat(interRows.Select(row => new SummarySubject { Kind = "居间费", Owner = row.Owner, Entity = row.Entity }))
+                .GroupBy(subject => SummaryKey(subject.Entity, subject.Kind))
+                .Select(group => group.First())
+                .OrderBy(subject => subject.Kind)
+                .ThenBy(subject => subject.Owner)
+                .ThenBy(subject => subject.Entity)
+                .ToList();
+        }
+
+        private static void ValidateRequiredPaymentPartyDecisions(
+            Stage2Options options,
+            IList<Stage2CheckIssue> issues)
+        {
+            var missing = issues
+                .Where(issue => issue.RequiresPaymentPartySelection)
+                .Where(issue =>
+                {
+                    string paymentParty;
+                    return !TryGetPaymentPartyDecision(options, issue.Entity, issue.Kind, out paymentParty);
+                })
+                .Select(issue => issue.Kind + " " + issue.Entity)
+                .Distinct()
+                .ToList();
+
+            if (missing.Count > 0)
+            {
+                throw new InvalidOperationException("海南阶段二新增汇总主体支付方未选择：" + string.Join("、", missing) + "。请在预检窗口选择清能或清辉后再生成。");
+            }
         }
 
         private static void CompareGroupWithTemplate(
@@ -901,32 +990,30 @@ namespace HainanSettlementTool.Excel
                 var qingnengSheetName = ResolveSummarySheetName(workbook, "qingneng", false);
                 var qinghuiSheetName = ResolveSummarySheetName(workbook, "qinghui", false);
                 var mainMeta = ReadSummaryMeta(workbook.Worksheet(mainSheetName));
-                var partyByKey = mainMeta.ToDictionary(
-                    item => SummaryKey(item.Entity, item.Kind),
-                    item => PaymentPartyFor(item.Entity, item.Kind, options.Month, string.IsNullOrWhiteSpace(item.PaymentParty) ? "清辉" : item.PaymentParty));
+                var partyByKey = BuildPaymentPartyIndex(options, totals, mainMeta);
 
-                WriteSummarySheet(workbook.Worksheet(mainSheetName), totals, options.Month, null, warnings);
+                WriteSummarySheet(workbook.Worksheet(mainSheetName), totals, options.Month, null, warnings, partyByKey);
 
                 if (!string.IsNullOrWhiteSpace(qingnengSheetName))
                 {
-                    var qnTotals = totals.Where(total => PartyForSummaryTotal(total, partyByKey) == "清能").ToList();
-                    var allowed = new HashSet<string>(partyByKey.Where(item => item.Value == "清能").Select(item => item.Key));
+                    var qnTotals = totals.Where(total => PartyForSummaryTotal(total, partyByKey) == Stage2PaymentParties.Qingneng).ToList();
+                    var allowed = new HashSet<string>(partyByKey.Where(item => item.Value == Stage2PaymentParties.Qingneng).Select(item => item.Key));
                     foreach (var total in qnTotals)
                     {
                         allowed.Add(SummaryKey(total.Entity, total.Kind));
                     }
-                    WriteSummarySheet(workbook.Worksheet(qingnengSheetName), qnTotals, options.Month, allowed, warnings);
+                    WriteSummarySheet(workbook.Worksheet(qingnengSheetName), qnTotals, options.Month, allowed, warnings, partyByKey);
                 }
 
                 if (!string.IsNullOrWhiteSpace(qinghuiSheetName))
                 {
-                    var qhTotals = totals.Where(total => PartyForSummaryTotal(total, partyByKey) == "清辉").ToList();
-                    var allowed = new HashSet<string>(partyByKey.Where(item => item.Value == "清辉").Select(item => item.Key));
+                    var qhTotals = totals.Where(total => PartyForSummaryTotal(total, partyByKey) == Stage2PaymentParties.Qinghui).ToList();
+                    var allowed = new HashSet<string>(partyByKey.Where(item => item.Value == Stage2PaymentParties.Qinghui).Select(item => item.Key));
                     foreach (var total in qhTotals)
                     {
                         allowed.Add(SummaryKey(total.Entity, total.Kind));
                     }
-                    WriteSummarySheet(workbook.Worksheet(qinghuiSheetName), qhTotals, options.Month, allowed, warnings);
+                    WriteSummarySheet(workbook.Worksheet(qinghuiSheetName), qhTotals, options.Month, allowed, warnings, partyByKey);
                 }
 
                 SaveWorkbook(workbook, outputPath);
@@ -940,7 +1027,8 @@ namespace HainanSettlementTool.Excel
             IList<GroupSettlementTotal> totals,
             int month,
             ISet<string> allowedKeys,
-            IList<string> warnings)
+            IList<string> warnings,
+            IDictionary<string, string> paymentPartyByKey)
         {
             var startRow = 4;
             DeleteSummaryRowsNotAllowed(worksheet, startRow, allowedKeys);
@@ -952,7 +1040,7 @@ namespace HainanSettlementTool.Excel
             var knownKeys = new HashSet<string>(existingMeta.Select(item => SummaryKey(item.Entity, item.Kind)));
             var newTotals = totals.Where(total => !knownKeys.Contains(SummaryKey(total.Entity, total.Kind))).ToList();
             var newKeys = new HashSet<string>(newTotals.Select(total => SummaryKey(total.Entity, total.Kind)));
-            InsertNewSummaryRows(worksheet, startRow, newTotals, warnings);
+            InsertNewSummaryRows(worksheet, startRow, newTotals, warnings, paymentPartyByKey);
 
             var dataRows = ReadSummaryMeta(worksheet).OrderBy(item => item.Row).ToList();
             for (var index = 0; index < dataRows.Count; index++)
@@ -962,7 +1050,7 @@ namespace HainanSettlementTool.Excel
                 GroupSettlementTotal total;
                 totalByKey.TryGetValue(SummaryKey(info.Entity, info.Kind), out total);
                 worksheet.Cell(row, 1).Value = index + 1;
-                WriteSummaryValues(worksheet, row, monthColumn, cumulativeColumn, total, info.Entity, info.Kind, month, newKeys.Contains(SummaryKey(info.Entity, info.Kind)));
+                WriteSummaryValues(worksheet, row, monthColumn, cumulativeColumn, total, info.Entity, info.Kind, month, newKeys.Contains(SummaryKey(info.Entity, info.Kind)), paymentPartyByKey);
             }
 
             var totalRow = FindSummaryTotalRow(worksheet, startRow);
@@ -982,7 +1070,8 @@ namespace HainanSettlementTool.Excel
             string entity,
             string kind,
             int month,
-            bool isNewRow)
+            bool isNewRow,
+            IDictionary<string, string> paymentPartyByKey)
         {
             var proxyValue = total != null && total.Kind == "代理费" ? total.ExpectedNet : (double?)null;
             var interValue = total != null && total.Kind == "居间费" ? total.ExpectedNet : (double?)null;
@@ -1024,7 +1113,9 @@ namespace HainanSettlementTool.Excel
             }
 
             var currentParty = TextUtil.S(worksheet.Cell(row, cumulativeColumn + 8).GetFormattedString());
-            worksheet.Cell(row, cumulativeColumn + 8).Value = PaymentPartyFor(entity, kind, month, string.IsNullOrWhiteSpace(currentParty) ? "清辉" : currentParty);
+            worksheet.Cell(row, cumulativeColumn + 8).Value = isNewRow
+                ? PaymentPartyFromIndex(paymentPartyByKey, entity, kind)
+                : PaymentPartyFor(entity, kind, month, string.IsNullOrWhiteSpace(currentParty) ? Stage2PaymentParties.Qinghui : currentParty);
         }
 
         private static int InsertMonthBlock(IXLWorksheet worksheet, int month)
@@ -1080,7 +1171,12 @@ namespace HainanSettlementTool.Excel
             }
         }
 
-        private static void InsertNewSummaryRows(IXLWorksheet worksheet, int startRow, IList<GroupSettlementTotal> newTotals, IList<string> warnings)
+        private static void InsertNewSummaryRows(
+            IXLWorksheet worksheet,
+            int startRow,
+            IList<GroupSettlementTotal> newTotals,
+            IList<string> warnings,
+            IDictionary<string, string> paymentPartyByKey)
         {
             if (newTotals.Count == 0)
             {
@@ -1104,7 +1200,7 @@ namespace HainanSettlementTool.Excel
                 worksheet.Cell(totalRow, 9).Value = 0.13;
                 worksheet.Cell(totalRow, 10).Value = 0.13;
                 worksheet.Cell(totalRow, 11).Value = total.Owner;
-                warnings.Add("新增汇总主体：" + total.Kind + " " + total.Entity + "（负责人：" + total.Owner + "）");
+                warnings.Add("新增汇总主体：" + total.Kind + " " + total.Entity + "（负责人：" + total.Owner + "；支付方：" + PaymentPartyFromIndex(paymentPartyByKey, total.Entity, total.Kind) + "）");
                 totalRow++;
             }
         }
@@ -1488,21 +1584,101 @@ namespace HainanSettlementTool.Excel
             File.WriteAllLines(path, lines, System.Text.Encoding.UTF8);
         }
 
+        private static Dictionary<string, string> BuildPaymentPartyIndex(
+            Stage2Options options,
+            IList<GroupSettlementTotal> totals,
+            IList<SummaryMetaRow> mainMeta)
+        {
+            var partyByKey = mainMeta.ToDictionary(
+                item => SummaryKey(item.Entity, item.Kind),
+                item => PaymentPartyFor(item.Entity, item.Kind, options.Month, string.IsNullOrWhiteSpace(item.PaymentParty) ? Stage2PaymentParties.Qinghui : item.PaymentParty));
+
+            foreach (var total in totals)
+            {
+                var key = SummaryKey(total.Entity, total.Kind);
+                if (partyByKey.ContainsKey(key))
+                {
+                    continue;
+                }
+
+                string paymentParty;
+                if (!TryGetPaymentPartyOverride(total.Entity, total.Kind, options.Month, out paymentParty)
+                    && !TryGetPaymentPartyDecision(options, total.Entity, total.Kind, out paymentParty))
+                {
+                    throw new InvalidOperationException("海南阶段二新增汇总主体支付方未选择：" + total.Kind + " " + total.Entity + "。请在预检窗口选择清能或清辉后再生成。");
+                }
+
+                partyByKey[key] = PaymentPartyFor(total.Entity, total.Kind, options.Month, paymentParty);
+            }
+
+            return partyByKey;
+        }
+
         private static string PartyForSummaryTotal(GroupSettlementTotal total, IDictionary<string, string> partyByKey)
         {
             string party;
-            return partyByKey.TryGetValue(SummaryKey(total.Entity, total.Kind), out party) ? party : "清辉";
+            if (partyByKey.TryGetValue(SummaryKey(total.Entity, total.Kind), out party))
+            {
+                return party;
+            }
+
+            throw new InvalidOperationException("海南阶段二新增汇总主体支付方未选择：" + total.Kind + " " + total.Entity + "。请在预检窗口选择清能或清辉后再生成。");
         }
 
         private static string PaymentPartyFor(string entity, string kind, int month, string defaultParty)
         {
+            string overrideParty;
+            if (TryGetPaymentPartyOverride(entity, kind, month, out overrideParty))
+            {
+                return overrideParty;
+            }
+
+            return string.IsNullOrWhiteSpace(defaultParty) ? Stage2PaymentParties.Qinghui : defaultParty;
+        }
+
+        private static string PaymentPartyFromIndex(IDictionary<string, string> paymentPartyByKey, string entity, string kind)
+        {
+            string paymentParty;
+            if (paymentPartyByKey != null && paymentPartyByKey.TryGetValue(SummaryKey(entity, kind), out paymentParty))
+            {
+                return paymentParty;
+            }
+
+            throw new InvalidOperationException("海南阶段二新增汇总主体支付方未选择：" + kind + " " + entity + "。请在预检窗口选择清能或清辉后再生成。");
+        }
+
+        private static bool TryGetPaymentPartyOverride(string entity, string kind, int month, out string paymentParty)
+        {
+            paymentParty = null;
             Tuple<int, string> overrideValue;
             if (PaymentPartyOverrides.TryGetValue(PaymentKey(entity, kind), out overrideValue) && month >= overrideValue.Item1)
             {
-                return overrideValue.Item2;
+                paymentParty = overrideValue.Item2;
+                return true;
             }
 
-            return string.IsNullOrWhiteSpace(defaultParty) ? "清辉" : defaultParty;
+            return false;
+        }
+
+        private static bool TryGetPaymentPartyDecision(Stage2Options options, string entity, string kind, out string paymentParty)
+        {
+            paymentParty = null;
+            if (options == null)
+            {
+                return false;
+            }
+
+            var key = SummaryKey(entity, kind);
+            var decision = options.SummarySubjectDecisions
+                .Where(item => item != null)
+                .FirstOrDefault(item => SummaryKey(item.Entity, item.SettlementKind) == key);
+            if (decision == null || string.IsNullOrWhiteSpace(decision.PaymentParty))
+            {
+                return false;
+            }
+
+            paymentParty = decision.PaymentParty;
+            return true;
         }
 
         private static double ParseMonthlyDeduction(string text)
@@ -1623,6 +1799,13 @@ namespace HainanSettlementTool.Excel
             public string Entity { get; set; }
             public string Kind { get; set; }
             public string PaymentParty { get; set; }
+        }
+
+        private sealed class SummarySubject
+        {
+            public string Entity { get; set; }
+            public string Kind { get; set; }
+            public string Owner { get; set; }
         }
 
         private sealed class PreviousDetailRow

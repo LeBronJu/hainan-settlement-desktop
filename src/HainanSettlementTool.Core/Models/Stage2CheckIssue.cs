@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace HainanSettlementTool.Core.Models
 {
     public sealed class Stage2CheckIssue
@@ -15,5 +17,7 @@ namespace HainanSettlementTool.Core.Models
         public string CurrentValue { get; set; }
         public string Message { get; set; }
         public string Suggestion { get; set; }
+        public bool RequiresPaymentPartySelection { get; set; }
+        public List<string> AvailablePaymentParties { get; } = new List<string>();
     }
 }

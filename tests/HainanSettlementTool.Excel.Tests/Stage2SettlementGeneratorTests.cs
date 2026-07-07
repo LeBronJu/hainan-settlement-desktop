@@ -149,6 +149,12 @@ namespace HainanSettlementTool.Excel.Tests
                     SummaryTemplatePath = summaryPath,
                     OutputDirectory = outputRoot
                 };
+                options.SummarySubjectDecisions.Add(new Stage2SummarySubjectDecision
+                {
+                    SettlementKind = "代理费",
+                    Entity = "新增代理",
+                    PaymentParty = Stage2PaymentParties.Qinghui
+                });
 
                 new HainanStage2Service(new ClosedXmlSettlementExcelGateway()).Run(options, null);
 
@@ -165,6 +171,155 @@ namespace HainanSettlementTool.Excel.Tests
                     Assert.AreEqual(string.Empty, worksheet.Cell(9, 1).GetFormattedString());
                     AssertStyleMatches(worksheet.Cell(4, 2), worksheet.Cell(5, 2));
                     Assert.AreEqual("清辉", worksheet.Cell(5, 36).GetFormattedString());
+                }
+            }
+            finally
+            {
+                if (Directory.Exists(root))
+                {
+                    Directory.Delete(root, true);
+                }
+            }
+        }
+
+        [TestMethod]
+        public void AnalyzeSettlementRequiresPaymentPartyForNewSummarySubject()
+        {
+            var root = Path.Combine(Path.GetTempPath(), "HainanSettlementToolTests", Guid.NewGuid().ToString("N"));
+            var ledgerPath = Path.Combine(root, "ledger.xlsx");
+            var proxyRoot = Path.Combine(root, "proxy");
+            var interRoot = Path.Combine(root, "intermediary");
+            var outputRoot = Path.Combine(root, "output");
+            var summaryPath = Path.Combine(root, "summary.xlsx");
+
+            try
+            {
+                Directory.CreateDirectory(proxyRoot);
+                Directory.CreateDirectory(interRoot);
+                Directory.CreateDirectory(outputRoot);
+
+                WriteLedgerWithProxyEntities(ledgerPath, "测试负责人", "存量代理", "新增代理");
+                WriteProxyTemplate(proxyRoot, "测试负责人", "存量代理");
+                WriteSummaryTemplate(summaryPath, "存量代理", "代理费", "清辉");
+
+                var options = new Stage2Options
+                {
+                    Month = 4,
+                    LedgerPath = ledgerPath,
+                    ProxyTemplateDirectory = proxyRoot,
+                    IntermediaryTemplateDirectory = interRoot,
+                    SummaryTemplatePath = summaryPath,
+                    OutputDirectory = outputRoot
+                };
+
+                var report = new HainanStage2Service(new ClosedXmlSettlementExcelGateway()).Analyze(options);
+
+                Assert.IsTrue(report.RequiresPaymentPartySelection);
+                Assert.IsTrue(report.Issues.Exists(issue =>
+                    issue.RequiresPaymentPartySelection
+                    && issue.Category == "新增汇总主体支付方选择"
+                    && issue.Kind == "代理费"
+                    && issue.Entity == "新增代理"
+                    && issue.AvailablePaymentParties.Contains(Stage2PaymentParties.Qingneng)
+                    && issue.AvailablePaymentParties.Contains(Stage2PaymentParties.Qinghui)));
+            }
+            finally
+            {
+                if (Directory.Exists(root))
+                {
+                    Directory.Delete(root, true);
+                }
+            }
+        }
+
+        [TestMethod]
+        public void GenerateSettlementRejectsNewSummarySubjectWithoutPaymentPartyDecision()
+        {
+            var root = Path.Combine(Path.GetTempPath(), "HainanSettlementToolTests", Guid.NewGuid().ToString("N"));
+            var ledgerPath = Path.Combine(root, "ledger.xlsx");
+            var proxyRoot = Path.Combine(root, "proxy");
+            var interRoot = Path.Combine(root, "intermediary");
+            var outputRoot = Path.Combine(root, "output");
+            var summaryPath = Path.Combine(root, "summary.xlsx");
+
+            try
+            {
+                Directory.CreateDirectory(proxyRoot);
+                Directory.CreateDirectory(interRoot);
+                Directory.CreateDirectory(outputRoot);
+
+                WriteLedgerWithProxyEntities(ledgerPath, "测试负责人", "存量代理", "新增代理");
+                WriteProxyTemplate(proxyRoot, "测试负责人", "存量代理");
+                WriteSummaryTemplate(summaryPath, "存量代理", "代理费", "清辉");
+
+                var options = new Stage2Options
+                {
+                    Month = 4,
+                    LedgerPath = ledgerPath,
+                    ProxyTemplateDirectory = proxyRoot,
+                    IntermediaryTemplateDirectory = interRoot,
+                    SummaryTemplatePath = summaryPath,
+                    OutputDirectory = outputRoot
+                };
+
+                var ex = Assert.ThrowsException<InvalidOperationException>(() =>
+                    new HainanStage2Service(new ClosedXmlSettlementExcelGateway()).Run(options, null));
+                StringAssert.Contains(ex.Message, "新增汇总主体支付方未选择");
+                StringAssert.Contains(ex.Message, "新增代理");
+            }
+            finally
+            {
+                if (Directory.Exists(root))
+                {
+                    Directory.Delete(root, true);
+                }
+            }
+        }
+
+        [TestMethod]
+        public void GenerateSettlementUsesExplicitPaymentPartyForNewSummarySubject()
+        {
+            var root = Path.Combine(Path.GetTempPath(), "HainanSettlementToolTests", Guid.NewGuid().ToString("N"));
+            var ledgerPath = Path.Combine(root, "ledger.xlsx");
+            var proxyRoot = Path.Combine(root, "proxy");
+            var interRoot = Path.Combine(root, "intermediary");
+            var outputRoot = Path.Combine(root, "output");
+            var summaryPath = Path.Combine(root, "summary.xlsx");
+
+            try
+            {
+                Directory.CreateDirectory(proxyRoot);
+                Directory.CreateDirectory(interRoot);
+                Directory.CreateDirectory(outputRoot);
+
+                WriteLedgerWithProxyEntities(ledgerPath, "测试负责人", "存量代理", "新增代理");
+                WriteProxyTemplate(proxyRoot, "测试负责人", "存量代理");
+                WriteSummaryTemplate(summaryPath, "存量代理", "代理费", "清辉");
+
+                var options = new Stage2Options
+                {
+                    Month = 4,
+                    LedgerPath = ledgerPath,
+                    ProxyTemplateDirectory = proxyRoot,
+                    IntermediaryTemplateDirectory = interRoot,
+                    SummaryTemplatePath = summaryPath,
+                    OutputDirectory = outputRoot
+                };
+                options.SummarySubjectDecisions.Add(new Stage2SummarySubjectDecision
+                {
+                    SettlementKind = "代理费",
+                    Entity = "新增代理",
+                    PaymentParty = Stage2PaymentParties.Qingneng
+                });
+
+                new HainanStage2Service(new ClosedXmlSettlementExcelGateway()).Run(options, null);
+
+                var outputPath = Path.Combine(outputRoot, "【2026年海南省代理费汇总表-4月自动化】.xlsx");
+                using (var workbook = new XLWorkbook(outputPath))
+                {
+                    var worksheet = workbook.Worksheet("汇总表");
+                    Assert.AreEqual("新增代理", worksheet.Cell(5, 2).GetFormattedString());
+                    Assert.AreEqual(Stage2PaymentParties.Qingneng, worksheet.Cell(5, 36).GetFormattedString());
                 }
             }
             finally
@@ -205,6 +360,12 @@ namespace HainanSettlementTool.Excel.Tests
                     SummaryTemplatePath = summaryPath,
                     OutputDirectory = outputRoot
                 };
+                options.SummarySubjectDecisions.Add(new Stage2SummarySubjectDecision
+                {
+                    SettlementKind = "代理费",
+                    Entity = "新增代理",
+                    PaymentParty = Stage2PaymentParties.Qinghui
+                });
 
                 new HainanStage2Service(new ClosedXmlSettlementExcelGateway()).Run(options, null);
 

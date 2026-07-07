@@ -639,7 +639,7 @@ namespace HainanSettlementTool.Wpf
                     SetStatus("待确认", "WarningBrush", "StatusBusyBrush");
                     SetStepNeedsConfirmation(0);
                     AddLog("阶段二预检发现 " + preflight.Issues.Count + " 条需要确认的变化。", "阶段二");
-                    confirmed = ConfirmStage2Preflight(preflight);
+                    confirmed = ConfirmStage2Preflight(preflight, options);
                     if (confirmed)
                     {
                         SetStatus("运行中", "WarningBrush", "StatusBusyBrush");
@@ -991,13 +991,20 @@ namespace HainanSettlementTool.Wpf
             return ConfirmAction("确认生成员工电量奖励", "即将生成员工电量奖励", message, "开始生成");
         }
 
-        private bool ConfirmStage2Preflight(Stage2PreflightReport report)
+        private bool ConfirmStage2Preflight(Stage2PreflightReport report, Stage2Options options)
         {
             var dialog = new Stage2PreflightWindow(report)
             {
                 Owner = this
             };
-            return dialog.ShowDialog() == true;
+            var confirmed = dialog.ShowDialog() == true;
+            if (confirmed)
+            {
+                options.SummarySubjectDecisions.Clear();
+                options.SummarySubjectDecisions.AddRange(dialog.SummarySubjectDecisions);
+            }
+
+            return confirmed;
         }
 
         private void SetBusy(bool busy)

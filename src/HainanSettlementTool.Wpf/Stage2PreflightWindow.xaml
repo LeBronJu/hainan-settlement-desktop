@@ -18,6 +18,7 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
             <Grid Grid.Row="0">
@@ -119,6 +120,27 @@
                                                                        FontSize="12"
                                                                        Margin="0,7,0,0"
                                                                        TextWrapping="Wrap" />
+                                                            <StackPanel Visibility="{Binding PaymentSelectionVisibility}"
+                                                                        Margin="0,10,0,0">
+                                                                <TextBlock Text="选择支付方（必选）"
+                                                                           Foreground="{StaticResource TextBrush}"
+                                                                           FontSize="12"
+                                                                           FontWeight="SemiBold" />
+                                                                <ComboBox ItemsSource="{Binding PaymentPartyOptions}"
+                                                                          SelectedValuePath="Value"
+                                                                          SelectedValue="{Binding SelectedPaymentParty, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                          TextSearch.TextPath="DisplayText"
+                                                                          IsTextSearchEnabled="True"
+                                                                          Style="{StaticResource ModernComboBox}"
+                                                                          Margin="0,5,0,0">
+                                                                    <ComboBox.ItemTemplate>
+                                                                        <DataTemplate>
+                                                                            <TextBlock Text="{Binding DisplayText}"
+                                                                                       TextTrimming="CharacterEllipsis" />
+                                                                        </DataTemplate>
+                                                                    </ComboBox.ItemTemplate>
+                                                                </ComboBox>
+                                                            </StackPanel>
                                                         </StackPanel>
                                                     </Border>
                                                 </DataTemplate>
@@ -132,7 +154,15 @@
                 </ScrollViewer>
             </Border>
 
-            <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
+            <TextBlock x:Name="ErrorText"
+                       Grid.Row="3"
+                       Margin="0,12,0,0"
+                       Foreground="{StaticResource ErrorBrush}"
+                       FontWeight="SemiBold"
+                       TextWrapping="Wrap"
+                       Visibility="Collapsed" />
+
+            <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
                 <Button Width="104" MinWidth="0" Height="36" Margin="0,0,12,0" Content="取消" Style="{StaticResource SecondaryButton}" Click="Cancel_Click" />
                 <Button Width="180" MinWidth="0" Height="36" Content="继续生成并写报告" Style="{StaticResource PrimaryButton}" Click="Ok_Click" />
             </StackPanel>

@@ -85,7 +85,7 @@ Current business scope and stage rules live in `CONTEXT.md`. Current architectur
 - `项目开发人` is an agent/intermediary relationship under a负责人, not the salesperson themselves.
 - Historical January/February 2026 data may be irregular. Do not generalize those quirks.
 - New customers can be left with blank负责人/项目开发人 for manual review in stage 1.
-- Hainan Stage 2 keeps the existing new-subject invoice/payment defaults described in `docs/hainan-stage2-current-behavior.md`. Do not apply those defaults to Chongqing without an explicit Chongqing rule; Chongqing new summary subjects should use a preflight/default model designed for Chongqing.
+- Hainan Stage 2 keeps the existing new-subject invoice/tax defaults and existing-subject inheritance described in `docs/hainan-stage2-current-behavior.md`. For new Hainan summary subjects whose payment party cannot be inherited, preflight must require an explicit `清能`/`清辉` choice instead of silently defaulting. Do not apply Hainan defaults to Chongqing without an explicit Chongqing rule.
 
 ## Build Command
 

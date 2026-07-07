@@ -797,7 +797,7 @@ namespace HainanSettlementTool.WinForms
                 }
 
                 var preflight = CreateWorkflow().AnalyzeStage2(options);
-                if (preflight.HasIssues && !ConfirmStage2Preflight(preflight))
+                if (preflight.HasIssues && !ConfirmStage2Preflight(preflight, options))
                 {
                     Log("已取消阶段2生成。");
                     return;
@@ -923,8 +923,14 @@ namespace HainanSettlementTool.WinForms
             return MessageBox.Show(this, message, "确认运行", MessageBoxButtons.OKCancel, MessageBoxIcon.Question) == DialogResult.OK;
         }
 
-        private bool ConfirmStage2Preflight(Stage2PreflightReport report)
+        private bool ConfirmStage2Preflight(Stage2PreflightReport report, Stage2Options options)
         {
+            var paymentIssues = report.Issues
+                .Where(issue => issue.RequiresPaymentPartySelection)
+                .ToList();
+            var decisionRows = new List<Stage2PaymentDecisionRow>();
+            var hasPaymentDecisions = paymentIssues.Count > 0;
+
             using (var dialog = new Form())
             {
                 dialog.Text = "阶段二预检确认";
@@ -937,14 +943,18 @@ namespace HainanSettlementTool.WinForms
                 var layout = new TableLayoutPanel
                 {
                     Dock = DockStyle.Fill,
-                    RowCount = 4,
+                    RowCount = hasPaymentDecisions ? 5 : 4,
                     ColumnCount = 1,
                     Padding = new Padding(18),
                     BackColor = WindowBackground
                 };
                 layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
                 layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-                layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+                layout.RowStyles.Add(new RowStyle(SizeType.Percent, hasPaymentDecisions ? 62 : 100));
+                if (hasPaymentDecisions)
+                {
+                    layout.RowStyles.Add(new RowStyle(SizeType.Percent, 38));
+                }
                 layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
                 dialog.Controls.Add(layout);
 
@@ -980,19 +990,117 @@ namespace HainanSettlementTool.WinForms
                 };
                 layout.Controls.Add(detail, 0, 2);
 
+                var actionRow = hasPaymentDecisions ? 4 : 3;
+                if (hasPaymentDecisions)
+                {
+                    var decisionPanel = new TableLayoutPanel
+                    {
+                        Dock = DockStyle.Fill,
+                        AutoScroll = true,
+                        ColumnCount = 2,
+                        RowCount = paymentIssues.Count + 1,
+                        BackColor = Color.White,
+                        CellBorderStyle = TableLayoutPanelCellBorderStyle.Single,
+                        Margin = new Padding(0, 0, 0, 14)
+                    };
+                    decisionPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 62));
+                    decisionPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 38));
+                    decisionPanel.Controls.Add(new Label
+                    {
+                        Text = "新增汇总主体",
+                        AutoSize = true,
+                        ForeColor = MainText,
+                        Font = new Font(Font.FontFamily, 9F, FontStyle.Bold),
+                        Padding = new Padding(6)
+                    }, 0, 0);
+                    decisionPanel.Controls.Add(new Label
+                    {
+                        Text = "选择支付方（必选）",
+                        AutoSize = true,
+                        ForeColor = MainText,
+                        Font = new Font(Font.FontFamily, 9F, FontStyle.Bold),
+                        Padding = new Padding(6)
+                    }, 1, 0);
+
+                    for (var index = 0; index < paymentIssues.Count; index++)
+                    {
+                        var issue = paymentIssues[index];
+                        var row = index + 1;
+                        decisionPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+                        decisionPanel.Controls.Add(new Label
+                        {
+                            Text = issue.Kind + " " + issue.Entity,
+                            AutoSize = true,
+                            MaximumSize = new Size(410, 0),
+                            ForeColor = MainText,
+                            Padding = new Padding(6)
+                        }, 0, row);
+
+                        var combo = new ComboBox
+                        {
+                            DropDownStyle = ComboBoxStyle.DropDownList,
+                            Width = 180,
+                            Margin = new Padding(6)
+                        };
+                        IEnumerable<string> parties = issue.AvailablePaymentParties.Count > 0
+                            ? issue.AvailablePaymentParties.AsEnumerable()
+                            : Stage2PaymentParties.Supported.AsEnumerable();
+                        foreach (var party in parties)
+                        {
+                            combo.Items.Add(party);
+                        }
+
+                        decisionPanel.Controls.Add(combo, 1, row);
+                        decisionRows.Add(new Stage2PaymentDecisionRow { Issue = issue, ComboBox = combo });
+                    }
+
+                    layout.Controls.Add(decisionPanel, 0, 3);
+                }
+
                 var actions = new FlowLayoutPanel
                 {
                     Dock = DockStyle.Fill,
                     FlowDirection = FlowDirection.RightToLeft,
                     AutoSize = true
                 };
-                var ok = new Button { Text = "继续生成并写报告", Width = 150, Height = 34, DialogResult = DialogResult.OK };
+                var ok = new Button { Text = "继续生成并写报告", Width = 150, Height = 34 };
                 var cancel = new Button { Text = "取消", Width = 90, Height = 34, DialogResult = DialogResult.Cancel, Margin = new Padding(8, 0, 0, 0) };
                 StylePrimaryButton(ok);
                 StyleSecondaryButton(cancel);
+                ok.Click += (sender, args) =>
+                {
+                    var missing = decisionRows
+                        .Where(row => row.ComboBox.SelectedItem == null)
+                        .Select(row => row.Issue.Kind + " " + row.Issue.Entity)
+                        .ToList();
+                    if (missing.Count > 0)
+                    {
+                        MessageBox.Show(
+                            dialog,
+                            "请先为新增汇总主体选择支付方：" + BuildShortSubjectList(missing),
+                            "请选择支付方",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Warning);
+                        return;
+                    }
+
+                    options.SummarySubjectDecisions.Clear();
+                    foreach (var row in decisionRows)
+                    {
+                        options.SummarySubjectDecisions.Add(new Stage2SummarySubjectDecision
+                        {
+                            SettlementKind = row.Issue.Kind,
+                            Entity = row.Issue.Entity,
+                            PaymentParty = Convert.ToString(row.ComboBox.SelectedItem)
+                        });
+                    }
+
+                    dialog.DialogResult = DialogResult.OK;
+                    dialog.Close();
+                };
                 actions.Controls.Add(ok);
                 actions.Controls.Add(cancel);
-                layout.Controls.Add(actions, 0, 3);
+                layout.Controls.Add(actions, 0, actionRow);
 
                 dialog.AcceptButton = ok;
                 dialog.CancelButton = cancel;
@@ -1038,6 +1146,13 @@ namespace HainanSettlementTool.WinForms
                     {
                         builder.AppendLine("   建议：" + issue.Suggestion);
                     }
+                    if (issue.RequiresPaymentPartySelection)
+                    {
+                        IEnumerable<string> parties = issue.AvailablePaymentParties.Count > 0
+                            ? issue.AvailablePaymentParties.AsEnumerable()
+                            : Stage2PaymentParties.Supported.AsEnumerable();
+                        builder.AppendLine("   需选择支付方：" + string.Join("、", parties));
+                    }
                     if (!string.IsNullOrWhiteSpace(issue.TemplateFile))
                     {
                         builder.AppendLine("   上月模板：" + issue.TemplateFile);
@@ -1052,6 +1167,19 @@ namespace HainanSettlementTool.WinForms
             }
 
             return builder.ToString();
+        }
+
+        private static string BuildShortSubjectList(IEnumerable<string> subjects)
+        {
+            var names = subjects.Take(5).ToList();
+            var suffix = subjects.Skip(5).Any() ? " 等" : string.Empty;
+            return string.Join("、", names) + suffix;
+        }
+
+        private sealed class Stage2PaymentDecisionRow
+        {
+            public Stage2CheckIssue Issue { get; set; }
+            public ComboBox ComboBox { get; set; }
         }
 
         private void LogThreadSafe(string message)

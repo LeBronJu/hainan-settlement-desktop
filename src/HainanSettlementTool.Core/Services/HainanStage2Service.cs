@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using HainanSettlementTool.Core.Models;
 
 namespace HainanSettlementTool.Core.Services
@@ -48,6 +49,34 @@ namespace HainanSettlementTool.Core.Services
             if (string.IsNullOrWhiteSpace(options.OutputDirectory))
             {
                 throw new ArgumentException("请选择输出文件夹。");
+            }
+
+            ValidateSummarySubjectDecisions(options);
+        }
+
+        private static void ValidateSummarySubjectDecisions(Stage2Options options)
+        {
+            foreach (var decision in options.SummarySubjectDecisions)
+            {
+                if (decision == null)
+                {
+                    throw new ArgumentException("海南阶段二新增汇总主体决策不能为空。");
+                }
+
+                if (string.IsNullOrWhiteSpace(decision.SettlementKind))
+                {
+                    throw new ArgumentException("海南阶段二新增汇总主体决策缺少结算类型。");
+                }
+
+                if (string.IsNullOrWhiteSpace(decision.Entity))
+                {
+                    throw new ArgumentException("海南阶段二新增汇总主体决策缺少主体名称。");
+                }
+
+                if (!Stage2PaymentParties.Supported.Contains(decision.PaymentParty))
+                {
+                    throw new ArgumentException("海南阶段二新增汇总主体支付方只能选择清能或清辉。");
+                }
             }
         }
 

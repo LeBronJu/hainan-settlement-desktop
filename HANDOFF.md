@@ -92,6 +92,7 @@ Hainan:
 
 - Hainan Stage 1 and Stage 2 are the mature production path.
 - Hainan Stage 2 current behavior is now documented in `docs/hainan-stage2-current-behavior.md`.
+- Hainan Stage 2 now requires an explicit `清能`/`清辉` preflight choice for new summary subjects whose payment party cannot be inherited. Existing summary-subject inheritance remains unchanged.
 - Do not infer Chongqing behavior from Hainan defaults unless the Chongqing note explicitly says so.
 
 Employee reward:
@@ -167,6 +168,7 @@ Most recent documentation validation:
 - Current documentation quality pass compressed `HANDOFF.md`, added `docs/CHANGELOG.md`, unified reading gates, expanded task-based document routing, and added `scripts/check_docs_guardrails.ps1`. Validation scope is the guardrail script, `git diff --check`, and stale wording/status scans.
 - Pre-Chongqing Stage 2 closeout on 2026-07-07: `scripts/check_docs_guardrails.ps1` passed, `git diff --check` passed, stale wording scan had no matches, Debug tests passed (Core 18, Excel 20), and sequential Debug solution build passed. An earlier concurrent Debug build attempt hit a transient file lock while tests were still running; the sequential rerun passed.
 - Chongqing Stage 2 Core contract slice on 2026-07-07: Core tests passed (24), full Debug tests passed (Core 24, Excel 20), and Debug solution build passed.
+- Hainan Stage 2 new-summary payment-party guard on 2026-07-07: Core tests passed (26), Excel tests passed (23), Debug solution build passed, and Release solution build passed.
 
 For new code changes, rerun focused tests and builds. For pure documentation changes, run at least `git diff --check` plus targeted stale-wording/link scans.
 

@@ -11,6 +11,7 @@
 - 文档守护脚本：新增 `scripts/check_docs_guardrails.ps1`，用于检查 `HANDOFF.md` 行数、重复长章节、文档地图必要路由、dev-note/current-behavior 状态行和历史真实数据授权措辞。
 - 重庆阶段二分析：完成授权只读结构分析，形成 `docs/dev-notes/chongqing-stage2-analysis-2026-07-07.md`。关键结论包括重庆 30 列月度块、隐藏列保留、汇总表 `当年费用总计` 锚点、代理/居间/退补三类结算、代理少回收电能量电费、退补分段电价，以及新增汇总主体支付方需要预检显式选择。
 - 重庆阶段二 Core 合同切片：新增重庆阶段二 options、preflight/report/issue 模型、service、Excel gateway interface 和 workflow 入口；尚未实现 Excel 生成器或 WPF 入口。
+- 海南阶段二新增汇总主体支付方守护：存量汇总主体继承路径不变；新增汇总主体支付方无法可靠继承时，预检要求显式选择 `清能`/`清辉`，缺少选择时拒绝生成，避免继续静默默认 `清辉`。
 - WPF log-controller：合入低风险 WPF 解耦切片，新增 `MainWindowLogController` 管理日志追加、清空和保存；不改变结算计算、Excel 行为或用户可见日志文本。
 - WPF log-controller 测试包：生成 `HainanSettlementTool-Win10-11-Release-20260707-150019.zip` 供本机测试；没有创建正式 tag 或 GitHub Release。
 - 重庆阶段一客户处理决定和 UI 修复：WPF 预检要求未匹配客户显式选择新增、跳过或匹配既有台账客户；修复省份下拉和客户目标下拉显示内部类型名的问题；WPF 可见标题改为 `清能电力-结算自动化工具`。
