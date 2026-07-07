@@ -1,6 +1,6 @@
 # Handoff
 
-Last updated: 2026-07-06
+Last updated: 2026-07-07
 
 ## Project
 
@@ -31,7 +31,7 @@ The stable local reference folder is for future comparison/orientation only; do 
 ## Current Git State
 
 - Current branch: `codex/chongqing-stage1-clean-power`
-- Branch purpose: add the first multi-province Stage 1 module for Chongqing power-data cleaning.
+- Branch purpose: add the first multi-province Stage 1 module for Chongqing power-data cleaning and ledger update.
 - Previous uncommitted WPF small-window work was reviewed on 2026-07-06. The action-row `DockPanel LastChildFill="False"` fixes were already present on the Chongqing branch, the remaining `MinHeight="720"` fix was reapplied, and the old stash was dropped.
 - Employee reward module has been merged to `main` from `codex/employee-reward-module`. The user completed practical testing on 2026-07-02 and reported no blocking issues.
 - Latest employee reward feature commit before this handoff update: `feb933f Add employee reward module`
