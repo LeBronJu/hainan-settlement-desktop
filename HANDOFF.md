@@ -47,6 +47,10 @@ The stable local reference folder is for future comparison/orientation only; do 
 - Win10/11 WPF is the primary UI entry for new features and UX work.
 - Win7/8 WinForms remains part of `main` as a maintenance compatibility entry: keep it buildable, packageable, and fix blocking bugs only unless explicitly requested.
 - Win7/8 and Win10/11 share Core/Excel logic but remain separate desktop apps.
+- Latest local WPF test package from the current Chongqing bugfix branch:
+  - `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-105743.zip`
+  - unpacked directory: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-105743`
+  - built from `codex/chongqing-month-block-copy` after `074401a` and `f60d325`.
 - Do not add real ledgers, customer data, settlement outputs, screenshots, or finance/payment data to git.
 
 Use `git status --short --branch` before editing. The expected handoff worktree should be clean on the current `codex/` development branch unless the user explicitly authorizes merging to `main`; no real Excel files or generated settlement outputs should be tracked.
@@ -922,6 +926,20 @@ Observed result:
 - WPF `MessageBox` search had no matches.
 - The broader project/namespace name `HainanSettlementTool` remains unchanged for now. Province-neutral naming cleanup has been promoted into today's multi-province technical-debt mainline, but it should still be done through low-risk internal slices instead of a large all-at-once project/namespace rename.
 
+WPF local Release test package on 2026-07-07:
+
+```powershell
+.\scripts\package_wpf_release.ps1
+```
+
+Observed result:
+
+- Release build passed for Core, Excel, WinForms, WPF, and both test projects as part of the packaging script.
+- Package directory created at `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-105743`.
+- Zip package created at `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-105743.zip`.
+- Package content was checked and includes the Win10/11 exe, `.exe.config`, required `.dll` files, and `README.txt`.
+- `git status --short --branch` was clean after packaging; generated `dist/` artifacts are not tracked.
+
 ## Documentation Rule
 
 Documentation is now part of the development contract:
@@ -990,9 +1008,9 @@ Packaging/docs:
 
 ## Next Steps
 
-1. Let the user test the latest WPF package, first checking the no-province empty state, then the Chongqing `清洗并更新台账` flow and one-time manual matching window.
+1. Let the user test the latest WPF package, first checking the no-province empty state, then the Chongqing `清洗并更新台账` flow and one-time manual matching window. Include the 4月重庆台账 + 5月电量表 case to confirm the app creates the 5月 month block instead of reporting `重庆台账中未找到5月电量区块`.
 2. Decide later whether repeated manual matches should remain one-time only or support a user-maintained alias table.
-3. Decide whether future Chongqing months should require the target month block to already exist in the ledger, or whether the app should copy the previous month block and create the new month block.
+3. If user testing accepts the Chongqing month-block behavior, merge `codex/chongqing-month-block-copy` to `main` with user authorization; if not, adjust the branch before merge.
 4. Decide whether to cut a Win10/11 acceptance release from the accepted WPF package or rebuild a fresh release package from `main`.
 5. Continue quality work with WPF as the default UI target; next low-risk `MainWindow.xaml.cs` decomposition candidates are log control, modern dialog entry points, and file-path browsing/input state. Avoid WinForms parity work unless it is a bugfix, build/package compatibility issue, or explicitly requested.
 6. Treat province-neutral naming cleanup as part of today's multi-province technical-debt mainline after the Chongqing month-block bugfix is isolated. Do not rename the project/namespace `HainanSettlementTool` casually; start with smaller internal class/variable names where the province meaning is misleading and tests can cover the change.
