@@ -111,10 +111,10 @@ Chongqing Stage 1:
 
 Chongqing Stage 2:
 
-- Not implemented yet.
+- Partially implemented for Core contract and Excel preflight analysis only; not user-runnable yet.
 - Analysis is documented in `docs/dev-notes/chongqing-stage2-analysis-2026-07-07.md`.
 - First Core contract slice is implemented: `ChongqingStage2Options`, preflight/report/issue models, `ChongqingStage2Service`, `IChongqingStage2ExcelGateway`, and workflow plan/complete/run entry points.
-- Excel generator and WPF entry are still not implemented, so the feature is not user-runnable yet.
+- Excel Analyze-only slice is implemented: `ChongqingStage2SettlementGenerator` reads the Chongqing ledger target-month 30-column block, identifies proxy/intermediary/refund groups, and reports new summary subjects requiring payment-party selection. Workbook generation still explicitly throws as not implemented, and WPF entry is still not implemented, so the feature is not user-runnable yet.
 - Keep this work in Win10/11 WPF plus Core/Excel shared layers; do not add WinForms parity unless explicitly requested.
 
 WinForms:
@@ -167,8 +167,8 @@ Most recent documentation validation:
 - Stale wording scan and `git diff --check` passed for that cleanup before commit `48c4921`.
 - Current documentation quality pass compressed `HANDOFF.md`, added `docs/CHANGELOG.md`, unified reading gates, expanded task-based document routing, and added `scripts/check_docs_guardrails.ps1`. Validation scope is the guardrail script, `git diff --check`, and stale wording/status scans.
 - Pre-Chongqing Stage 2 closeout on 2026-07-07: `scripts/check_docs_guardrails.ps1` passed, `git diff --check` passed, stale wording scan had no matches, Debug tests passed (Core 18, Excel 20), and sequential Debug solution build passed. An earlier concurrent Debug build attempt hit a transient file lock while tests were still running; the sequential rerun passed.
-- Chongqing Stage 2 Core contract slice on 2026-07-07: Core tests passed (24), full Debug tests passed (Core 24, Excel 20), and Debug solution build passed.
 - Hainan Stage 2 new-summary payment-party guard on 2026-07-07: Core tests passed (26), Excel tests passed (23), Debug solution build passed, and Release solution build passed.
+- Chongqing Stage 2 Core contract and Excel Analyze-only slices on 2026-07-07: Core tests passed (26), Excel tests passed (27), and Debug solution build passed.
 
 For new code changes, rerun focused tests and builds. For pure documentation changes, run at least `git diff --check` plus targeted stale-wording/link scans.
 

@@ -5,13 +5,14 @@ using HainanSettlementTool.Core.Services;
 
 namespace HainanSettlementTool.Excel
 {
-    public sealed class ClosedXmlSettlementExcelGateway : IHainanStage1ExcelGateway, IHainanStage2ExcelGateway, IEmployeeRewardExcelGateway, IProvinceStage1ExcelGateway
+    public sealed class ClosedXmlSettlementExcelGateway : IHainanStage1ExcelGateway, IHainanStage2ExcelGateway, IEmployeeRewardExcelGateway, IProvinceStage1ExcelGateway, IChongqingStage2ExcelGateway
     {
         private readonly PowerWorkbookReader _powerWorkbookReader = new PowerWorkbookReader();
         private readonly RawDetailReader _rawDetailReader = new RawDetailReader();
         private readonly CustomerCodeReader _customerCodeReader = new CustomerCodeReader();
         private readonly LedgerStage1Updater _ledgerUpdater = new LedgerStage1Updater();
         private readonly Stage2SettlementGenerator _stage2Generator = new Stage2SettlementGenerator();
+        private readonly ChongqingStage2SettlementGenerator _chongqingStage2Generator = new ChongqingStage2SettlementGenerator();
         private readonly EmployeeRewardGenerator _employeeRewardGenerator = new EmployeeRewardGenerator();
         private readonly Dictionary<ProvinceCode, IProvinceStage1Adapter> _provinceStage1Adapters;
 
@@ -82,6 +83,16 @@ namespace HainanSettlementTool.Excel
         public Stage2PreflightReport AnalyzeSettlement(Stage2Options options)
         {
             return _stage2Generator.Analyze(options);
+        }
+
+        public ChongqingStage2Report GenerateSettlement(ChongqingStage2Options options)
+        {
+            return _chongqingStage2Generator.Generate(options);
+        }
+
+        public ChongqingStage2PreflightReport AnalyzeSettlement(ChongqingStage2Options options)
+        {
+            return _chongqingStage2Generator.Analyze(options);
         }
 
         public IList<EmployeeRewardLedgerRow> ReadLedgerRows(EmployeeRewardOptions options)
