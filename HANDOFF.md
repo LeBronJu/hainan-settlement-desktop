@@ -68,7 +68,7 @@ The stable local reference folder is for future comparison/orientation only; do 
   - built from `codex/chongqing-month-block-copy` after `074401a` and `f60d325`.
 - Do not add real ledgers, customer data, settlement outputs, screenshots, or finance/payment data to git.
 
-Use `git status --short --branch` before editing. The expected handoff worktree should be clean on local `main`; no real Excel files or generated settlement outputs should be tracked.
+Use `git status --short --branch` before editing. The current follow-up worktree should be clean on `codex/wpf-log-controller`; local `main` remains the acceptance-package baseline at `0b5ef73 Document main acceptance package`. No real Excel files or generated settlement outputs should be tracked.
 
 ## Release 1.0.1
 

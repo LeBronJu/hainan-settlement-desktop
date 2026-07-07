@@ -264,18 +264,21 @@ UI 约束：
 
 ### 2026-07-07 P0 进展
 
-已完成五个低风险预布局切片：
+已完成八个低风险预布局切片：
 
 1. WPF 新增 `ProvinceUiProfile`，集中海南/重庆的省份显示名、可用功能、阶段一输入文案、按钮文案、结果区文案和文件选择标题。`MainWindow` 仍负责控件赋值和事件入口，但不再把海南/重庆 UI 文案散落在 `UpdateProvinceUi` 里。
 2. Excel 层新增内部 `IProvinceStage1Adapter` seam 和 `ChongqingProvinceStage1Adapter`。`ClosedXmlSettlementExcelGateway` 只按 `ProvinceCode` 分发多省份阶段一 Excel 实现，不再直接写重庆 if 分支。
 3. `ProvinceStage1LedgerUpdateIssue` 新增稳定 `Kind`，中文 `Category` 保留给展示和 JSON 兼容。WPF 预检窗口用 `Kind` 判断客户手动匹配类 issue，并保留中文 `Category` fallback。
 4. WPF 新增 `MainWindowProgressController`，把状态 pill、进度条、进度说明和五步状态渲染从 `MainWindow.xaml.cs` 拆出。主窗口暂保留薄 helper，避免一次性重写业务按钮流程。
 5. WPF 新增 `MainWindowResultController`，把右侧完成卡片、输出项可见性、最近输出目录和各阶段成功摘要从 `MainWindow.xaml.cs` 拆出。主窗口仍保留 workflow 编排和打开文件夹按钮入口。
+6. WPF 新增 `MainWindowDialogController` 和 `MainWindowPathPickerController`，把现代确认/错误弹窗入口以及文件/文件夹选择入口从 `MainWindow.xaml.cs` 拆出。
+7. WPF 新增 `MainWindowLogController`，把运行日志追加、滚动、清空和保存文本文件行为从 `MainWindow.xaml.cs` 拆出。
+8. Core/Excel/WPF 已实现重庆客户处理决定：`匹配已有台账客户`、`新增客户到台账`、`本月不写入`。海南阶段一保持原有稳定自动新增客户流程。
 
 未完成且仍建议后续处理：
 
 - 海南命名逐步中性化已进入今日多省份技术债主线。已完成第一批低风险切片：海南专用阶段入口改为 `HainanStage1Service` / `HainanStage2Service` 和对应 gateway interface；组合型 ClosedXML gateway 改为 `ClosedXmlSettlementExcelGateway`；省份显示名抽到 `ProvinceDisplayNames`；WPF 窗口标题、日志文件名和输入持久化目录改为中性名称并保留旧目录读取 fallback。暂不做项目名/命名空间/发布包名的一次性大重命名。
-- 客户处理决定已确定为多省份通用能力的下一步切片：优先改重庆显式预检和台账写入，海南只接入不改变行为的模型/报告语义，不强行启用手动匹配 UI。
+- 客户处理决定已作为多省份通用模型落地，并优先启用于重庆显式预检和台账写入。海南仍不启用手动匹配 UI，保持成熟自动新增客户流程；未来只有出现真实改名/跳过需求时再接入同一模型。
 - `ProvinceStage1Service` 仍有重庆专用支持校验；第三个省接入前应继续把“是否支持”和通用必填项收敛到更明确的省份能力 seam。
 - 完整 MVVM、持久化别名表和重庆阶段二抽象仍属于 P2，暂不展开。
 
@@ -284,7 +287,7 @@ UI 约束：
 1. 建立省份能力/界面 profile，先替换 WPF `UpdateProvinceUi` 里的省份文案和可见性判断。（已完成第一版）
 2. 建立 Excel 内部省份阶段一 adapter seam，把重庆 adapter 从 `ClosedXmlSettlementExcelGateway` 的 if 分支里独立出来。（已完成第一版）
 3. 给 `ProvinceStage1LedgerUpdateIssue` 增加稳定 code / kind，避免 UI 行为依赖中文分类。（已完成第一版）
-4. 继续按低风险边界拆 `MainWindow.xaml.cs`：已先拆进度/状态控制和结果摘要刷新；后续优先拆文件路径选择、日志控制和确认弹窗入口。
+4. 继续按低风险边界拆 `MainWindow.xaml.cs`：进度/状态、结果摘要、确认/错误弹窗入口、文件/文件夹选择入口、日志控制已拆出；后续应优先处理仍留在窗口里的 workflow 编排或输入状态应用逻辑。
 5. 继续海南命名中性化的低风险切片：先改内部多省份概念的类名/变量名/helper 名；保留已经准确表达海南专属规则的名称，不做根项目名、程序集名、命名空间和发布包名的大迁移。
 
 ### P1：第三个省接入时同步做
