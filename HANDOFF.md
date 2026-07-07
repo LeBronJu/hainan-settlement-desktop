@@ -920,7 +920,7 @@ Observed result:
 - Debug build passed for Core, Excel, WinForms, and WPF.
 - `git diff --check` passed with CRLF normalization warnings only.
 - WPF `MessageBox` search had no matches.
-- The broader project/namespace name `HainanSettlementTool` remains unchanged for now. Future naming cleanup should prefer low-risk province-neutral slices for internal modules/classes/variables, not a large all-at-once rename in a settlement bugfix.
+- The broader project/namespace name `HainanSettlementTool` remains unchanged for now. Province-neutral naming cleanup has been promoted into today's multi-province technical-debt mainline, but it should still be done through low-risk internal slices instead of a large all-at-once project/namespace rename.
 
 ## Documentation Rule
 
@@ -995,5 +995,5 @@ Packaging/docs:
 3. Decide whether future Chongqing months should require the target month block to already exist in the ledger, or whether the app should copy the previous month block and create the new month block.
 4. Decide whether to cut a Win10/11 acceptance release from the accepted WPF package or rebuild a fresh release package from `main`.
 5. Continue quality work with WPF as the default UI target; next low-risk `MainWindow.xaml.cs` decomposition candidates are log control, modern dialog entry points, and file-path browsing/input state. Avoid WinForms parity work unless it is a bugfix, build/package compatibility issue, or explicitly requested.
-6. Plan province-neutral naming cleanup separately from bugfixes. Do not rename the project/namespace `HainanSettlementTool` casually; start with smaller internal class/variable names where the province meaning is misleading and tests can cover the change.
+6. Treat province-neutral naming cleanup as part of today's multi-province technical-debt mainline after the Chongqing month-block bugfix is isolated. Do not rename the project/namespace `HainanSettlementTool` casually; start with smaller internal class/variable names where the province meaning is misleading and tests can cover the change.
 7. Consider adding sanitized employee reward, Stage 2, Chongqing, and `.xls` fixture workbooks later; current regressions use dynamically generated synthetic workbooks and local authorized smoke only.
