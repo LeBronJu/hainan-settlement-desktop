@@ -53,7 +53,10 @@ The stable local reference folder is for future comparison/orientation only; do 
 - Win10/11 WPF is the primary UI entry for new features and UX work.
 - Win7/8 WinForms remains part of `main` as a maintenance compatibility entry: keep it buildable, packageable, and fix blocking bugs only unless explicitly requested.
 - Win7/8 and Win10/11 share Core/Excel logic but remain separate desktop apps.
-- Latest local acceptance packages built from local `main`:
+- Latest local WPF test package built from local `main` after the WPF log-controller merge:
+  - Win10/11 WPF: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-150019.zip`
+  - Win10/11 WPF unpacked directory: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-150019`
+- Latest local acceptance packages built from local `main` before the log-controller merge:
   - Win10/11 WPF: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-140505.zip`
   - Win10/11 WPF unpacked directory: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-140505`
   - Win7/8 WinForms maintenance package: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win7-8-Release-20260707-140515.zip`
@@ -1100,6 +1103,21 @@ Observed result:
 - `git diff --check` passed with CRLF normalization warnings only.
 - WPF `MessageBox` search had no matches.
 
+WPF local test package after log-controller merge on 2026-07-07:
+
+```powershell
+.\scripts\package_wpf_release.ps1
+```
+
+Observed result:
+
+- Release build passed for Core, Excel, WinForms, WPF, and both test projects as part of the packaging script.
+- Package directory created at `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-150019`.
+- Zip package created at `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-150019.zip`.
+- Package content was checked and includes the Win10/11 exe, `.exe.config`, required `.dll` files, and `README.txt`.
+- This is a local Win10/11 WPF machine-test package only; no formal tag or GitHub Release was created.
+- No real Excel, real ledger, customer data, screenshots, or settlement outputs were read for this packaging validation.
+
 ## Documentation Rule
 
 Documentation is now part of the development contract:
@@ -1175,8 +1193,9 @@ Packaging/docs:
 
 ## Next Steps
 
-1. Continue the mainline with Chongqing Stage 2 requirements/design and implementation planning before any new formal release/tag.
-2. Decide whether repeated manual matches should remain one-time only or support a user-maintained alias table.
-3. If the user authorizes a real-data smoke, run it read-only against specifically authorized Chongqing input files and write outputs only to an explicitly selected test/output folder.
-4. Avoid WinForms parity work unless it is a bugfix, build/package compatibility issue, or explicitly requested.
-5. Consider adding sanitized employee reward, Stage 2, Chongqing, and `.xls` fixture workbooks later; current regressions use dynamically generated synthetic workbooks and local authorized smoke only.
+1. Have the user test the local Win10/11 WPF package `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-150019.zip` if they want a build that includes the WPF log-controller merge.
+2. Continue the mainline with Chongqing Stage 2 requirements/design and implementation planning before any new formal release/tag.
+3. Decide whether repeated manual matches should remain one-time only or support a user-maintained alias table.
+4. If the user authorizes a real-data smoke, run it read-only against specifically authorized Chongqing input files and write outputs only to an explicitly selected test/output folder.
+5. Avoid WinForms parity work unless it is a bugfix, build/package compatibility issue, or explicitly requested.
+6. Consider adding sanitized employee reward, Stage 2, Chongqing, and `.xls` fixture workbooks later; current regressions use dynamically generated synthetic workbooks and local authorized smoke only.
