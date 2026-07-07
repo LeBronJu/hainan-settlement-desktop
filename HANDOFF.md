@@ -30,8 +30,8 @@ The stable local reference folder is for future comparison/orientation only; do 
 
 ## Current Git State
 
-- Current branch: `codex/chongqing-stage1-clean-power`
-- Branch purpose: add the first multi-province Stage 1 module for Chongqing power-data cleaning and ledger update.
+- Current branch: `codex/wpf-mainwindow-decomposition`
+- Branch purpose: reduce WPF `MainWindow.xaml.cs` coupling after the Chongqing Stage 1 module, keeping the app ready for more provinces.
 - Multi-province readiness note: `docs/dev-notes/multi-province-readiness-2026-07-07.md`. Read it before new-province onboarding, WPF province UI, Core multi-province workflow, or Excel multi-province adapter work.
 - Previous uncommitted WPF small-window work was reviewed on 2026-07-06. The action-row `DockPanel LastChildFill="False"` fixes were already present on the Chongqing branch, the remaining `MinHeight="720"` fix was reapplied, and the old stash was dropped.
 - Employee reward module has been merged to `main` from `codex/employee-reward-module`. The user completed practical testing on 2026-07-02 and reported no blocking issues.
@@ -49,7 +49,7 @@ The stable local reference folder is for future comparison/orientation only; do 
 - Win7/8 and Win10/11 share Core/Excel logic but remain separate desktop apps.
 - Do not add real ledgers, customer data, settlement outputs, screenshots, or finance/payment data to git.
 
-Use `git status --short --branch` before editing. The expected handoff worktree should be clean on `main`; no real Excel files or generated settlement outputs should be tracked.
+Use `git status --short --branch` before editing. The expected handoff worktree should be clean on the current `codex/` development branch unless the user explicitly authorizes merging to `main`; no real Excel files or generated settlement outputs should be tracked.
 
 ## Release 1.0.1
 
@@ -838,6 +838,39 @@ Observed result:
 - WPF `MessageBox` search had no matches.
 - No real Excel, CSV, image, PDF, or generated sensitive output file appears in `git status`.
 
+WPF Release test package on 2026-07-07:
+
+```powershell
+.\scripts\package_wpf_release.ps1
+```
+
+Observed result:
+
+- Win10/11 WPF test package generated at `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-100359.zip`.
+- Package contents checked for the WPF executable, config, Core/Excel DLLs, ClosedXML DLLs, and runtime dependency DLLs.
+- This is a development test package from `codex/wpf-mainwindow-decomposition`, not a formal release tag.
+
+WPF MainWindow progress decomposition on 2026-07-07:
+
+```powershell
+dotnet msbuild .\src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Debug
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Debug /m
+git diff --check
+rg "MessageBox" -n src\HainanSettlementTool.Wpf
+```
+
+Observed result:
+
+- Added `MainWindowProgressController` to own the WPF status pill, progress bar, progress description, and five-step status rendering.
+- `MainWindow.xaml.cs` keeps the existing workflow call sites through thin helper methods, but no longer directly owns step text/status arrays or step rendering rules.
+- This is an internal UI-architecture slice only; no settlement calculation, Excel read/write, customer matching, or generated workbook behavior changed.
+- Targeted WPF Debug build passed.
+- Full Debug test suite passed: Core 18 tests, Excel 18 tests.
+- Debug build passed for Core, Excel, WinForms, and WPF.
+- `git diff --check` passed with CRLF normalization warnings only.
+- WPF `MessageBox` search had no matches.
+
 ## Documentation Rule
 
 Documentation is now part of the development contract:
@@ -886,6 +919,7 @@ UI:
 - `src/HainanSettlementTool.WinForms/MainForm.cs`
 - `src/HainanSettlementTool.Wpf/MainWindow.xaml`
 - `src/HainanSettlementTool.Wpf/MainWindow.xaml.cs`
+- `src/HainanSettlementTool.Wpf/MainWindowProgressController.cs`
 - `src/HainanSettlementTool.Wpf/ProvinceUiProfile.cs`
 - `src/HainanSettlementTool.Wpf/Stage2PreflightWindow.xaml`
 - `src/HainanSettlementTool.Wpf/ProvinceStage1LedgerPreflightWindow.xaml`

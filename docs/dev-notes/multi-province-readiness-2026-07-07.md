@@ -119,10 +119,12 @@
 
 - `src/HainanSettlementTool.Wpf/MainWindow.xaml`
 - `src/HainanSettlementTool.Wpf/MainWindow.xaml.cs`
+- `src/HainanSettlementTool.Wpf/MainWindowProgressController.cs`
 
 问题：
 
 - `UpdateProvinceUi` 同时处理 tab 标题、功能可见性、输入标签、按钮文案、结果区行可见性和提示文本。
+- `MainWindow.xaml.cs` 还承载运行状态、进度条和五步状态渲染，代码后置文件容易继续变成所有 UI 状态的集中点。
 - 现在只有海南/重庆，复杂度可控；第三个省接入后会变浅：Interface 是一个窗口方法，Implementation 包含大量省份知识。
 
 建议：
@@ -133,6 +135,7 @@
   - 静态布局仍留在 XAML。
   - 运行时变化文案来自 profile。
   - `UpdateProvinceUi` 只负责应用 profile 到控件。
+  - 运行进度、状态 pill、步骤状态等可复用 UI 状态先从 `MainWindow.xaml.cs` 拆到独立控制器，不急于完整 MVVM。
 
 收益：
 
@@ -197,11 +200,12 @@
 
 ### 2026-07-07 P0 进展
 
-已完成三个低风险预布局切片：
+已完成四个低风险预布局切片：
 
 1. WPF 新增 `ProvinceUiProfile`，集中海南/重庆的省份显示名、可用功能、阶段一输入文案、按钮文案、结果区文案和文件选择标题。`MainWindow` 仍负责控件赋值和事件入口，但不再把海南/重庆 UI 文案散落在 `UpdateProvinceUi` 里。
 2. Excel 层新增内部 `IProvinceStage1Adapter` seam 和 `ChongqingProvinceStage1Adapter`。`ClosedXmlStage1ExcelGateway` 只按 `ProvinceCode` 分发多省份阶段一 Excel 实现，不再直接写重庆 if 分支。
 3. `ProvinceStage1LedgerUpdateIssue` 新增稳定 `Kind`，中文 `Category` 保留给展示和 JSON 兼容。WPF 预检窗口用 `Kind` 判断客户手动匹配类 issue，并保留中文 `Category` fallback。
+4. WPF 新增 `MainWindowProgressController`，把状态 pill、进度条、进度说明和五步状态渲染从 `MainWindow.xaml.cs` 拆出。主窗口暂保留薄 helper，避免一次性重写业务按钮流程。
 
 未完成且仍建议后续处理：
 
@@ -213,6 +217,7 @@
 1. 建立省份能力/界面 profile，先替换 WPF `UpdateProvinceUi` 里的省份文案和可见性判断。（已完成第一版）
 2. 建立 Excel 内部省份阶段一 adapter seam，把重庆 adapter 从 `ClosedXmlStage1ExcelGateway` 的 if 分支里独立出来。（已完成第一版）
 3. 给 `ProvinceStage1LedgerUpdateIssue` 增加稳定 code / kind，避免 UI 行为依赖中文分类。（已完成第一版）
+4. 继续按低风险边界拆 `MainWindow.xaml.cs`：已先拆进度/状态控制；后续优先拆文件路径选择、结果摘要刷新、日志控制和确认弹窗入口。
 
 ### P1：第三个省接入时同步做
 

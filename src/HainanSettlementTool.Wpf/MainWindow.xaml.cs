@@ -20,8 +20,7 @@ namespace HainanSettlementTool.Wpf
 {
     public partial class MainWindow : Window
     {
-        private readonly TextBlock[] _stepTexts;
-        private readonly TextBlock[] _stepStatuses;
+        private readonly MainWindowProgressController _progressController;
         private string _lastOutputDirectory;
         private bool _isBusy;
         private bool _loadingInputs;
@@ -52,8 +51,17 @@ namespace HainanSettlementTool.Wpf
             MonthCombo.SelectedIndex = -1;
             RewardStartMonthCombo.SelectedIndex = 0;
             RewardEndMonthCombo.SelectedIndex = -1;
-            _stepTexts = new[] { Step1Text, Step2Text, Step3Text, Step4Text, Step5Text };
-            _stepStatuses = new[] { Step1Status, Step2Status, Step3Status, Step4Status, Step5Status };
+            _progressController = new MainWindowProgressController(
+                StatusText,
+                StatusDot,
+                StatusPill,
+                ProgressTitle,
+                ProgressDescriptionText,
+                ProgressBar,
+                ProgressPercentText,
+                new[] { Step1Text, Step2Text, Step3Text, Step4Text, Step5Text },
+                new[] { Step1Status, Step2Status, Step3Status, Step4Status, Step5Status },
+                BrushOf);
             ResetProgress("等待执行", "尚未开始");
             ResetResults();
             AddLog("工具已就绪，等待操作。", "信息");
@@ -1088,109 +1096,47 @@ namespace HainanSettlementTool.Wpf
         private void RefreshThemeDependentState()
         {
             UpdateSharedSettingsState();
-            if (StatusText.Text == "待确认" || StatusText.Text == "运行中")
-            {
-                SetStatus(StatusText.Text, "WarningBrush", "StatusBusyBrush");
-            }
-            else
-            {
-                SetStatus(StatusText.Text, "SuccessBrush", "StatusReadyBrush");
-            }
+            _progressController.RefreshStatusBrushes();
         }
 
         private void SetStatus(string text, string dotBrushKey, string backgroundBrushKey)
         {
-            StatusText.Text = text;
-            StatusDot.Fill = BrushOf(dotBrushKey);
-            StatusPill.Background = BrushOf(backgroundBrushKey);
+            _progressController.SetStatus(text, dotBrushKey, backgroundBrushKey);
         }
 
         private void ResetProgress(string title, string description)
         {
-            ProgressTitle.Text = title;
-            ProgressDescriptionText.Text = description;
-            SetProgress(0, description);
-            for (var i = 0; i < _stepTexts.Length; i++)
-            {
-                SetStepWaiting(i);
-            }
+            _progressController.ResetProgress(title, description);
         }
 
         private void SetProgress(int value, string description)
         {
-            ProgressBar.Value = value;
-            ProgressPercentText.Text = value + "%";
-            ProgressDescriptionText.Text = description;
+            _progressController.SetProgress(value, description);
         }
 
         private void SetStepWaiting(int index)
         {
-            _stepTexts[index].Text = "○  " + StepName(index);
-            _stepTexts[index].Foreground = BrushOf("MutedBrush");
-            _stepStatuses[index].Text = "等待中";
-            _stepStatuses[index].Foreground = BrushOf("MutedBrush");
+            _progressController.SetStepWaiting(index);
         }
 
         private void SetStepRunning(int index)
         {
-            _stepTexts[index].Text = "●  " + StepName(index);
-            _stepTexts[index].Foreground = BrushOf("AccentBrush");
-            _stepStatuses[index].Text = "进行中";
-            _stepStatuses[index].Foreground = BrushOf("AccentBrush");
+            _progressController.SetStepRunning(index);
         }
 
         private void SetStepNeedsConfirmation(int index)
         {
-            _stepTexts[index].Text = "●  " + StepName(index);
-            _stepTexts[index].Foreground = BrushOf("WarningBrush");
-            _stepStatuses[index].Text = "待确认";
-            _stepStatuses[index].Foreground = BrushOf("WarningBrush");
+            _progressController.SetStepNeedsConfirmation(index);
         }
 
         private void SetStepDone(int index)
         {
-            _stepTexts[index].Text = "●  " + StepName(index);
-            _stepTexts[index].Foreground = BrushOf("SuccessBrush");
-            _stepStatuses[index].Text = "完成";
-            _stepStatuses[index].Foreground = BrushOf("SuccessBrush");
-
-            if (index + 1 < _stepTexts.Length)
-            {
-                SetStepRunning(index + 1);
-                SetProgress(Math.Min(90, 25 + (index + 1) * 15), StepName(index + 1));
-            }
+            _progressController.SetStepDone(index);
         }
 
         private void SetStepFailed()
         {
-            for (var i = 0; i < _stepStatuses.Length; i++)
-            {
-                if (_stepStatuses[i].Text == "进行中")
-                {
-                    _stepTexts[i].Text = "●  " + StepName(i);
-                    _stepTexts[i].Foreground = BrushOf("ErrorBrush");
-                    _stepStatuses[i].Text = "失败";
-                    _stepStatuses[i].Foreground = BrushOf("ErrorBrush");
-                    return;
-                }
-            }
-        }
-
-        private static string StepName(int index)
-        {
-            switch (index)
-            {
-                case 0:
-                    return "检查输入文件";
-                case 1:
-                    return "读取台账数据";
-                case 2:
-                    return "生成结算文件";
-                case 3:
-                    return "写入结果报告";
-                default:
-                    return "保存结果文件";
-            }
+            _progressController.SetStepFailed();
         }
 
         private void UpdateResultVisibility(ProvinceCode? province)
