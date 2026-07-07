@@ -9,6 +9,7 @@ namespace HainanSettlementTool.Core.Services
         private readonly HainanStage2Service _stage2Service;
         private readonly EmployeeRewardService _employeeRewardService;
         private readonly ProvinceStage1Service _provinceStage1Service;
+        private readonly ChongqingStage2Service _chongqingStage2Service;
 
         public SettlementWorkflow(HainanStage1Service stage1Service, HainanStage2Service stage2Service)
             : this(stage1Service, stage2Service, null)
@@ -25,6 +26,16 @@ namespace HainanSettlementTool.Core.Services
             HainanStage2Service stage2Service,
             EmployeeRewardService employeeRewardService,
             ProvinceStage1Service provinceStage1Service)
+            : this(stage1Service, stage2Service, employeeRewardService, provinceStage1Service, null)
+        {
+        }
+
+        public SettlementWorkflow(
+            HainanStage1Service stage1Service,
+            HainanStage2Service stage2Service,
+            EmployeeRewardService employeeRewardService,
+            ProvinceStage1Service provinceStage1Service,
+            ChongqingStage2Service chongqingStage2Service)
         {
             if (stage1Service == null)
             {
@@ -40,6 +51,7 @@ namespace HainanSettlementTool.Core.Services
             _stage2Service = stage2Service;
             _employeeRewardService = employeeRewardService;
             _provinceStage1Service = provinceStage1Service;
+            _chongqingStage2Service = chongqingStage2Service;
         }
 
         public StageWorkflowResult<Stage1Report> RunStage1(Stage1Options options, Action<string> log)
@@ -163,6 +175,62 @@ namespace HainanSettlementTool.Core.Services
                     "报告：" + report.ReportPath,
                     "代理费合计：" + report.ProxyTotal.ToString("0.####"),
                     "居间费合计：" + report.IntermediaryTotal.ToString("0.####")
+                });
+        }
+
+        public ChongqingStage2PreflightReport AnalyzeChongqingStage2(ChongqingStage2Options options)
+        {
+            if (_chongqingStage2Service == null)
+            {
+                throw new InvalidOperationException("重庆阶段二服务未配置。");
+            }
+
+            return _chongqingStage2Service.Analyze(options);
+        }
+
+        public ChongqingStage2WorkflowPlan PlanChongqingStage2(ChongqingStage2Options options)
+        {
+            return new ChongqingStage2WorkflowPlan(options, AnalyzeChongqingStage2(options));
+        }
+
+        public ChongqingStage2WorkflowResult CompleteChongqingStage2(
+            ChongqingStage2WorkflowPlan plan,
+            bool confirmed,
+            Action<string> log)
+        {
+            if (plan == null)
+            {
+                throw new ArgumentNullException(nameof(plan));
+            }
+
+            if (plan.RequiresConfirmation && !confirmed)
+            {
+                return ChongqingStage2WorkflowResult.Cancelled();
+            }
+
+            return ChongqingStage2WorkflowResult.Complete(RunChongqingStage2(plan.Options, log));
+        }
+
+        public StageWorkflowResult<ChongqingStage2Report> RunChongqingStage2(
+            ChongqingStage2Options options,
+            Action<string> log)
+        {
+            if (_chongqingStage2Service == null)
+            {
+                throw new InvalidOperationException("重庆阶段二服务未配置。");
+            }
+
+            var report = _chongqingStage2Service.Run(options, log);
+            return new StageWorkflowResult<ChongqingStage2Report>(
+                report,
+                new[]
+                {
+                    "重庆阶段二完成。",
+                    "汇总表：" + report.Summary,
+                    "报告：" + report.ReportPath,
+                    "代理费合计：" + report.ProxyTotal.ToString("0.####"),
+                    "居间费合计：" + report.IntermediaryTotal.ToString("0.####"),
+                    "退补电费合计：" + report.RefundTotal.ToString("0.####")
                 });
         }
 

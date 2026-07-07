@@ -2,6 +2,18 @@
 
 状态：当前任务 note。重庆阶段二实现前以本文件为结构和风险参考；稳定跨省业务原则仍以 `CONTEXT.md` 为准，海南阶段二细节见 `docs/hainan-stage2-current-behavior.md`。
 
+## 实现进展
+
+2026-07-07 已完成第一版 Core 合同层：
+
+- 新增 `ChongqingStage2Options`、`ChongqingStage2PreflightReport`、`ChongqingStage2Report`、`ChongqingStage2CheckIssue`。
+- 新增 `ChongqingStage2Service` 和 `IChongqingStage2ExcelGateway`。
+- `SettlementWorkflow` 已有重庆阶段二 plan / complete / run 入口和代理费、居间费、退补电费摘要行。
+- Core 校验已要求代理模板目录、退补模板目录、汇总表模板和输出目录；居间模板目录当前可空，以支持当前重庆暂无居间数据的第一版边界。
+- 新增汇总主体支付方决策只接受 `清能` 或 `清辉`，不沿用海南 `清辉` 默认。
+
+尚未实现 Excel 生成器、WPF 入口和真实 5 月回放验证；用户仍不能从桌面端运行重庆阶段二。
+
 ## 授权和安全边界
 
 用户在 2026-07-07 授权只读访问 `C:\Users\juqx2\Desktop\2026年-重庆`，用于分析重庆二阶段实现。该目录包含重庆代理费汇总表、售电结算台账、代理分表文件夹和退补分表文件夹。

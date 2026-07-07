@@ -184,6 +184,86 @@ namespace HainanSettlementTool.Core.Tests
         }
 
         [TestMethod]
+        public void RunChongqingStage2ReturnsSharedSummaryLines()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var gateway = new FakeGateway();
+                var workflow = CreateWorkflowWithChongqingStage2(gateway);
+                var options = CreateChongqingStage2Options(root);
+
+                var result = workflow.RunChongqingStage2(options, null);
+
+                Assert.AreSame(gateway.ChongqingStage2Report, result.Report);
+                CollectionAssert.AreEqual(
+                    new[]
+                    {
+                        "重庆阶段二完成。",
+                        "汇总表：" + gateway.ChongqingStage2Report.Summary,
+                        "报告：" + gateway.ChongqingStage2Report.ReportPath,
+                        "代理费合计：100.25",
+                        "居间费合计：0",
+                        "退补电费合计：12.3456"
+                    },
+                    result.SummaryLines.ToArray());
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
+        public void CompleteChongqingStage2DoesNotGenerateWhenPreflightHasIssuesAndUserCancels()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var gateway = new FakeGateway { AddChongqingPreflightIssue = true };
+                var workflow = CreateWorkflowWithChongqingStage2(gateway);
+                var options = CreateChongqingStage2Options(root);
+
+                var plan = workflow.PlanChongqingStage2(options);
+                var result = workflow.CompleteChongqingStage2(plan, confirmed: false, log: null);
+
+                Assert.IsTrue(plan.RequiresConfirmation);
+                Assert.IsTrue(plan.Preflight.RequiresPaymentPartySelection);
+                Assert.IsTrue(result.WasCancelled);
+                Assert.IsNull(result.Report);
+                Assert.AreEqual(0, gateway.GenerateChongqingSettlementCalls);
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
+        public void CompleteChongqingStage2GeneratesWhenPreflightHasIssuesAndUserConfirms()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var gateway = new FakeGateway { AddChongqingPreflightIssue = true };
+                var workflow = CreateWorkflowWithChongqingStage2(gateway);
+                var options = CreateChongqingStage2Options(root);
+
+                var plan = workflow.PlanChongqingStage2(options);
+                var result = workflow.CompleteChongqingStage2(plan, confirmed: true, log: null);
+
+                Assert.IsTrue(plan.RequiresConfirmation);
+                Assert.IsFalse(result.WasCancelled);
+                Assert.AreSame(gateway.ChongqingStage2Report, result.Report);
+                Assert.AreEqual(1, gateway.GenerateChongqingSettlementCalls);
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
         public void RunEmployeeRewardReturnsSharedSummaryLines()
         {
             var root = CreateTempRoot();
@@ -295,6 +375,16 @@ namespace HainanSettlementTool.Core.Tests
                 new EmployeeRewardService(gateway));
         }
 
+        private static SettlementWorkflow CreateWorkflowWithChongqingStage2(FakeGateway gateway)
+        {
+            return new SettlementWorkflow(
+                new HainanStage1Service(gateway),
+                new HainanStage2Service(gateway),
+                new EmployeeRewardService(gateway),
+                new ProvinceStage1Service(gateway),
+                new ChongqingStage2Service(gateway));
+        }
+
         private static Stage1Options CreateStage1Options(string root)
         {
             return new Stage1Options
@@ -320,6 +410,24 @@ namespace HainanSettlementTool.Core.Tests
                 ProxyTemplateDirectory = proxyDir,
                 IntermediaryTemplateDirectory = intermediaryDir,
                 SummaryTemplatePath = CreateFile(root, "summary.xlsx"),
+                OutputDirectory = Path.Combine(root, "out")
+            };
+        }
+
+        private static ChongqingStage2Options CreateChongqingStage2Options(string root)
+        {
+            var proxyDir = Path.Combine(root, "chongqing-proxy");
+            var refundDir = Path.Combine(root, "chongqing-refund");
+            Directory.CreateDirectory(proxyDir);
+            Directory.CreateDirectory(refundDir);
+
+            return new ChongqingStage2Options
+            {
+                Month = 5,
+                LedgerPath = CreateFile(root, "chongqing-ledger.xlsx"),
+                ProxyTemplateDirectory = proxyDir,
+                RefundTemplateDirectory = refundDir,
+                SummaryTemplatePath = CreateFile(root, "chongqing-summary.xlsx"),
                 OutputDirectory = Path.Combine(root, "out")
             };
         }
@@ -357,11 +465,15 @@ namespace HainanSettlementTool.Core.Tests
             }
         }
 
-        private sealed class FakeGateway : IHainanStage1ExcelGateway, IHainanStage2ExcelGateway, IEmployeeRewardExcelGateway, IProvinceStage1ExcelGateway
+        private sealed class FakeGateway : IHainanStage1ExcelGateway, IHainanStage2ExcelGateway, IEmployeeRewardExcelGateway, IProvinceStage1ExcelGateway, IChongqingStage2ExcelGateway
         {
             public bool AddPreflightIssue { get; set; }
 
+            public bool AddChongqingPreflightIssue { get; set; }
+
             public int GenerateSettlementCalls { get; private set; }
+
+            public int GenerateChongqingSettlementCalls { get; private set; }
 
             public readonly Stage1Report Stage1Report = new Stage1Report
             {
@@ -375,6 +487,15 @@ namespace HainanSettlementTool.Core.Tests
                 ReportPath = "stage2-report.json",
                 ProxyTotal = 123.4567,
                 IntermediaryTotal = 8.9
+            };
+
+            public readonly ChongqingStage2Report ChongqingStage2Report = new ChongqingStage2Report
+            {
+                Summary = "chongqing-summary.xlsx",
+                ReportPath = "chongqing-stage2-report.json",
+                ProxyTotal = 100.25,
+                IntermediaryTotal = 0,
+                RefundTotal = 12.3456
             };
 
             public readonly EmployeeRewardResult EmployeeRewardResult = new EmployeeRewardResult
@@ -484,6 +605,33 @@ namespace HainanSettlementTool.Core.Tests
             {
                 GenerateSettlementCalls++;
                 return Stage2Report;
+            }
+
+            public ChongqingStage2PreflightReport AnalyzeSettlement(ChongqingStage2Options options)
+            {
+                var report = new ChongqingStage2PreflightReport { Month = options.Month };
+                if (AddChongqingPreflightIssue)
+                {
+                    var issue = new ChongqingStage2CheckIssue
+                    {
+                        Severity = "需确认",
+                        Category = "新增汇总主体",
+                        Kind = ChongqingStage2IssueKinds.NewSummarySubjectPaymentPartyRequired,
+                        SettlementKind = ChongqingStage2SettlementKinds.Proxy,
+                        Entity = "新增代理主体",
+                        RequiresPaymentPartySelection = true
+                    };
+                    issue.AvailablePaymentParties.AddRange(ChongqingStage2PaymentParties.Supported);
+                    report.Issues.Add(issue);
+                }
+
+                return report;
+            }
+
+            public ChongqingStage2Report GenerateSettlement(ChongqingStage2Options options)
+            {
+                GenerateChongqingSettlementCalls++;
+                return ChongqingStage2Report;
             }
 
             public IList<EmployeeRewardLedgerRow> ReadLedgerRows(EmployeeRewardOptions options)

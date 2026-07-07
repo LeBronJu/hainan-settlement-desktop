@@ -112,6 +112,8 @@ Chongqing Stage 2:
 
 - Not implemented yet.
 - Analysis is documented in `docs/dev-notes/chongqing-stage2-analysis-2026-07-07.md`.
+- First Core contract slice is implemented: `ChongqingStage2Options`, preflight/report/issue models, `ChongqingStage2Service`, `IChongqingStage2ExcelGateway`, and workflow plan/complete/run entry points.
+- Excel generator and WPF entry are still not implemented, so the feature is not user-runnable yet.
 - Keep this work in Win10/11 WPF plus Core/Excel shared layers; do not add WinForms parity unless explicitly requested.
 
 WinForms:
@@ -164,12 +166,13 @@ Most recent documentation validation:
 - Stale wording scan and `git diff --check` passed for that cleanup before commit `48c4921`.
 - Current documentation quality pass compressed `HANDOFF.md`, added `docs/CHANGELOG.md`, unified reading gates, expanded task-based document routing, and added `scripts/check_docs_guardrails.ps1`. Validation scope is the guardrail script, `git diff --check`, and stale wording/status scans.
 - Pre-Chongqing Stage 2 closeout on 2026-07-07: `scripts/check_docs_guardrails.ps1` passed, `git diff --check` passed, stale wording scan had no matches, Debug tests passed (Core 18, Excel 20), and sequential Debug solution build passed. An earlier concurrent Debug build attempt hit a transient file lock while tests were still running; the sequential rerun passed.
+- Chongqing Stage 2 Core contract slice on 2026-07-07: Core tests passed (24), full Debug tests passed (Core 24, Excel 20), and Debug solution build passed.
 
 For new code changes, rerun focused tests and builds. For pure documentation changes, run at least `git diff --check` plus targeted stale-wording/link scans.
 
 ## Next Steps
 
-1. Start Chongqing Stage 2 implementation from `docs/dev-notes/chongqing-stage2-analysis-2026-07-07.md`.
-2. Before encoding new Chongqing summary-subject defaults, confirm or implement the recommended preflight rule: new summary subjects require explicit payment-party selection (`清能`/`清辉`).
+1. Implement `ChongqingStage2SettlementGenerator` behind `IChongqingStage2ExcelGateway`, starting with synthetic workbook tests for ledger month-block parsing and report/preflight output.
+2. Add WPF entry only after Excel preflight/generation can run on synthetic fixtures.
 3. Use the first validation target from the Chongqing Stage 2 note: read-only 5月 replay and compare against the manual 5月 result, writing outputs only to an explicitly authorized test directory.
 4. Defer persistent customer alias tables, WinForms parity, and cross-province generic Stage 2 abstraction unless the user explicitly reprioritizes them.
