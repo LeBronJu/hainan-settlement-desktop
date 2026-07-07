@@ -871,10 +871,10 @@ namespace HainanSettlementTool.Wpf
 
         private static SettlementWorkflow CreateWorkflow()
         {
-            var gateway = new ClosedXmlStage1ExcelGateway();
+            var gateway = new ClosedXmlSettlementExcelGateway();
             return new SettlementWorkflow(
-                new Stage1Service(gateway),
-                new Stage2Service(gateway),
+                new HainanStage1Service(gateway),
+                new HainanStage2Service(gateway),
                 new EmployeeRewardService(gateway),
                 new ProvinceStage1Service(gateway));
         }
@@ -1346,7 +1346,7 @@ namespace HainanSettlementTool.Wpf
             {
                 Title = "保存运行日志",
                 Filter = "文本文件|*.txt|所有文件|*.*",
-                FileName = "海南售电结算运行日志.txt"
+                FileName = "售电结算运行日志.txt"
             };
 
             if (dialog.ShowDialog(this) == true)

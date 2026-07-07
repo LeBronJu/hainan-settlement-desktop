@@ -76,8 +76,8 @@ namespace HainanSettlementTool.Core.Tests
             {
                 var gateway = new FakeGateway();
                 var workflow = new SettlementWorkflow(
-                    new Stage1Service(gateway),
-                    new Stage2Service(gateway),
+                    new HainanStage1Service(gateway),
+                    new HainanStage2Service(gateway),
                     new EmployeeRewardService(gateway),
                     new ProvinceStage1Service(gateway));
                 var rawDetailPath = CreateFile(root, "chongqing-raw.xlsx");
@@ -116,8 +116,8 @@ namespace HainanSettlementTool.Core.Tests
             {
                 var gateway = new FakeGateway();
                 var workflow = new SettlementWorkflow(
-                    new Stage1Service(gateway),
-                    new Stage2Service(gateway),
+                    new HainanStage1Service(gateway),
+                    new HainanStage2Service(gateway),
                     new EmployeeRewardService(gateway),
                     new ProvinceStage1Service(gateway));
                 var options = new ProvinceStage1LedgerUpdateOptions
@@ -290,8 +290,8 @@ namespace HainanSettlementTool.Core.Tests
         private static SettlementWorkflow CreateWorkflow(FakeGateway gateway)
         {
             return new SettlementWorkflow(
-                new Stage1Service(gateway),
-                new Stage2Service(gateway),
+                new HainanStage1Service(gateway),
+                new HainanStage2Service(gateway),
                 new EmployeeRewardService(gateway));
         }
 
@@ -357,7 +357,7 @@ namespace HainanSettlementTool.Core.Tests
             }
         }
 
-        private sealed class FakeGateway : IStage1ExcelGateway, IStage2ExcelGateway, IEmployeeRewardExcelGateway, IProvinceStage1ExcelGateway
+        private sealed class FakeGateway : IHainanStage1ExcelGateway, IHainanStage2ExcelGateway, IEmployeeRewardExcelGateway, IProvinceStage1ExcelGateway
         {
             public bool AddPreflightIssue { get; set; }
 

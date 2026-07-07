@@ -18,7 +18,7 @@ namespace HainanSettlementTool.Core.Services
             ValidateCleanOptions(options);
             Directory.CreateDirectory(options.OutputDirectory);
 
-            log?.Invoke("正在清洗" + ProvinceName(options.Province) + "阶段一电量数据。");
+            log?.Invoke("正在清洗" + ProvinceDisplayNames.GetName(options.Province) + "阶段一电量数据。");
             var result = _excel.CleanPowerData(options);
             log?.Invoke("电量处理表已生成：" + result.OutputWorkbookPath);
             log?.Invoke("校验报告已生成：" + result.ReportPath);
@@ -29,7 +29,7 @@ namespace HainanSettlementTool.Core.Services
         {
             ValidateLedgerUpdateOptions(options);
 
-            log?.Invoke("正在预检" + ProvinceName(options.Province) + "阶段一台账更新。");
+            log?.Invoke("正在预检" + ProvinceDisplayNames.GetName(options.Province) + "阶段一台账更新。");
             return _excel.PlanLedgerUpdate(options);
         }
 
@@ -38,7 +38,7 @@ namespace HainanSettlementTool.Core.Services
             ValidateLedgerUpdateOptions(options);
             Directory.CreateDirectory(options.OutputDirectory);
 
-            log?.Invoke("正在更新" + ProvinceName(options.Province) + "阶段一台账。");
+            log?.Invoke("正在更新" + ProvinceDisplayNames.GetName(options.Province) + "阶段一台账。");
             var result = _excel.UpdateLedger(options);
             log?.Invoke("台账更新结果已生成：" + result.OutputLedgerPath);
             log?.Invoke("台账更新报告已生成：" + result.ReportPath);
@@ -116,17 +116,5 @@ namespace HainanSettlementTool.Core.Services
             }
         }
 
-        public static string ProvinceName(ProvinceCode province)
-        {
-            switch (province)
-            {
-                case ProvinceCode.Chongqing:
-                    return "重庆";
-                case ProvinceCode.Hainan:
-                    return "海南";
-                default:
-                    return province.ToString();
-            }
-        }
     }
 }

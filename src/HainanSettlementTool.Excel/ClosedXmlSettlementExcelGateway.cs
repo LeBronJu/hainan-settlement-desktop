@@ -5,7 +5,7 @@ using HainanSettlementTool.Core.Services;
 
 namespace HainanSettlementTool.Excel
 {
-    public sealed class ClosedXmlStage1ExcelGateway : IStage1ExcelGateway, IStage2ExcelGateway, IEmployeeRewardExcelGateway, IProvinceStage1ExcelGateway
+    public sealed class ClosedXmlSettlementExcelGateway : IHainanStage1ExcelGateway, IHainanStage2ExcelGateway, IEmployeeRewardExcelGateway, IProvinceStage1ExcelGateway
     {
         private readonly PowerWorkbookReader _powerWorkbookReader = new PowerWorkbookReader();
         private readonly RawDetailReader _rawDetailReader = new RawDetailReader();
@@ -15,7 +15,7 @@ namespace HainanSettlementTool.Excel
         private readonly EmployeeRewardGenerator _employeeRewardGenerator = new EmployeeRewardGenerator();
         private readonly Dictionary<ProvinceCode, IProvinceStage1Adapter> _provinceStage1Adapters;
 
-        public ClosedXmlStage1ExcelGateway()
+        public ClosedXmlSettlementExcelGateway()
         {
             _provinceStage1Adapters = new IProvinceStage1Adapter[]
             {

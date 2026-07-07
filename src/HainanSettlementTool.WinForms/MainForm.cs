@@ -877,10 +877,10 @@ namespace HainanSettlementTool.WinForms
 
         private static SettlementWorkflow CreateWorkflow()
         {
-            var gateway = new ClosedXmlStage1ExcelGateway();
+            var gateway = new ClosedXmlSettlementExcelGateway();
             return new SettlementWorkflow(
-                new Stage1Service(gateway),
-                new Stage2Service(gateway));
+                new HainanStage1Service(gateway),
+                new HainanStage2Service(gateway));
         }
 
         private void LogSummary(IEnumerable<string> summaryLines)

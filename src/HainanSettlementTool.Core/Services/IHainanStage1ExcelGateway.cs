@@ -3,7 +3,7 @@ using HainanSettlementTool.Core.Models;
 
 namespace HainanSettlementTool.Core.Services
 {
-    public interface IStage1ExcelGateway
+    public interface IHainanStage1ExcelGateway
     {
         List<PowerRow> ReadPowerRows(string powerPath);
         List<PowerRow> ReadRawPowerRows(string rawDetailPath);

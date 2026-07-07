@@ -5,24 +5,24 @@ namespace HainanSettlementTool.Core.Services
 {
     public sealed class SettlementWorkflow
     {
-        private readonly Stage1Service _stage1Service;
-        private readonly Stage2Service _stage2Service;
+        private readonly HainanStage1Service _stage1Service;
+        private readonly HainanStage2Service _stage2Service;
         private readonly EmployeeRewardService _employeeRewardService;
         private readonly ProvinceStage1Service _provinceStage1Service;
 
-        public SettlementWorkflow(Stage1Service stage1Service, Stage2Service stage2Service)
+        public SettlementWorkflow(HainanStage1Service stage1Service, HainanStage2Service stage2Service)
             : this(stage1Service, stage2Service, null)
         {
         }
 
-        public SettlementWorkflow(Stage1Service stage1Service, Stage2Service stage2Service, EmployeeRewardService employeeRewardService)
+        public SettlementWorkflow(HainanStage1Service stage1Service, HainanStage2Service stage2Service, EmployeeRewardService employeeRewardService)
             : this(stage1Service, stage2Service, employeeRewardService, null)
         {
         }
 
         public SettlementWorkflow(
-            Stage1Service stage1Service,
-            Stage2Service stage2Service,
+            HainanStage1Service stage1Service,
+            HainanStage2Service stage2Service,
             EmployeeRewardService employeeRewardService,
             ProvinceStage1Service provinceStage1Service)
         {
@@ -82,7 +82,7 @@ namespace HainanSettlementTool.Core.Services
                 report,
                 new[]
                 {
-                    ProvinceStage1Service.ProvinceName(report.Province) + "阶段一电量清洗完成。",
+                    ProvinceDisplayNames.GetName(report.Province) + "阶段一电量清洗完成。",
                     "电量处理表：" + report.OutputWorkbookPath,
                     "报告：" + report.ReportPath,
                     "客户数量：" + report.CustomerRows + "，户号数量：" + report.AccountRows,
@@ -116,7 +116,7 @@ namespace HainanSettlementTool.Core.Services
                 report,
                 new[]
                 {
-                    ProvinceStage1Service.ProvinceName(report.Province) + "阶段一台账更新完成。",
+                    ProvinceDisplayNames.GetName(report.Province) + "阶段一台账更新完成。",
                     "输出台账：" + report.OutputLedgerPath,
                     "报告：" + report.ReportPath,
                     "匹配客户：" + report.MatchedRows + "，写入电量：" + report.UpdatedPowerRows,

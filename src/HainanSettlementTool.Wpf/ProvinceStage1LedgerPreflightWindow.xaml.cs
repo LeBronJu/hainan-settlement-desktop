@@ -21,7 +21,7 @@ namespace HainanSettlementTool.Wpf
             var issueGroups = BuildIssueGroups(plan);
             var otherIssueCount = issueGroups.Sum(group => group.Issues.Count);
 
-            SummaryText.Text = ProvinceStage1Service.ProvinceName(plan.Province)
+            SummaryText.Text = ProvinceDisplayNames.GetName(plan.Province)
                 + "；结算月份：2026年" + options.Month + "月；匹配客户："
                 + plan.MatchedRows + " / " + plan.PowerCustomerRows
                 + "；客户匹配项目：" + manualMatchingIssueCount + " 条；其它预检项目：" + otherIssueCount + " 条。";

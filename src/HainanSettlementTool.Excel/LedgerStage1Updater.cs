@@ -10,7 +10,7 @@ namespace HainanSettlementTool.Excel
 {
     internal sealed class LedgerStage1Updater
     {
-        public Stage1Report Update(Stage1Options options, IStage1ExcelGateway gateway)
+        public Stage1Report Update(Stage1Options options, IHainanStage1ExcelGateway gateway)
         {
             Directory.CreateDirectory(options.OutputDirectory);
             var outputPath = Path.Combine(

@@ -30,8 +30,9 @@ The stable local reference folder is for future comparison/orientation only; do 
 
 ## Current Git State
 
-- Current branch: `codex/chongqing-month-block-copy`
-- Branch purpose: fix Chongqing Stage 1 ledger update when the target month block is missing, by copying the previous Chongqing month block before writing power.
+- Current branch: `codex/province-neutral-naming`
+- Branch purpose: continue today's multi-province technical-debt mainline with low-risk province-neutral naming and WPF shell naming cleanup.
+- The Chongqing target-month block fix is isolated on `codex/chongqing-month-block-copy` and was pushed through `e45d358 Document WPF Chongqing test package`.
 - Multi-province readiness note: `docs/dev-notes/multi-province-readiness-2026-07-07.md`. Read it before new-province onboarding, WPF province UI, Core multi-province workflow, or Excel multi-province adapter work.
 - Previous uncommitted WPF small-window work was reviewed on 2026-07-06. The action-row `DockPanel LastChildFill="False"` fixes were already present on the Chongqing branch, the remaining `MinHeight="720"` fix was reapplied, and the old stash was dropped.
 - Employee reward module has been merged to `main` from `codex/employee-reward-module`. The user completed practical testing on 2026-07-02 and reported no blocking issues.
@@ -47,7 +48,7 @@ The stable local reference folder is for future comparison/orientation only; do 
 - Win10/11 WPF is the primary UI entry for new features and UX work.
 - Win7/8 WinForms remains part of `main` as a maintenance compatibility entry: keep it buildable, packageable, and fix blocking bugs only unless explicitly requested.
 - Win7/8 and Win10/11 share Core/Excel logic but remain separate desktop apps.
-- Latest local WPF test package from the current Chongqing bugfix branch:
+- Latest local WPF test package for the Chongqing bugfix branch:
   - `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-105743.zip`
   - unpacked directory: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-105743`
   - built from `codex/chongqing-month-block-copy` after `074401a` and `f60d325`.
@@ -833,7 +834,7 @@ Observed result:
 - Stage 1 run/clean actions now explicitly dispatch by `ProvinceCode`, so a future newly listed province will not silently run the Hainan workflow.
 - Added stable `ProvinceStage1LedgerUpdateIssue.Kind` plus `ProvinceStage1LedgerUpdateIssueKinds` while keeping Chinese `Category` for WPF display and JSON compatibility.
 - WPF Stage 1 preflight manual-matching grouping now uses stable issue kinds, with Chinese category fallback for old or hand-built issue objects.
-- Added Excel internal `IProvinceStage1Adapter` and `ChongqingProvinceStage1Adapter`; `ClosedXmlStage1ExcelGateway` now dispatches multi-province Stage 1 Excel work through an adapter dictionary instead of direct Chongqing if branches.
+- Added Excel internal `IProvinceStage1Adapter` and `ChongqingProvinceStage1Adapter`; `ClosedXmlSettlementExcelGateway` now dispatches multi-province Stage 1 Excel work through an adapter dictionary instead of direct Chongqing if branches.
 - Added a repository `.vscode/settings.json` pointing VSCode at `HainanSettlementTool.sln` to reduce false WPF code-behind diagnostics.
 - Targeted WPF Debug build passed.
 - Targeted Chongqing Excel tests passed: 4 tests.
@@ -940,6 +941,31 @@ Observed result:
 - Package content was checked and includes the Win10/11 exe, `.exe.config`, required `.dll` files, and `README.txt`.
 - `git status --short --branch` was clean after packaging; generated `dist/` artifacts are not tracked.
 
+Province-neutral naming slice on 2026-07-07:
+
+```powershell
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Debug /m
+dotnet test .\tests\HainanSettlementTool.Core.Tests\HainanSettlementTool.Core.Tests.csproj /p:Configuration=Debug --filter SettlementWorkflowTests
+dotnet test .\tests\HainanSettlementTool.Excel.Tests\HainanSettlementTool.Excel.Tests.csproj /p:Configuration=Debug --filter "ChongqingPowerCleanGeneratorTests|Stage1LedgerUpdaterTests|Stage2SettlementGeneratorTests|EmployeeRewardGeneratorTests|RawDetailReaderTests"
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+git diff --check
+rg "MessageBox" -n src\HainanSettlementTool.Wpf
+```
+
+Observed result:
+
+- Renamed the Hainan-specific Stage 1/Stage 2 service and gateway interfaces to `HainanStage1Service`, `HainanStage2Service`, `IHainanStage1ExcelGateway`, and `IHainanStage2ExcelGateway`.
+- Renamed the combined ClosedXML gateway to `ClosedXmlSettlementExcelGateway` because it now coordinates Hainan Stage 1, Hainan Stage 2, employee reward, and multi-province Stage 1 adapters.
+- Added `ProvinceDisplayNames` so Core/Excel/WPF no longer call `ProvinceStage1Service` just to format province names.
+- Updated the WPF shell title and saved-log default name to multi-province wording.
+- `UserInputStore` now writes to the neutral AppData folder `SettlementAutomationTool` and still falls back to the old `HainanSettlementTool` folder on load.
+- Debug build passed for Core, Excel, WinForms, WPF, and both test projects.
+- Targeted Core workflow tests passed: 9 tests.
+- Targeted Excel coverage for renamed gateway/service callers passed: 19 tests.
+- Full Debug test suite passed: Core 18 tests, Excel 19 tests.
+- `git diff --check` passed with CRLF normalization warnings only.
+- WPF `MessageBox` search had no matches.
+
 ## Documentation Rule
 
 Documentation is now part of the development contract:
@@ -961,8 +987,10 @@ Documentation is now part of the development contract:
 
 Core:
 
-- `src/HainanSettlementTool.Core/Services/Stage1Service.cs`
-- `src/HainanSettlementTool.Core/Services/Stage2Service.cs`
+- `src/HainanSettlementTool.Core/Services/HainanStage1Service.cs`
+- `src/HainanSettlementTool.Core/Services/HainanStage2Service.cs`
+- `src/HainanSettlementTool.Core/Services/IHainanStage1ExcelGateway.cs`
+- `src/HainanSettlementTool.Core/Services/IHainanStage2ExcelGateway.cs`
 - `src/HainanSettlementTool.Core/Services/SettlementWorkflow.cs`
 - `src/HainanSettlementTool.Core/Services/Stage2WorkflowPlan.cs`
 - `src/HainanSettlementTool.Core/Services/Stage2WorkflowResult.cs`
@@ -970,6 +998,7 @@ Core:
 - `src/HainanSettlementTool.Core/Services/EmployeeRewardService.cs`
 - `src/HainanSettlementTool.Core/Services/IEmployeeRewardExcelGateway.cs`
 - `src/HainanSettlementTool.Core/Services/FileAccessGuard.cs`
+- `src/HainanSettlementTool.Core/Models/ProvinceDisplayNames.cs`
 - `src/HainanSettlementTool.Core/Models/ProvinceStage1LedgerUpdateIssueKinds.cs`
 
 Excel:
@@ -980,6 +1009,7 @@ Excel:
 - `src/HainanSettlementTool.Excel/LedgerStage1Updater.cs`
 - `src/HainanSettlementTool.Excel/Stage2SettlementGenerator.cs`
 - `src/HainanSettlementTool.Excel/EmployeeRewardGenerator.cs`
+- `src/HainanSettlementTool.Excel/ClosedXmlSettlementExcelGateway.cs`
 - `src/HainanSettlementTool.Excel/IProvinceStage1Adapter.cs`
 - `src/HainanSettlementTool.Excel/ChongqingProvinceStage1Adapter.cs`
 
@@ -1013,5 +1043,5 @@ Packaging/docs:
 3. If user testing accepts the Chongqing month-block behavior, merge `codex/chongqing-month-block-copy` to `main` with user authorization; if not, adjust the branch before merge.
 4. Decide whether to cut a Win10/11 acceptance release from the accepted WPF package or rebuild a fresh release package from `main`.
 5. Continue quality work with WPF as the default UI target; next low-risk `MainWindow.xaml.cs` decomposition candidates are log control, modern dialog entry points, and file-path browsing/input state. Avoid WinForms parity work unless it is a bugfix, build/package compatibility issue, or explicitly requested.
-6. Treat province-neutral naming cleanup as part of today's multi-province technical-debt mainline after the Chongqing month-block bugfix is isolated. Do not rename the project/namespace `HainanSettlementTool` casually; start with smaller internal class/variable names where the province meaning is misleading and tests can cover the change.
+6. Continue province-neutral naming cleanup on `codex/province-neutral-naming`, but do not rename the project/namespace `HainanSettlementTool`, assemblies, package names, or release asset names casually. Preserve `Hainan*` names where they accurately mark Hainan-specific settlement rules.
 7. Consider adding sanitized employee reward, Stage 2, Chongqing, and `.xls` fixture workbooks later; current regressions use dynamically generated synthetic workbooks and local authorized smoke only.

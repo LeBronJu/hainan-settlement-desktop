@@ -22,11 +22,15 @@ namespace HainanSettlementTool.Wpf
 
     internal static class UserInputStore
     {
+        private const string CurrentSettingsFolderName = "SettlementAutomationTool";
+        private const string LegacySettingsFolderName = "HainanSettlementTool";
+        private const string SettingsFileName = "modern-ui-inputs.xml";
+
         private static readonly XmlSerializer Serializer = new XmlSerializer(typeof(UserInputSnapshot));
 
         public static UserInputSnapshot Load()
         {
-            var path = SettingsPath();
+            var path = ReadSettingsPath();
             if (!File.Exists(path))
             {
                 return new UserInputSnapshot();
@@ -59,7 +63,20 @@ namespace HainanSettlementTool.Wpf
         private static string SettingsPath()
         {
             var root = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            return Path.Combine(root, "HainanSettlementTool", "modern-ui-inputs.xml");
+            return Path.Combine(root, CurrentSettingsFolderName, SettingsFileName);
+        }
+
+        private static string ReadSettingsPath()
+        {
+            var path = SettingsPath();
+            if (File.Exists(path))
+            {
+                return path;
+            }
+
+            var root = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            var legacyPath = Path.Combine(root, LegacySettingsFolderName, SettingsFileName);
+            return File.Exists(legacyPath) ? legacyPath : path;
         }
     }
 }

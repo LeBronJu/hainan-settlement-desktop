@@ -565,7 +565,7 @@ namespace HainanSettlementTool.Excel
         {
             var payload = new
             {
-                province = ProvinceStage1Service.ProvinceName(result.Province),
+                province = ProvinceDisplayNames.GetName(result.Province),
                 month = result.Month,
                 unit = result.Unit,
                 ledgerPath = result.LedgerPath,

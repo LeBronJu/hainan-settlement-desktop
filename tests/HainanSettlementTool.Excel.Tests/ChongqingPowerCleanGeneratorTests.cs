@@ -22,7 +22,7 @@ namespace HainanSettlementTool.Excel.Tests
                 var outputDirectory = Path.Combine(root, "out");
                 WriteChongqingWorkbook(input);
 
-                var result = new ClosedXmlStage1ExcelGateway().CleanPowerData(new ProvinceStage1CleanOptions
+                var result = new ClosedXmlSettlementExcelGateway().CleanPowerData(new ProvinceStage1CleanOptions
                 {
                     Province = ProvinceCode.Chongqing,
                     RawDetailPath = input,
@@ -88,7 +88,7 @@ namespace HainanSettlementTool.Excel.Tests
                 WriteChongqingWorkbook(input, includeNegative: true);
 
                 var ex = Assert.ThrowsException<InvalidOperationException>(() =>
-                    new ClosedXmlStage1ExcelGateway().CleanPowerData(new ProvinceStage1CleanOptions
+                    new ClosedXmlSettlementExcelGateway().CleanPowerData(new ProvinceStage1CleanOptions
                     {
                         Province = ProvinceCode.Chongqing,
                         RawDetailPath = input,
@@ -115,7 +115,7 @@ namespace HainanSettlementTool.Excel.Tests
                 var outputDirectory = Path.Combine(root, "out");
                 WriteChongqingWorkbook(raw);
                 WriteChongqingLedger(ledger);
-                var gateway = new ClosedXmlStage1ExcelGateway();
+                var gateway = new ClosedXmlSettlementExcelGateway();
                 var options = new ProvinceStage1LedgerUpdateOptions
                 {
                     Province = ProvinceCode.Chongqing,
@@ -194,7 +194,7 @@ namespace HainanSettlementTool.Excel.Tests
                 var outputDirectory = Path.Combine(root, "out");
                 WriteChongqingWorkbook(raw, customerBName: "测试客户B旧名");
                 WriteChongqingLedger(ledger, customerBName: "测试客户B新名");
-                var gateway = new ClosedXmlStage1ExcelGateway();
+                var gateway = new ClosedXmlSettlementExcelGateway();
                 var options = new ProvinceStage1LedgerUpdateOptions
                 {
                     Province = ProvinceCode.Chongqing,
@@ -256,7 +256,7 @@ namespace HainanSettlementTool.Excel.Tests
                 var outputDirectory = Path.Combine(root, "out");
                 WriteChongqingWorkbook(raw);
                 WriteChongqingLedgerWithPreviousMonthOnly(ledger);
-                var gateway = new ClosedXmlStage1ExcelGateway();
+                var gateway = new ClosedXmlSettlementExcelGateway();
                 var options = new ProvinceStage1LedgerUpdateOptions
                 {
                     Province = ProvinceCode.Chongqing,

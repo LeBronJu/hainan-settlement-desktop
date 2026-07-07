@@ -41,7 +41,7 @@ namespace HainanSettlementTool.Excel.Tests
                     OutputDirectory = outputRoot
                 };
 
-                new Stage2Service(new ClosedXmlStage1ExcelGateway()).Run(options, null);
+                new HainanStage2Service(new ClosedXmlSettlementExcelGateway()).Run(options, null);
 
                 var outputPath = Path.Combine(
                     outputRoot,
@@ -97,7 +97,7 @@ namespace HainanSettlementTool.Excel.Tests
                     OutputDirectory = outputRoot
                 };
 
-                new Stage2Service(new ClosedXmlStage1ExcelGateway()).Run(options, null);
+                new HainanStage2Service(new ClosedXmlSettlementExcelGateway()).Run(options, null);
 
                 var outputPath = Path.Combine(
                     outputRoot,
@@ -150,7 +150,7 @@ namespace HainanSettlementTool.Excel.Tests
                     OutputDirectory = outputRoot
                 };
 
-                new Stage2Service(new ClosedXmlStage1ExcelGateway()).Run(options, null);
+                new HainanStage2Service(new ClosedXmlSettlementExcelGateway()).Run(options, null);
 
                 var outputPath = Path.Combine(outputRoot, "【2026年海南省代理费汇总表-4月自动化】.xlsx");
                 using (var workbook = new XLWorkbook(outputPath))
@@ -206,7 +206,7 @@ namespace HainanSettlementTool.Excel.Tests
                     OutputDirectory = outputRoot
                 };
 
-                new Stage2Service(new ClosedXmlStage1ExcelGateway()).Run(options, null);
+                new HainanStage2Service(new ClosedXmlSettlementExcelGateway()).Run(options, null);
 
                 var outputPath = Path.Combine(
                     outputRoot,
@@ -259,7 +259,7 @@ namespace HainanSettlementTool.Excel.Tests
                     OutputDirectory = outputRoot
                 };
 
-                var report = new Stage2Service(new ClosedXmlStage1ExcelGateway()).Analyze(options);
+                var report = new HainanStage2Service(new ClosedXmlSettlementExcelGateway()).Analyze(options);
 
                 Assert.IsTrue(report.HasIssues);
                 Assert.IsTrue(report.Issues.Exists(issue =>
@@ -307,7 +307,7 @@ namespace HainanSettlementTool.Excel.Tests
                     OutputDirectory = outputRoot
                 };
 
-                new Stage2Service(new ClosedXmlStage1ExcelGateway()).Run(options, null);
+                new HainanStage2Service(new ClosedXmlSettlementExcelGateway()).Run(options, null);
 
                 var outputPath = Path.Combine(
                     outputRoot,
