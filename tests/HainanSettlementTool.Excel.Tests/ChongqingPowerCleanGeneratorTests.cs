@@ -245,6 +245,76 @@ namespace HainanSettlementTool.Excel.Tests
             }
         }
 
+        [TestMethod]
+        public void UpdateLedgerCreatesTargetMonthBlockFromPreviousChongqingLedger()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var raw = Path.Combine(root, "2026年05月售电公司电量确认结算单.xlsx");
+                var ledger = Path.Combine(root, "重庆2026年售电结算台账-4月.xlsx");
+                var outputDirectory = Path.Combine(root, "out");
+                WriteChongqingWorkbook(raw);
+                WriteChongqingLedgerWithPreviousMonthOnly(ledger);
+                var gateway = new ClosedXmlStage1ExcelGateway();
+                var options = new ProvinceStage1LedgerUpdateOptions
+                {
+                    Province = ProvinceCode.Chongqing,
+                    Month = 5,
+                    LedgerPath = ledger,
+                    RawDetailPath = raw,
+                    OutputDirectory = outputDirectory
+                };
+
+                var plan = gateway.PlanLedgerUpdate(options);
+                var result = gateway.UpdateLedger(options);
+
+                Assert.IsTrue(plan.Warnings.Any(item => item.Contains("已基于4月电量区块创建5月电量区块")));
+                Assert.IsTrue(result.Warnings.Any(item => item.Contains("已基于4月电量区块创建5月电量区块")));
+                Assert.AreEqual(2, result.UpdatedPowerRows);
+
+                using (var updated = new XLWorkbook(result.OutputLedgerPath))
+                {
+                    var ws = updated.Worksheet("Sheet1");
+                    var aprStart = FindMonthStartColumn(ws, "4月");
+                    var mayStart = FindMonthStartColumn(ws, "5月");
+                    Assert.AreEqual(aprStart + 30, mayStart);
+                    Assert.AreEqual("总实际电量（兆瓦时）", ws.Cell(2, mayStart).GetString());
+                    Assert.AreEqual("实际电量（兆瓦时）", ws.Cell(2, mayStart + 1).GetString());
+                    Assert.AreEqual("尖", ws.Cell(3, mayStart + 1).GetString());
+                    Assert.AreEqual("峰", ws.Cell(3, mayStart + 2).GetString());
+                    Assert.AreEqual("平", ws.Cell(3, mayStart + 3).GetString());
+                    Assert.AreEqual("谷", ws.Cell(3, mayStart + 4).GetString());
+
+                    var customerA = FindLedgerRow(updated.Worksheet("Sheet1"), "测试客户A");
+                    var customerB = FindLedgerRow(updated.Worksheet("Sheet1"), "测试客户B");
+                    var customerC = FindLedgerRow(updated.Worksheet("Sheet1"), "台账独有客户");
+                    Assert.AreEqual(31.5, ws.Cell(customerA, mayStart).GetDouble(), 0.00001);
+                    Assert.AreEqual(3.5, ws.Cell(customerA, mayStart + 1).GetDouble(), 0.00001);
+                    Assert.AreEqual(17, ws.Cell(customerA, mayStart + 2).GetDouble(), 0.00001);
+                    Assert.AreEqual(5, ws.Cell(customerA, mayStart + 3).GetDouble(), 0.00001);
+                    Assert.AreEqual(6, ws.Cell(customerA, mayStart + 4).GetDouble(), 0.00001);
+                    Assert.AreEqual(12, ws.Cell(customerB, mayStart).GetDouble(), 0.00001);
+                    Assert.IsTrue(ws.Cell(customerC, mayStart).IsEmpty());
+                    Assert.IsTrue(ws.Cell(customerC, mayStart + 1).IsEmpty());
+                    Assert.IsTrue(ws.Cell(customerC, mayStart + 2).IsEmpty());
+                    Assert.IsTrue(ws.Cell(customerC, mayStart + 3).IsEmpty());
+                    Assert.IsTrue(ws.Cell(customerC, mayStart + 4).IsEmpty());
+                    Assert.AreEqual(1.2, ws.Cell(customerA, mayStart + 5).GetDouble(), 0.00001);
+                    Assert.AreEqual(0.8, ws.Cell(customerA, mayStart + 6).GetDouble(), 0.00001);
+                    Assert.IsTrue(ws.Cell(customerB, mayStart + 22).IsEmpty());
+                    Assert.IsTrue(ws.Cell(customerB, mayStart + 23).IsEmpty());
+                    Assert.IsTrue(ws.Cell(customerB, mayStart + 24).IsEmpty());
+                    StringAssert.Contains(ws.Cell(customerA, mayStart + 24).FormulaA1, ws.Cell(customerA, mayStart).Address.ToStringRelative());
+                    StringAssert.Contains(ws.Cell(customerA, mayStart + 24).FormulaA1, ws.Cell(customerA, mayStart + 22).Address.ToStringRelative());
+                }
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
         private static void WriteChongqingWorkbook(string path, bool includeNegative = false, string customerBName = "测试客户B")
         {
             Directory.CreateDirectory(Path.GetDirectoryName(path));
@@ -279,6 +349,145 @@ namespace HainanSettlementTool.Excel.Tests
 
                 workbook.SaveAs(path);
             }
+        }
+
+        private static void WriteChongqingLedgerWithPreviousMonthOnly(string path)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            using (var workbook = new XLWorkbook())
+            {
+                var ws = workbook.AddWorksheet("Sheet1");
+                ws.Range("A1:J1").Merge();
+                ws.Cell("A1").Value = "重庆2026年售电结算台账";
+                ws.Cell("A2").Value = "序号";
+                ws.Cell("B2").Value = "电力用户编码";
+                ws.Cell("C2").Value = "电力用户名称";
+                ws.Cell("D2").Value = "合同年用电量（兆瓦时）";
+                ws.Cell("E2").Value = "履约开始月份";
+                ws.Cell("F2").Value = "履约结束月份";
+                ws.Cell("G2").Value = "项目开发人";
+                ws.Cell("H2").Value = "代理或自营";
+                ws.Cell("I2").Value = "负责人";
+                ws.Cell("J2").Value = "员工离职后负责人";
+                WriteChongqingMonthBlock(ws, 11, "4月");
+                WriteDetailedLedgerRow(ws, 4, 1, "测试客户A", "代理");
+                WriteDetailedLedgerRow(ws, 5, 2, "测试客户B", "自营");
+                WriteDetailedLedgerRow(ws, 6, 3, "台账独有客户", "代理");
+                FillPreviousMonthData(ws, 4, 11, includeSettlementTemplate: true);
+                FillPreviousMonthData(ws, 5, 11, includeSettlementTemplate: false);
+                FillPreviousMonthData(ws, 6, 11, includeSettlementTemplate: true);
+                workbook.SaveAs(path);
+            }
+        }
+
+        private static void WriteChongqingMonthBlock(IXLWorksheet ws, int startColumn, string monthLabel)
+        {
+            var headers2 = new[]
+            {
+                "总实际电量（兆瓦时）",
+                "实际电量（兆瓦时）",
+                "",
+                "",
+                "",
+                "峰平谷系数",
+                "",
+                "电量占比(%)",
+                "单价（元）",
+                "居间收益  （万元）",
+                "税点",
+                "税费 （万元）",
+                "",
+                "电量占比(%)",
+                "尖峰单价（元）",
+                "峰段单价（元）",
+                "平段单价（元）",
+                "谷段单价（元）",
+                "退补收益  （万元）",
+                "税点",
+                "税费 （万元）",
+                "",
+                "电量占比(%)",
+                "单价（元）",
+                "代理收益（万元）",
+                "税点",
+                "税费  （万元）",
+                "",
+                "",
+                ""
+            };
+            var headers3 = new[]
+            {
+                "",
+                "尖",
+                "峰",
+                "平",
+                "谷",
+                "峰_平",
+                "谷_平",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "少回收电能量电费（万元）",
+                ""
+            };
+
+            ws.Cell(1, startColumn).Value = monthLabel;
+            ws.Cell(1, startColumn + 7).Value = "居间";
+            ws.Cell(1, startColumn + 10).Value = "扣除费用";
+            ws.Cell(1, startColumn + 12).Value = "居间实际收益     （万元）";
+            ws.Cell(1, startColumn + 13).Value = "退补电费";
+            ws.Cell(1, startColumn + 19).Value = "扣除费用";
+            ws.Cell(1, startColumn + 21).Value = "退补电费实际收益     （万元）";
+            ws.Cell(1, startColumn + 22).Value = "代理";
+            ws.Cell(1, startColumn + 25).Value = "扣除费用";
+            ws.Cell(1, startColumn + 27).Value = "代理实际收益      （万元）";
+            ws.Cell(1, startColumn + 28).Value = "触发超额电费";
+            ws.Cell(1, startColumn + 29).Value = "备注";
+            for (var offset = 0; offset < 30; offset++)
+            {
+                ws.Cell(2, startColumn + offset).Value = headers2[offset];
+                ws.Cell(3, startColumn + offset).Value = headers3[offset];
+            }
+        }
+
+        private static void FillPreviousMonthData(IXLWorksheet ws, int row, int startColumn, bool includeSettlementTemplate)
+        {
+            ws.Cell(row, startColumn).Value = 99;
+            ws.Cell(row, startColumn + 1).Value = 11;
+            ws.Cell(row, startColumn + 2).Value = 22;
+            ws.Cell(row, startColumn + 3).Value = 33;
+            ws.Cell(row, startColumn + 4).Value = 44;
+            ws.Cell(row, startColumn + 5).Value = 1.2;
+            ws.Cell(row, startColumn + 6).Value = 0.8;
+            if (!includeSettlementTemplate)
+            {
+                return;
+            }
+
+            ws.Cell(row, startColumn + 22).Value = 1;
+            ws.Cell(row, startColumn + 23).Value = 30;
+            ws.Cell(row, startColumn + 24).FormulaA1 = "=ROUND(" + ws.Cell(row, startColumn).Address.ToStringRelative() + "*" + ws.Cell(row, startColumn + 22).Address.ToStringRelative() + "*" + ws.Cell(row, startColumn + 23).Address.ToStringRelative() + "/10,4)";
+            ws.Cell(row, startColumn + 25).Value = 0.06;
+            ws.Cell(row, startColumn + 26).FormulaA1 = "=ROUND(" + ws.Cell(row, startColumn + 24).Address.ToStringRelative() + "/1.13*" + ws.Cell(row, startColumn + 25).Address.ToStringRelative() + ",4)";
+            ws.Cell(row, startColumn + 27).FormulaA1 = "=" + ws.Cell(row, startColumn + 24).Address.ToStringRelative() + "-" + ws.Cell(row, startColumn + 26).Address.ToStringRelative();
         }
 
         private static void WriteChongqingLedger(string path, string customerBName = "测试客户B")
@@ -323,6 +532,18 @@ namespace HainanSettlementTool.Excel.Tests
             ws.Cell(row, 5).Value = 202601;
             ws.Cell(row, 6).Value = 202612;
             ws.Cell(row, 7).Value = "测试负责人";
+        }
+
+        private static void WriteDetailedLedgerRow(IXLWorksheet ws, int row, int index, string customerName, string agentOrSelf)
+        {
+            ws.Cell(row, 1).Value = index;
+            ws.Cell(row, 3).Value = customerName;
+            ws.Cell(row, 4).Value = 100;
+            ws.Cell(row, 5).Value = 202601;
+            ws.Cell(row, 6).Value = 202612;
+            ws.Cell(row, 7).Value = "测试开发人";
+            ws.Cell(row, 8).Value = agentOrSelf;
+            ws.Cell(row, 9).Value = "测试负责人";
         }
 
         private static void WriteRow(IXLWorksheet ws, int row, string customer, string account, string meter, string period, double power)
@@ -380,6 +601,21 @@ namespace HainanSettlementTool.Excel.Tests
             }
 
             Assert.Fail("未找到台账客户：" + customerName);
+            return 0;
+        }
+
+        private static int FindMonthStartColumn(IXLWorksheet worksheet, string monthLabel)
+        {
+            var lastColumn = worksheet.LastColumnUsed().ColumnNumber();
+            for (var column = 1; column <= lastColumn; column++)
+            {
+                if (worksheet.Cell(1, column).GetString() == monthLabel)
+                {
+                    return column;
+                }
+            }
+
+            Assert.Fail("未找到月份区块：" + monthLabel);
             return 0;
         }
 

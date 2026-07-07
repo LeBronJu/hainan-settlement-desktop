@@ -14,6 +14,8 @@ namespace HainanSettlementTool.Excel
     internal sealed class ChongqingLedgerStage1Updater
     {
         private const string Unit = "兆瓦时";
+        private const int MonthBlockWidth = 30;
+        private const int MonthPowerColumnCount = 5;
         private readonly ChongqingPowerCleanGenerator _powerCleanGenerator;
 
         public ChongqingLedgerStage1Updater(ChongqingPowerCleanGenerator powerCleanGenerator)
@@ -95,7 +97,8 @@ namespace HainanSettlementTool.Excel
                 OutputDirectory = options.OutputDirectory
             });
             var worksheet = FindLedgerWorksheet(workbook);
-            var map = FindLedgerMap(worksheet, options.Month);
+            var ledgerWarnings = new List<string>();
+            var map = FindLedgerMap(worksheet, options.Month, ledgerWarnings);
             var ledgerRows = ReadLedgerRows(worksheet, map);
             var powerRowsByKey = powerData.CustomerRows.ToDictionary(row => TextUtil.CustomerKey(row.CustomerName));
             var ledgerRowsByKey = ledgerRows.ToDictionary(row => row.Key);
@@ -139,6 +142,7 @@ namespace HainanSettlementTool.Excel
                 powerRowsByLedgerKey,
                 powerKeyByLedgerKey,
                 accountNumbersByKey,
+                ledgerWarnings,
                 manualMatches);
             return new LedgerUpdateContext
             {
@@ -163,6 +167,7 @@ namespace HainanSettlementTool.Excel
             IDictionary<string, ChongqingPowerCleanGenerator.ChongqingPowerAggregateRow> powerRowsByLedgerKey,
             IDictionary<string, string> powerKeyByLedgerKey,
             IDictionary<string, List<string>> accountNumbersByKey,
+            IList<string> ledgerWarnings,
             IList<ProvinceStage1CustomerMatch> manualMatches)
         {
             var matchedKeys = powerRowsByLedgerKey.Keys.ToList();
@@ -177,7 +182,7 @@ namespace HainanSettlementTool.Excel
                 MatchedRows = matchedKeys.Count,
                 ManualMatchedRows = manualMatches.Count,
                 ManualCustomerMatches = manualMatches.ToList(),
-                Warnings = new List<string>(powerData.Warnings)
+                Warnings = powerData.Warnings.Concat(ledgerWarnings).ToList()
             };
 
             if (powerData.Month > 0 && powerData.Month != options.Month)
@@ -326,10 +331,16 @@ namespace HainanSettlementTool.Excel
             throw new InvalidOperationException("重庆台账中未找到表头“电力用户名称”。");
         }
 
-        private static LedgerMap FindLedgerMap(IXLWorksheet worksheet, int month)
+        private static LedgerMap FindLedgerMap(IXLWorksheet worksheet, int month, IList<string> warnings)
         {
             var customerNameColumn = FindHeaderColumn(worksheet, "电力用户名称");
-            var totalColumn = FindMonthStartColumn(worksheet, month);
+            int totalColumn;
+            if (!TryFindMonthStartColumn(worksheet, month, out totalColumn))
+            {
+                totalColumn = CopyPreviousMonthBlock(worksheet, month);
+                warnings.Add("重庆台账中未找到" + month + "月电量区块，已基于" + (month - 1) + "月电量区块创建" + month + "月电量区块。");
+            }
+
             if (CellText(worksheet.Cell(2, totalColumn)) != "总实际电量（兆瓦时）"
                 || CellText(worksheet.Cell(2, totalColumn + 1)) != "实际电量（兆瓦时）"
                 || CellText(worksheet.Cell(3, totalColumn + 1)) != "尖"
@@ -371,17 +382,84 @@ namespace HainanSettlementTool.Excel
 
         private static int FindMonthStartColumn(IXLWorksheet worksheet, int month)
         {
+            int column;
+            if (TryFindMonthStartColumn(worksheet, month, out column))
+            {
+                return column;
+            }
+
+            throw new InvalidOperationException("重庆台账中未找到" + month.ToString(CultureInfo.InvariantCulture) + "月电量区块。");
+        }
+
+        private static bool TryFindMonthStartColumn(IXLWorksheet worksheet, int month, out int column)
+        {
             var label = month.ToString(CultureInfo.InvariantCulture) + "月";
             var lastColumn = worksheet.LastColumnUsed()?.ColumnNumber() ?? 1;
-            for (var column = 1; column <= lastColumn; column++)
+            for (column = 1; column <= lastColumn; column++)
             {
                 if (CellText(worksheet.Cell(1, column)) == label)
                 {
-                    return column;
+                    return true;
                 }
             }
 
-            throw new InvalidOperationException("重庆台账中未找到" + label + "电量区块。");
+            column = 0;
+            return false;
+        }
+
+        private static int CopyPreviousMonthBlock(IXLWorksheet worksheet, int targetMonth)
+        {
+            if (targetMonth <= 1)
+            {
+                throw new InvalidOperationException("重庆台账中未找到" + targetMonth + "月电量区块，且无法从上月复制区块。");
+            }
+
+            var sourceMonth = targetMonth - 1;
+            var sourceStart = FindMonthStartColumn(worksheet, sourceMonth);
+            var targetStart = sourceStart + MonthBlockWidth;
+            var lastRow = worksheet.LastRowUsed()?.RowNumber() ?? 1;
+            var lastColumn = worksheet.LastColumnUsed()?.ColumnNumber() ?? 1;
+            if (targetStart <= lastColumn && HasContent(worksheet, 1, targetStart, lastRow, targetStart + MonthBlockWidth - 1))
+            {
+                throw new InvalidOperationException("重庆台账" + targetMonth + "月电量区块目标位置已有内容，但未识别为" + targetMonth + "月区块。");
+            }
+
+            var sourceRange = worksheet.Range(1, sourceStart, lastRow, sourceStart + MonthBlockWidth - 1);
+            sourceRange.CopyTo(worksheet.Cell(1, targetStart));
+            worksheet.Cell(1, targetStart).Value = targetMonth.ToString(CultureInfo.InvariantCulture) + "月";
+            for (var offset = 0; offset < MonthBlockWidth; offset++)
+            {
+                var sourceColumn = worksheet.Column(sourceStart + offset);
+                var targetColumn = worksheet.Column(targetStart + offset);
+                targetColumn.Width = sourceColumn.Width;
+                if (sourceColumn.IsHidden)
+                {
+                    targetColumn.Hide();
+                }
+                else
+                {
+                    targetColumn.Unhide();
+                }
+            }
+
+            worksheet.Range(4, targetStart, lastRow, targetStart + MonthPowerColumnCount - 1).Clear(XLClearOptions.Contents);
+            return targetStart;
+        }
+
+        private static bool HasContent(IXLWorksheet worksheet, int firstRow, int firstColumn, int lastRow, int lastColumn)
+        {
+            for (var row = firstRow; row <= lastRow; row++)
+            {
+                for (var column = firstColumn; column <= lastColumn; column++)
+                {
+                    if (!worksheet.Cell(row, column).IsEmpty())
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         private static List<LedgerCustomerRow> ReadLedgerRows(IXLWorksheet worksheet, LedgerMap map)

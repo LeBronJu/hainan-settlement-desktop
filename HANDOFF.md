@@ -30,8 +30,8 @@ The stable local reference folder is for future comparison/orientation only; do 
 
 ## Current Git State
 
-- Current branch: `codex/wpf-mainwindow-decomposition`
-- Branch purpose: reduce WPF `MainWindow.xaml.cs` coupling after the Chongqing Stage 1 module, keeping the app ready for more provinces.
+- Current branch: `codex/chongqing-month-block-copy`
+- Branch purpose: fix Chongqing Stage 1 ledger update when the target month block is missing, by copying the previous Chongqing month block before writing power.
 - Multi-province readiness note: `docs/dev-notes/multi-province-readiness-2026-07-07.md`. Read it before new-province onboarding, WPF province UI, Core multi-province workflow, or Excel multi-province adapter work.
 - Previous uncommitted WPF small-window work was reviewed on 2026-07-06. The action-row `DockPanel LastChildFill="False"` fixes were already present on the Chongqing branch, the remaining `MinHeight="720"` fix was reapplied, and the old stash was dropped.
 - Employee reward module has been merged to `main` from `codex/employee-reward-module`. The user completed practical testing on 2026-07-02 and reported no blocking issues.
@@ -218,6 +218,8 @@ Current behavior:
 - WPF preflight can collect one-time manual customer matches from unmatched power customers to ledger-only customers; each displayed unmatched customer must be explicitly mapped to a ledger customer or explicitly marked as not written for the month. These mappings are passed through `ProvinceStage1CustomerMatch`, used only for the current output copy, and written to the JSON report.
 - Ledger update does not fill `电力用户编码` / B-column account numbers; account numbers remain in the cleaned detail workbook and report for traceability.
 - Ledger update writes only target-month `总实际电量（兆瓦时）` and `尖/峰/平/谷` into a copied ledger. It does not overwrite the source ledger.
+- If the target month block is absent, ledger update creates it by copying the previous Chongqing 30-column month block, changing the month label, clearing the target-month `总实际电量/尖/峰/平/谷` power columns, and preserving template columns such as coefficients, refund, agent/intermediary formulas, and remarks.
+- `代理或自营=自营` customers can legitimately have blank agent/intermediary fixed fields and blank monthly agent/intermediary revenue columns; Stage 1 must not fill those fields or treat the blanks as errors.
 - Missing/new/ledger-only customers, possible alias candidates, multiple-account customers, month mismatch, and existing target-month power differences are surfaced in a WPF confirmation before writing and also written to the JSON report.
 
 Known limits:
@@ -894,6 +896,32 @@ Observed result:
 - `git diff --check` passed with CRLF normalization warnings only.
 - WPF `MessageBox` search had no matches.
 
+Chongqing Stage 1 target-month block creation fix on 2026-07-07:
+
+```powershell
+dotnet test .\tests\HainanSettlementTool.Excel.Tests\HainanSettlementTool.Excel.Tests.csproj /p:Configuration=Debug --filter UpdateLedgerCreatesTargetMonthBlockFromPreviousChongqingLedger
+dotnet test .\tests\HainanSettlementTool.Excel.Tests\HainanSettlementTool.Excel.Tests.csproj /p:Configuration=Debug --filter ChongqingPowerCleanGeneratorTests
+dotnet test .\tests\HainanSettlementTool.Core.Tests\HainanSettlementTool.Core.Tests.csproj /p:Configuration=Debug --filter ProvinceStage1
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Debug /m
+git diff --check
+rg "MessageBox" -n src\HainanSettlementTool.Wpf
+```
+
+Observed result:
+
+- Diagnosed the bug with three user-authorized real Chongqing ledgers inspected read-only: the 4-month ledger ended at the 4月 block, while the manually prepared 5-month ledgers had an added 30-column 5月 block.
+- Added Chongqing ledger update behavior that creates a missing target month block from the previous month block, clears only the target month `总实际电量/尖/峰/平/谷` columns, and preserves the remaining monthly template columns/formulas.
+- Added synthetic regression coverage for updating a 5月 ledger from a 4月-only Chongqing ledger, including a `代理或自营=自营` customer whose agent/intermediary revenue columns stay blank.
+- The new regression failed before the fix with `重庆台账中未找到5月电量区块` and passed after the fix.
+- Targeted Chongqing Excel tests passed: 5 tests.
+- Targeted Core province-stage tests passed: 2 tests.
+- Full Debug test suite passed: Core 18 tests, Excel 19 tests.
+- Debug build passed for Core, Excel, WinForms, and WPF.
+- `git diff --check` passed with CRLF normalization warnings only.
+- WPF `MessageBox` search had no matches.
+- The broader project/namespace name `HainanSettlementTool` remains unchanged for now. Future naming cleanup should prefer low-risk province-neutral slices for internal modules/classes/variables, not a large all-at-once rename in a settlement bugfix.
+
 ## Documentation Rule
 
 Documentation is now part of the development contract:
@@ -967,4 +995,5 @@ Packaging/docs:
 3. Decide whether future Chongqing months should require the target month block to already exist in the ledger, or whether the app should copy the previous month block and create the new month block.
 4. Decide whether to cut a Win10/11 acceptance release from the accepted WPF package or rebuild a fresh release package from `main`.
 5. Continue quality work with WPF as the default UI target; next low-risk `MainWindow.xaml.cs` decomposition candidates are log control, modern dialog entry points, and file-path browsing/input state. Avoid WinForms parity work unless it is a bugfix, build/package compatibility issue, or explicitly requested.
-6. Consider adding sanitized employee reward, Stage 2, Chongqing, and `.xls` fixture workbooks later; current regressions use dynamically generated synthetic workbooks and local authorized smoke only.
+6. Plan province-neutral naming cleanup separately from bugfixes. Do not rename the project/namespace `HainanSettlementTool` casually; start with smaller internal class/variable names where the province meaning is misleading and tests can cover the change.
+7. Consider adding sanitized employee reward, Stage 2, Chongqing, and `.xls` fixture workbooks later; current regressions use dynamically generated synthetic workbooks and local authorized smoke only.
