@@ -2,6 +2,8 @@
 
 Date: 2026-06-29
 
+Status: current policy note. Use this file to decide whether WinForms should receive a change; current document ownership is listed in `docs/README.md`.
+
 ## Decision
 
 Win10/11 WPF is now the primary UI entry for new features and UX improvements.

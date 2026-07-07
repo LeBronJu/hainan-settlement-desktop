@@ -1,7 +1,7 @@
 # Agent Instructions
 
 This repository is the standalone C# desktop project for multi-province retail electricity settlement automation.
-Hainan is the mature first province module; Chongqing is being added as the second province module, starting with Stage 1 power-data cleaning and ledger update.
+Hainan is the mature first province module. Chongqing Stage 1 power cleaning and ledger update are implemented; Chongqing Stage 2 is under analysis/implementation.
 
 ## Safety Rules
 
@@ -26,7 +26,9 @@ The C# version is being built as a maintainable Windows desktop app. It should e
 - `src/HainanSettlementTool.Wpf/`: Win10/11 WPF main UI. New province entries, new UI features, and UX improvements belong here by default.
 - `src/HainanSettlementTool.Core/`: business models, services, and interfaces.
 - `src/HainanSettlementTool.Excel/`: ClosedXML workbook reading/writing.
+- `docs/README.md`: documentation map and current source-of-truth index.
 - `docs/architecture.md`: layering and migration boundary.
+- `docs/hainan-stage2-current-behavior.md`: current Hainan Stage 2 behavior and validation summary.
 - `CONTEXT.md`: domain vocabulary and settlement rules.
 - `docs/dev-notes/`: architecture reviews, robustness priorities, and one-off technical notes.
 - `HANDOFF.md`: current state for future sessions.
@@ -48,7 +50,7 @@ This is a single-context repo. See `docs/agents/domain.md`.
 ## Engineering Rules
 
 - Start every project work session by checking the branch and reading current project instructions before editing. Minimum gate: run `git status --short --branch`, then read `AGENTS.md` and `HANDOFF.md`. Do not rely only on chat history, memory, or a prior agent summary.
-- Before changing an area, read that area's owning document: business settlement rules require `CONTEXT.md`; module boundaries or workflow seams require `docs/architecture.md`; release/packaging requires `docs/RELEASE_CHECKLIST.md`; user-visible setup or package status requires `README.md`; current branch/task state requires `HANDOFF.md`.
+- Before changing an area, read that area's owning document: business settlement rules require `CONTEXT.md`; module boundaries or workflow seams require `docs/architecture.md`; release/packaging requires `docs/RELEASE_CHECKLIST.md`; user-visible setup or package status requires `README.md`; current branch/task state requires `HANDOFF.md`. If ownership is unclear, read `docs/README.md` first.
 - Before new-province onboarding, WPF province UI, Core multi-province workflow, or Excel multi-province adapter work, also read `docs/dev-notes/multi-province-readiness-2026-07-07.md` and use its P0/P1/P2 readiness order.
 - If context was compacted, the thread was resumed after a pause, or the task direction changed, repeat the relevant reading gate before making further edits.
 - Do not make development changes directly on `main` or `master`. Create a development branch first, using the `codex/` prefix unless the user requests another branch name.
@@ -71,47 +73,16 @@ This is a single-context repo. See `docs/agents/domain.md`.
 
 The app is evolving from a Hainan-only desktop tool into a multi-province settlement automation tool. Keep province-specific business rules isolated behind province/module naming. Do not add broad `if Hainan / if Chongqing` branches in shared logic when a province-specific service or Excel generator is the cleaner boundary.
 
-Stage 1 currently supports:
-
-- Read an existing power workbook, or build one from `.xlsx`/`.xls`/`.csv` raw detail.
-- Copy/update the ledger with current month power.
-- Add newly discovered customer names and customer codes where possible.
-- Emit a JSON report.
-- Run "clean power data only" without updating the ledger.
-
-Stage 2 currently supports:
-
-- Read the manually reviewed current-month ledger.
-- Copy previous-month agent/intermediary split sheets as templates and write current-month input values.
-- Generate the current-month summary workbook from the previous/corrected summary template.
-- Emit a JSON settlement report and a text validation report.
-- Show a detailed preflight confirmation for key changes such as new split entities, new split customers, unit price changes, and tax-rate changes.
-
-Stage 1 and Stage 2 still do not:
-
-- Auto-fill volatile business fields such as负责人 or 项目开发人.
-- Change ledger customer names to match summary/payment-account names.
-- Treat irregular January/February 2026 data as generic rules.
-
-Chongqing Stage 1 currently targets power-data cleaning and ledger update:
-
-- Input: Chongqing trading-center electricity confirmation statement (`.xlsx/.xls/.csv`).
-- Ledger update input: Chongqing settlement ledger (`.xlsx`).
-- Preferred sheet: `sheet1`; fallback to the first sheet when `sheet1` does not exist.
-- Required headers: `用户名称`, `户号`, `时段`, `用电量`.
-- Unit: `兆瓦时`; do not reuse Hainan's `万千瓦时` unit.
-- Output: Chongqing retail-side power processing workbook plus JSON validation report.
-- Aggregation: by user name for the main summary, with account-number detail retained for audit.
-- Ledger update matches by `电力用户名称`, requires WPF customer handling decisions for unmatched power customers (`新增客户到台账` / `不匹配，本月不写入` / `匹配已有台账客户`), writes only target-month `总实际电量/尖/峰/平/谷` to a copied ledger, does not auto-fill `电力用户编码` or volatile manual fields, and requires WPF confirmation before writing when matching issues exist.
+Current business scope and stage rules live in `CONTEXT.md`. Current architecture and module boundaries live in `docs/architecture.md`. Hainan Stage 2 implementation details live in `docs/hainan-stage2-current-behavior.md`. Chongqing Stage 2 analysis lives in `docs/dev-notes/chongqing-stage2-analysis-2026-07-07.md`.
 
 ## Business Rules To Preserve
 
-- Ledger power unit should be `万千瓦时`; older wording saying `兆瓦时` was wrong.
+- Hainan ledger power unit is `万千瓦时`; older Hainan wording saying `兆瓦时` was wrong. Chongqing Stage 1 cleaning and ledger update use `兆瓦时`.
 - Do not rename ledger customer names only to match payment-account names in summary workbooks.
 - `项目开发人` is an agent/intermediary relationship under a负责人, not the salesperson themselves.
 - Historical January/February 2026 data may be irregular. Do not generalize those quirks.
 - New customers can be left with blank负责人/项目开发人 for manual review in stage 1.
-- If a new customer's invoice/payment note is unknown, default to `走平台扣13%`, except when that agent already has a historical rule.
+- Hainan Stage 2 keeps the existing new-subject invoice/payment defaults described in `docs/hainan-stage2-current-behavior.md`. Do not apply those defaults to Chongqing without an explicit Chongqing rule; Chongqing new summary subjects should use a preflight/default model designed for Chongqing.
 
 ## Build Command
 

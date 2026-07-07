@@ -8,9 +8,11 @@ This is a single-context repo.
 
 Expected domain docs:
 
+- `docs/README.md` for the current documentation map and source-of-truth index
 - `CONTEXT.md` at the repo root, if present
 - `docs/adr/` for architectural decisions, if present
 - `docs/architecture.md` for current layering and migration boundaries
+- `docs/*-current-behavior.md` for detailed current behavior of mature modules
 - `AGENTS.md` and `HANDOFF.md` for current working rules and handoff state
 
 If `CONTEXT.md` or `docs/adr/` do not exist, proceed silently. They can be created later when a domain term or architecture decision needs to be recorded.

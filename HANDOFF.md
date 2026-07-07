@@ -41,6 +41,9 @@ The stable local reference folder is for future comparison/orientation only; do 
 - The Chongqing target-month block fix is isolated on `codex/chongqing-month-block-copy` and was pushed through `e45d358 Document WPF Chongqing test package`.
 - Multi-province readiness note: `docs/dev-notes/multi-province-readiness-2026-07-07.md`. Read it before new-province onboarding, WPF province UI, Core multi-province workflow, or Excel multi-province adapter work.
 - Chongqing Stage 2 analysis note: `docs/dev-notes/chongqing-stage2-analysis-2026-07-07.md`. It records the 2026-07-07 read-only inspection of the authorized Chongqing folder, workbook structures, proposed first implementation boundary, and open questions.
+- Documentation map: `docs/README.md`. Use it to decide which document is canonical before editing docs or business rules.
+- Hainan Stage 2 current behavior reference: `docs/hainan-stage2-current-behavior.md`. Use it instead of mining historical handoff entries for detailed Hainan Stage 2 rules.
+- 2026-07-07 documentation cleanup added the document map, extracted Hainan Stage 2 current behavior, and marked dev notes as current task/current policy/current module/current process/historical where appropriate.
 - Previous uncommitted WPF small-window work was reviewed on 2026-07-06. The action-row `DockPanel LastChildFill="False"` fixes were already present on the Chongqing branch, the remaining `MinHeight="720"` fix was reapplied, and the old stash was dropped.
 - Employee reward module has been merged to `main` from `codex/employee-reward-module`. The user completed practical testing on 2026-07-02 and reported no blocking issues.
 - Latest employee reward feature commit before this handoff update: `feb933f Add employee reward module`
@@ -1150,6 +1153,7 @@ Observed result:
 
 Documentation is now part of the development contract:
 
+- Document ownership and current/historical status are summarized in `docs/README.md`; this handoff only records current branch state, validation, packages, and next steps.
 - At the start of each project work session, run `git status --short --branch` and read `AGENTS.md` plus this `HANDOFF.md` before editing.
 - Read the owning document before changing a responsibility area: `CONTEXT.md` for settlement rules, `docs/architecture.md` for module seams or workflow structure, `README.md` for user-facing setup/package status, and `docs/RELEASE_CHECKLIST.md` for release or packaging.
 - Repeat the relevant reading gate after context compaction, a long pause, or a task direction change.

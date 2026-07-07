@@ -2,12 +2,14 @@
 
 Date: 2026-07-02
 
+Status: current module note. Use this file for employee reward scope and rules; stable cross-module vocabulary remains in `CONTEXT.md`.
+
 This note records the implementation decisions for the independent `员工电量奖励` module.
 
 ## Reference And Real Files
 
 - Reference folder recorded by the user: `D:\Document\文件处理\稳定参考版海南结算\电量奖励参考`
-- Latest 2026-05 production ledger inspected read-only: `C:\Users\juqx2\Desktop\2026海南\海南2026-5月代理费结算\【2026年海南售电结算台账 - 0629】.xlsx`
+- 2026-07-02 implementation validation inspected the then-current 2026-05 production ledger read-only: `C:\Users\juqx2\Desktop\2026海南\海南2026-5月代理费结算\【2026年海南售电结算台账 - 0629】.xlsx`
 - The user authorized read-only inspection for this analysis. Do not modify files in the production or reference folders.
 
 The reference workbooks define the desired output shape, but they are not runtime inputs. The implemented module generates the reward workbooks from the latest ledger and an internal layout so the user does not need to select templates each month.

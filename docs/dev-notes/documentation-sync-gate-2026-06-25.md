@@ -2,6 +2,8 @@
 
 Date: 2026-06-25
 
+Status: current process note. The live document map is `docs/README.md`; use this file for the documentation impact gate.
+
 ## Why
 
 The project needs documentation that stays current, but a blanket "update all docs every time" rule creates noise. Agents may rewrite unaffected docs just to satisfy process, making future reviews harder and diluting the useful signal.
@@ -28,10 +30,12 @@ Development final responses should also include validation performed and any int
 ## Document Responsibilities
 
 - `README.md`: user-facing scope, setup, build, packaging, release, and notable behavior.
+- `docs/README.md`: document map, source-of-truth index, and current/historical doc status.
 - `HANDOFF.md`: current branch state, release status, validation results, and next steps.
 - `CONTEXT.md`: stable business vocabulary, settlement rules, and data safety constraints.
 - `AGENTS.md`: agent operating rules, engineering constraints, and workflow gates.
 - `docs/architecture.md`: module layering, stage boundaries, and migration strategy.
+- `docs/*-current-behavior.md`: detailed current behavior for mature modules that would make `CONTEXT.md` too noisy.
 - `docs/RELEASE_CHECKLIST.md`: merge, release, packaging, and documentation gates.
 - `docs/dev-notes/`: dated investigations, architecture notes, and lightweight governance decisions.
 

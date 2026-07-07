@@ -2,6 +2,8 @@
 
 Date: 2026-06-29
 
+Status: historical tool note. The safety model and intent remain useful, but `scripts/run_real_smoke.ps1` currently references pre-rename service/gateway class names and must be refreshed before it is treated as a runnable validation entry. Current document ownership is listed in `docs/README.md`.
+
 ## Why
 
 The project now needs repeatable local validation against user-authorized real work copies, but the previous process required copying a long PowerShell snippet into the terminal. That made the validation interface shallow: every run exposed assembly loading, output directory creation, stage orchestration, power comparison, workbook counting, and formula-error scanning to the caller.

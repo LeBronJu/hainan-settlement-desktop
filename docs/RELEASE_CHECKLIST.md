@@ -30,6 +30,7 @@ Make a documentation impact judgment before merging release-bound changes or tag
 - Packaging or release procedure changed: update this checklist.
 - Architecture boundaries changed: update `docs/architecture.md` and, if needed, a dated dev-note.
 - Business rules changed: review and update `CONTEXT.md`.
+- Documentation ownership, canonical links, or new current-behavior docs changed: update `docs/README.md`.
 - Branch state, validation results, or next steps changed: update `HANDOFF.md`.
 - No docs affected: state the reason in the final response.
 
