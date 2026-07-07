@@ -30,7 +30,8 @@ The stable local reference folder is for future comparison/orientation only; do 
 
 ## Current Git State
 
-- Current branch: `main`
+- Current branch: `codex/wpf-log-controller`
+- Branch purpose: follow-up WPF quality slice that extracts run-log append/clear/save behavior from `MainWindow.xaml.cs` into `MainWindowLogController`. This branch is based on local `main` after `0b5ef73 Document main acceptance package`.
 - Local `main` is ahead of `origin/main` after merging `codex/wpf-path-picker-controller`; remote push has not been performed in this session.
 - Merged branch: `codex/wpf-path-picker-controller` through `c2ce2b5 Add Chongqing customer decisions`, with local merge commit `4911e47 Merge Chongqing stage one WPF updates`.
 - Branch purpose now complete: Chongqing Stage 1 power cleaning/ledger update, WPF province UI, WPF controller decomposition slices, Chongqing target-month block copy, customer-resolution decisions, and WPF display-title fixes are on local `main`.
@@ -1074,6 +1075,27 @@ Observed result:
 - No formal tag or GitHub Release was created.
 - Remote push was not performed.
 
+WPF log-controller slice on 2026-07-07:
+
+```powershell
+dotnet msbuild .\src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Debug /m
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Debug /m
+git diff --check
+rg "MessageBox" -n src\HainanSettlementTool.Wpf
+```
+
+Observed result:
+
+- Added `MainWindowLogController` to own WPF run-log append, scroll-to-end, clear, and save-to-text-file behavior.
+- `MainWindow.xaml.cs` keeps thin `AddLog`, `ClearLog_Click`, and `SaveLog_Click` wrappers so existing workflow call sites stay unchanged.
+- This is an internal UI-architecture slice only; no settlement calculation, Excel read/write, customer matching, confirmation flow, generated workbook behavior, or user-visible log text changed.
+- Targeted WPF Debug build passed.
+- Full Debug test suite passed: Core 18 tests, Excel 20 tests.
+- Debug build passed for Core, Excel, WinForms, WPF, and both test projects.
+- `git diff --check` passed with CRLF normalization warnings only.
+- WPF `MessageBox` search had no matches.
+
 ## Documentation Rule
 
 Documentation is now part of the development contract:
@@ -1130,6 +1152,7 @@ UI:
 - `src/HainanSettlementTool.Wpf/MainWindowPathPickerController.cs`
 - `src/HainanSettlementTool.Wpf/MainWindowProgressController.cs`
 - `src/HainanSettlementTool.Wpf/MainWindowResultController.cs`
+- `src/HainanSettlementTool.Wpf/MainWindowLogController.cs`
 - `src/HainanSettlementTool.Wpf/ProvinceUiProfile.cs`
 - `src/HainanSettlementTool.Wpf/Stage2PreflightWindow.xaml`
 - `src/HainanSettlementTool.Wpf/ProvinceStage1LedgerPreflightWindow.xaml`
@@ -1151,6 +1174,6 @@ Packaging/docs:
 1. Have the user test the local `main` acceptance package `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-140505.zip` against a Chongqing work copy.
 2. If the user accepts this package, decide whether to push local `main` to `origin/main`, cut a formal release, or keep it as a local acceptance build.
 3. If the user authorizes a real-data smoke, run it read-only against specifically authorized Chongqing input files and write outputs only to an explicitly selected test/output folder.
-4. Continue WPF quality work on a separate `codex/` branch only after preserving the current `main` acceptance package state. The next low-risk `MainWindow.xaml.cs` decomposition candidate remains log control. Avoid WinForms parity work unless it is a bugfix, build/package compatibility issue, or explicitly requested.
+4. Review and, if accepted, merge `codex/wpf-log-controller` back to `main`; it is a low-risk internal WPF slice and does not require a new acceptance package unless the user wants one.
 5. Decide later whether repeated manual matches should remain one-time only or support a user-maintained alias table.
 6. Consider adding sanitized employee reward, Stage 2, Chongqing, and `.xls` fixture workbooks later; current regressions use dynamically generated synthetic workbooks and local authorized smoke only.
