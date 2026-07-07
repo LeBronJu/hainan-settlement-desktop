@@ -22,6 +22,7 @@ namespace HainanSettlementTool.Wpf
     {
         private readonly MainWindowProgressController _progressController;
         private readonly MainWindowResultController _resultController;
+        private readonly MainWindowDialogController _dialogController;
         private bool _isBusy;
         private bool _loadingInputs;
         private string _themeMode = ThemeService.SystemMode;
@@ -34,6 +35,7 @@ namespace HainanSettlementTool.Wpf
 
             InitializeComponent();
 
+            _dialogController = new MainWindowDialogController(this);
             InitializeThemeCombo(_themeMode);
             InitializeProvinceCombo();
 
@@ -992,11 +994,7 @@ namespace HainanSettlementTool.Wpf
 
         private bool ConfirmRun(string stageName, int month, string outputDirectory)
         {
-            var dialog = new ConfirmRunWindow(stageName, month, outputDirectory)
-            {
-                Owner = this
-            };
-            return dialog.ShowDialog() == true;
+            return _dialogController.ConfirmRun(stageName, month, outputDirectory);
         }
 
         private bool ConfirmEmployeeRewardRun(EmployeeRewardOptions options)
@@ -1256,25 +1254,17 @@ namespace HainanSettlementTool.Wpf
 
         private void ShowError(Exception ex)
         {
-            ShowErrorMessage(ex.Message);
+            _dialogController.ShowError(ex);
         }
 
         private void ShowErrorMessage(string message)
         {
-            var dialog = new ModernDialogWindow("出错了", "需要先处理这个问题", message, "知道了", null, ModernDialogKind.Error)
-            {
-                Owner = this
-            };
-            dialog.ShowDialog();
+            _dialogController.ShowErrorMessage(message);
         }
 
         private bool ConfirmAction(string title, string heading, string message, string primaryButtonText)
         {
-            var dialog = new ModernDialogWindow(title, heading, message, primaryButtonText, "取消", ModernDialogKind.Warning)
-            {
-                Owner = this
-            };
-            return dialog.ShowDialog() == true;
+            return _dialogController.ConfirmAction(title, heading, message, primaryButtonText);
         }
 
         private bool ConfirmProvinceStage1LedgerUpdate(ProvinceStage1LedgerUpdateOptions options, ProvinceStage1LedgerUpdatePlan plan)

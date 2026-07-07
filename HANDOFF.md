@@ -30,8 +30,9 @@ The stable local reference folder is for future comparison/orientation only; do 
 
 ## Current Git State
 
-- Current branch: `codex/province-neutral-naming`
-- Branch purpose: continue today's multi-province technical-debt mainline with low-risk province-neutral naming and WPF shell naming cleanup.
+- Current branch: `codex/wpf-dialog-controller`
+- Branch purpose: continue today's WPF-first quality mainline by extracting modern dialog entry points from `MainWindow.xaml.cs`.
+- Previous naming branch: `codex/province-neutral-naming`, pushed through `2f93013 Clarify province-neutral naming boundaries`.
 - The Chongqing target-month block fix is isolated on `codex/chongqing-month-block-copy` and was pushed through `e45d358 Document WPF Chongqing test package`.
 - Multi-province readiness note: `docs/dev-notes/multi-province-readiness-2026-07-07.md`. Read it before new-province onboarding, WPF province UI, Core multi-province workflow, or Excel multi-province adapter work.
 - Previous uncommitted WPF small-window work was reviewed on 2026-07-06. The action-row `DockPanel LastChildFill="False"` fixes were already present on the Chongqing branch, the remaining `MinHeight="720"` fix was reapplied, and the old stash was dropped.
@@ -966,6 +967,24 @@ Observed result:
 - `git diff --check` passed with CRLF normalization warnings only.
 - WPF `MessageBox` search had no matches.
 
+WPF dialog-controller slice on 2026-07-07:
+
+```powershell
+dotnet msbuild .\src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Debug /m
+rg -n "new ModernDialogWindow|new ConfirmRunWindow|MessageBox" src\HainanSettlementTool.Wpf\MainWindow.xaml.cs src\HainanSettlementTool.Wpf
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Debug /m
+git diff --check
+```
+
+Observed result:
+
+- Added `MainWindowDialogController` to own `ModernDialogWindow` and `ConfirmRunWindow` creation for common main-window error, warning, and run-confirmation prompts.
+- `MainWindow.xaml.cs` keeps thin helper methods, so existing workflow call sites and prompt behavior stay unchanged.
+- Targeted WPF Debug build passed.
+- Dialog residual scan shows window construction only inside `MainWindowDialogController`; no WPF `MessageBox` usage was introduced.
+- Debug build passed for Core, Excel, WinForms, WPF, and both test projects.
+- `git diff --check` passed with CRLF normalization warnings only.
+
 ## Documentation Rule
 
 Documentation is now part of the development contract:
@@ -1018,6 +1037,7 @@ UI:
 - `src/HainanSettlementTool.WinForms/MainForm.cs`
 - `src/HainanSettlementTool.Wpf/MainWindow.xaml`
 - `src/HainanSettlementTool.Wpf/MainWindow.xaml.cs`
+- `src/HainanSettlementTool.Wpf/MainWindowDialogController.cs`
 - `src/HainanSettlementTool.Wpf/MainWindowProgressController.cs`
 - `src/HainanSettlementTool.Wpf/MainWindowResultController.cs`
 - `src/HainanSettlementTool.Wpf/ProvinceUiProfile.cs`
