@@ -102,7 +102,7 @@ Chongqing Stage 1 currently targets power-data cleaning and ledger update:
 - Unit: `兆瓦时`; do not reuse Hainan's `万千瓦时` unit.
 - Output: Chongqing retail-side power processing workbook plus JSON validation report.
 - Aggregation: by user name for the main summary, with account-number detail retained for audit.
-- Ledger update matches by `电力用户名称`, can apply one-time WPF manual customer matches before writing, writes only target-month `总实际电量/尖/峰/平/谷` to a copied ledger, does not auto-fill `电力用户编码`, and requires WPF confirmation before writing when matching issues exist.
+- Ledger update matches by `电力用户名称`, requires WPF customer handling decisions for unmatched power customers (`新增客户到台账` / `不匹配，本月不写入` / `匹配已有台账客户`), writes only target-month `总实际电量/尖/峰/平/谷` to a copied ledger, does not auto-fill `电力用户编码` or volatile manual fields, and requires WPF confirmation before writing when matching issues exist.
 
 ## Business Rules To Preserve
 

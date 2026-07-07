@@ -31,8 +31,9 @@ The stable local reference folder is for future comparison/orientation only; do 
 ## Current Git State
 
 - Current branch: `main`
-- Local `main` contains the accepted 2026-07-07 WPF package state after merging `codex/wpf-path-picker-controller`; verify `origin/main` synchronization with `git status --short --branch` at session start.
+- Local `main` contains the accepted 2026-07-07 WPF package state after merging `codex/wpf-path-picker-controller`, then merges the follow-up `codex/wpf-log-controller` WPF quality slice. Verify synchronization with `git status --short --branch` at session start.
 - Merged branch: `codex/wpf-path-picker-controller` through `c2ce2b5 Add Chongqing customer decisions`, with local merge commit `4911e47 Merge Chongqing stage one WPF updates`.
+- Merged branch: `codex/wpf-log-controller`, which extracts run-log append/clear/save behavior from `MainWindow.xaml.cs` into `MainWindowLogController`.
 - Branch purpose now complete: Chongqing Stage 1 power cleaning/ledger update, WPF province UI, WPF controller decomposition slices, Chongqing target-month block copy, customer-resolution decisions, and WPF display-title fixes are on local `main`.
 - Previous dialog branch: `codex/wpf-dialog-controller`, pushed through `191b0ff Extract WPF dialog controller`.
 - Previous naming branch: `codex/province-neutral-naming`, pushed through `2f93013 Clarify province-neutral naming boundaries`.
@@ -1076,6 +1077,29 @@ Observed result:
 - No formal tag or GitHub Release was created.
 - Remote push had not yet been performed when these acceptance packages were created; the later user test note should be synchronized to `origin/main` before release/tag work.
 
+WPF log-controller slice on 2026-07-07:
+
+```powershell
+dotnet msbuild .\src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Debug /m
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Debug /m
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Release /m
+git diff --check
+rg "MessageBox" -n src\HainanSettlementTool.Wpf
+```
+
+Observed result:
+
+- Added `MainWindowLogController` to own WPF run-log append, scroll-to-end, clear, and save-to-text-file behavior.
+- `MainWindow.xaml.cs` keeps thin `AddLog`, `ClearLog_Click`, and `SaveLog_Click` wrappers so existing workflow call sites stay unchanged.
+- This is an internal UI-architecture slice only; no settlement calculation, Excel read/write, customer matching, confirmation flow, generated workbook behavior, or user-visible log text changed.
+- Targeted WPF Debug build passed.
+- Full Debug test suite passed: Core 18 tests, Excel 20 tests.
+- Debug build passed for Core, Excel, WinForms, WPF, and both test projects.
+- Release build passed for Core, Excel, WinForms, WPF, and both test projects.
+- `git diff --check` passed with CRLF normalization warnings only.
+- WPF `MessageBox` search had no matches.
+
 ## Documentation Rule
 
 Documentation is now part of the development contract:
@@ -1132,6 +1156,7 @@ UI:
 - `src/HainanSettlementTool.Wpf/MainWindowPathPickerController.cs`
 - `src/HainanSettlementTool.Wpf/MainWindowProgressController.cs`
 - `src/HainanSettlementTool.Wpf/MainWindowResultController.cs`
+- `src/HainanSettlementTool.Wpf/MainWindowLogController.cs`
 - `src/HainanSettlementTool.Wpf/ProvinceUiProfile.cs`
 - `src/HainanSettlementTool.Wpf/Stage2PreflightWindow.xaml`
 - `src/HainanSettlementTool.Wpf/ProvinceStage1LedgerPreflightWindow.xaml`
@@ -1150,9 +1175,8 @@ Packaging/docs:
 
 ## Next Steps
 
-1. Decide whether to cut a formal release/tag from the accepted `main` package state or keep it as a local acceptance build.
-2. If the user authorizes a real-data smoke, run it read-only against specifically authorized Chongqing input files and write outputs only to an explicitly selected test/output folder.
-3. Review and, if accepted, merge `codex/wpf-log-controller` back to `main`; it is a low-risk internal WPF slice and does not require a new acceptance package unless the user wants one.
+1. Continue the mainline with Chongqing Stage 2 requirements/design and implementation planning before any new formal release/tag.
+2. Decide whether repeated manual matches should remain one-time only or support a user-maintained alias table.
+3. If the user authorizes a real-data smoke, run it read-only against specifically authorized Chongqing input files and write outputs only to an explicitly selected test/output folder.
 4. Avoid WinForms parity work unless it is a bugfix, build/package compatibility issue, or explicitly requested.
-5. Decide later whether repeated manual matches should remain one-time only or support a user-maintained alias table.
-6. Consider adding sanitized employee reward, Stage 2, Chongqing, and `.xls` fixture workbooks later; current regressions use dynamically generated synthetic workbooks and local authorized smoke only.
+5. Consider adding sanitized employee reward, Stage 2, Chongqing, and `.xls` fixture workbooks later; current regressions use dynamically generated synthetic workbooks and local authorized smoke only.

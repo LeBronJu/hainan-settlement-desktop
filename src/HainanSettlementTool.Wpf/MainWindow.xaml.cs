@@ -23,6 +23,7 @@ namespace HainanSettlementTool.Wpf
         private readonly MainWindowResultController _resultController;
         private readonly MainWindowDialogController _dialogController;
         private readonly MainWindowPathPickerController _pathPickerController;
+        private readonly MainWindowLogController _logController;
         private bool _isBusy;
         private bool _loadingInputs;
         private string _themeMode = ThemeService.SystemMode;
@@ -93,6 +94,7 @@ namespace HainanSettlementTool.Wpf
                 FinishedAtRow,
                 FinishedAtText,
                 BrushOf);
+            _logController = new MainWindowLogController(this, LogBox);
             ResetProgress("等待执行", "尚未开始");
             ResetResults();
             AddLog("工具已就绪，等待操作。", "信息");
@@ -1231,8 +1233,7 @@ namespace HainanSettlementTool.Wpf
 
         private void AddLog(string message, string level)
         {
-            LogBox.AppendText("[" + DateTime.Now.ToString("HH:mm:ss") + "] [" + level + "] " + message + Environment.NewLine);
-            LogBox.ScrollToEnd();
+            _logController.Add(message, level);
         }
 
         private void ShowError(Exception ex)
@@ -1311,22 +1312,12 @@ namespace HainanSettlementTool.Wpf
 
         private void ClearLog_Click(object sender, RoutedEventArgs e)
         {
-            LogBox.Clear();
+            _logController.Clear();
         }
 
         private void SaveLog_Click(object sender, RoutedEventArgs e)
         {
-            var dialog = new SaveFileDialog
-            {
-                Title = "保存运行日志",
-                Filter = "文本文件|*.txt|所有文件|*.*",
-                FileName = "售电结算运行日志.txt"
-            };
-
-            if (dialog.ShowDialog(this) == true)
-            {
-                File.WriteAllText(dialog.FileName, LogBox.Text, Encoding.UTF8);
-            }
+            _logController.Save();
         }
 
         private void OpenOutputDir_Click(object sender, RoutedEventArgs e)
