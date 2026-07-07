@@ -1129,12 +1129,21 @@ Get-ChildItem -LiteralPath "C:\Users\juqx2\Desktop\2026年-重庆" -Recurse -Fil
 Observed result:
 
 - User authorized read-only inspection of `C:\Users\juqx2\Desktop\2026年-重庆` for Chongqing Stage 2 analysis.
+- User also authorized read-only inspection of `C:\Users\juqx2\Desktop\2026海南` to confirm Hainan Stage 2 default and inheritance behavior for comparison. No production files were modified or copied into the repo.
 - Inspected workbook structures only: folder layout, sheet names, dimensions, top headers, month blocks, formulas, and aggregate consistency. No files were modified or copied into the repo.
-- Added `docs/dev-notes/chongqing-stage2-analysis-2026-07-07.md` with a sanitized design note. It does not include customer lists or detailed sensitive amounts.
+- Updated `docs/dev-notes/chongqing-stage2-analysis-2026-07-07.md` with a sanitized design note. It does not include customer lists or detailed sensitive amounts.
 - Latest Chongqing ledger has 1-5 month blocks; each month block has 30 columns covering power, intermediation, refund electricity, agent收益, overcharge, and remarks.
+- Latest Chongqing ledger uses hidden columns heavily: B-column customer code and many historical month calculation columns are hidden. Chongqing Stage 2 must read/write by headers/month block offsets while preserving hidden-state and formulas, not by visible columns only.
 - Latest Chongqing summary uses one main `汇总表` plus payment-party monthly sheets such as `清能5月` and `清辉5月`; each month block contains `代理费/居间费/退补电费/费用合计/当月抵扣/当月实际支付`.
+- Chongqing summary long-term column marker is `当年费用总计`, not Hainan's `累计代理费总计`; direct reuse of `Stage2SettlementGenerator` summary-column logic would be wrong.
 - Current 5月 ledger aggregates match the 5月 summary totals for代理费 and退补电费; no effective 5月居间 rows were observed.
+- User confirmed Chongqing can have居间 later; when it appears, the structure should follow代理.
 - Agent and refund workbooks already contain 6月 blank/template sheets. Chongqing Stage 2 must support rewriting an existing target month sheet/block instead of always inserting one.
+- Proxy split formula shape includes `调整后收益 = 原收益 - 少回收电能量电费`; user confirmed the ledger's `少回收电能量电费` field must be carried into proxy split sheets even though observed historical values are currently zero.
+- Refund split formula shape uses segmented 尖峰/峰/平/谷 prices and cannot reuse proxy/intermediary single-price calculation.
+- Some files under the authorized Chongqing proxy/refund folders have `.xlsx` extensions but are not valid xlsx zip containers. Stage 2 preflight should report unreadable template files instead of silently ignoring them.
+- Hainan Stage 2 comparison confirmed: existing summary rows inherit template metadata and long-term fields; new summary rows default to `是否委托收款=否`, `收款人=主体`, `发票票种=平台`, `税率=0`, `扣税率/合计税率=0.13`, target-month new marker, and payment party default `清辉` unless a hard-coded Hainan override applies.
+- Chongqing should inherit existing summary rows from template, but new Chongqing summary subjects should not blindly reuse Hainan's `清辉` payment default. Recommended implementation: WPF preflight requires payment-party selection for new summary subjects, while other new-row defaults are prefilled from the selected payment-party template row and flagged for manual review.
 - No code, build, package, or release action was performed for this analysis.
 
 ## Documentation Rule
@@ -1212,10 +1221,11 @@ Packaging/docs:
 
 ## Next Steps
 
-1. Review the open questions in `docs/dev-notes/chongqing-stage2-analysis-2026-07-07.md` with the user before encoding Chongqing Stage 2 business defaults.
-2. If accepted, start `codex/chongqing-stage2` implementation from the analysis note: Core model/options/preflight first, then Excel generator, then WPF entry.
-3. Use the authorized Chongqing folder only read-only unless the user explicitly authorizes a specific smoke/output directory; never overwrite files in place.
-4. Have the user test the local Win10/11 WPF package `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-150019.zip` if they want a build that includes the WPF log-controller merge.
-5. Decide whether repeated manual matches should remain one-time only or support a user-maintained alias table.
-6. Avoid WinForms parity work unless it is a bugfix, build/package compatibility issue, or explicitly requested.
-7. Consider adding sanitized employee reward, Stage 2, Chongqing, and `.xls` fixture workbooks later; current regressions use dynamically generated synthetic workbooks and local authorized smoke only.
+1. Start Chongqing Stage 2 implementation from `docs/dev-notes/chongqing-stage2-analysis-2026-07-07.md`: Core model/options/preflight first, then `ChongqingStage2SettlementGenerator`, then WPF entry.
+2. Before encoding new-subject defaults, confirm or implement the recommended rule: new Chongqing summary subjects require explicit WPF payment-party selection (`清能`/`清辉`), while other metadata is prefilled from the selected payment-party template row and listed for manual review.
+3. First validation target is a read-only 5月 replay: use 5月 ledger data, a 4月 summary template, current proxy/refund templates, and compare generated aggregates with the manual 5月 result. Outputs must go only to an explicitly authorized test/output directory.
+4. Use the authorized Chongqing and Hainan folders only read-only unless the user explicitly authorizes a specific smoke/output directory; never overwrite files in place.
+5. Have the user test the local Win10/11 WPF package `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-150019.zip` if they want a build that includes the WPF log-controller merge.
+6. Decide whether repeated manual matches should remain one-time only or support a user-maintained alias table.
+7. Avoid WinForms parity work unless it is a bugfix, build/package compatibility issue, or explicitly requested.
+8. Consider adding sanitized employee reward, Stage 2, Chongqing, and `.xls` fixture workbooks later; current regressions use dynamically generated synthetic workbooks and local authorized smoke only.
