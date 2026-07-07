@@ -21,7 +21,7 @@ namespace HainanSettlementTool.Wpf
     public partial class MainWindow : Window
     {
         private readonly MainWindowProgressController _progressController;
-        private string _lastOutputDirectory;
+        private readonly MainWindowResultController _resultController;
         private bool _isBusy;
         private bool _loadingInputs;
         private string _themeMode = ThemeService.SystemMode;
@@ -61,6 +61,34 @@ namespace HainanSettlementTool.Wpf
                 ProgressPercentText,
                 new[] { Step1Text, Step2Text, Step3Text, Step4Text, Step5Text },
                 new[] { Step1Status, Step2Status, Step3Status, Step4Status, Step5Status },
+                BrushOf);
+            _resultController = new MainWindowResultController(
+                CompletionCard,
+                CompletionIconCircle,
+                CompletionIconText,
+                CompletionTitleText,
+                CompletionDetailText,
+                CompletionOutputLabel,
+                CompletionOutputText,
+                NoProvinceResultHint,
+                Stage1ResultRow,
+                Stage1ResultLabel,
+                Stage1ResultStatus,
+                Stage1ResultCount,
+                ProxyResultRow,
+                ProxyResultStatus,
+                ProxyResultCount,
+                IntermediaryResultRow,
+                IntermediaryResultStatus,
+                IntermediaryResultCount,
+                SummaryResultRow,
+                SummaryResultStatus,
+                SummaryResultCount,
+                EmployeeRewardResultRow,
+                EmployeeRewardResultStatus,
+                EmployeeRewardResultCount,
+                FinishedAtRow,
+                FinishedAtText,
                 BrushOf);
             ResetProgress("等待执行", "尚未开始");
             ResetResults();
@@ -335,9 +363,7 @@ namespace HainanSettlementTool.Wpf
                 SetProgress(100, "阶段一执行完成");
                 LogSummary(result.SummaryLines);
 
-                Stage1ResultStatus.Text = "成功";
-                Stage1ResultCount.Text = "1 个文件";
-                FinishedAtText.Text = DateTime.Now.ToString("HH:mm:ss");
+                SetStage1ResultSuccess("1 个文件");
                 ShowCompletion("阶段一执行完成", "台账和检查报告已生成", options.OutputDirectory);
             }
             catch (Exception ex)
@@ -432,9 +458,7 @@ namespace HainanSettlementTool.Wpf
                 SetProgress(100, "电量清洗完成");
                 LogSummary(result.SummaryLines);
 
-                Stage1ResultStatus.Text = "成功";
-                Stage1ResultCount.Text = result.Report.PowerRows + " 个客户";
-                FinishedAtText.Text = DateTime.Now.ToString("HH:mm:ss");
+                SetStage1ResultSuccess(result.Report.PowerRows + " 个客户");
                 ShowCompletion("电量清洗完成", "电量处理表已生成", outputDirectory);
             }
             catch (Exception ex)
@@ -499,9 +523,7 @@ namespace HainanSettlementTool.Wpf
                 SetProgress(100, "重庆电量清洗完成");
                 LogSummary(result.SummaryLines);
 
-                Stage1ResultStatus.Text = "成功";
-                Stage1ResultCount.Text = result.Report.CustomerRows + " 个客户";
-                FinishedAtText.Text = DateTime.Now.ToString("HH:mm:ss");
+                SetStage1ResultSuccess(result.Report.CustomerRows + " 个客户");
                 ShowCompletion("重庆电量清洗完成", "电量处理表、户号明细和校验报告已生成", options.OutputDirectory);
             }
             catch (Exception ex)
@@ -571,9 +593,7 @@ namespace HainanSettlementTool.Wpf
                 SetProgress(100, "重庆台账更新完成");
                 LogSummary(result.SummaryLines);
 
-                Stage1ResultStatus.Text = "成功";
-                Stage1ResultCount.Text = result.Report.UpdatedPowerRows + " 个客户";
-                FinishedAtText.Text = DateTime.Now.ToString("HH:mm:ss");
+                SetStage1ResultSuccess(result.Report.UpdatedPowerRows + " 个客户");
                 ShowCompletion("重庆台账更新完成", "台账副本和更新报告已生成", options.OutputDirectory);
             }
             catch (Exception ex)
@@ -676,13 +696,7 @@ namespace HainanSettlementTool.Wpf
                 SetProgress(100, "阶段二执行完成");
                 LogSummary(result.SummaryLines);
 
-                ProxyResultStatus.Text = "成功";
-                ProxyResultCount.Text = result.Report.ProxyGroups + " 个文件";
-                IntermediaryResultStatus.Text = "成功";
-                IntermediaryResultCount.Text = result.Report.IntermediaryGroups + " 个文件";
-                SummaryResultStatus.Text = "成功";
-                SummaryResultCount.Text = "1 个文件";
-                FinishedAtText.Text = DateTime.Now.ToString("HH:mm:ss");
+                SetStage2ResultSuccess(result.Report.ProxyGroups + " 个文件", result.Report.IntermediaryGroups + " 个文件", "1 个文件");
                 ShowCompletion("阶段二执行完成", "分表和汇总表已生成", options.OutputDirectory);
             }
             catch (Exception ex)
@@ -745,11 +759,7 @@ namespace HainanSettlementTool.Wpf
                 SetProgress(100, "员工电量奖励生成完成");
                 LogSummary(result.SummaryLines);
 
-                EmployeeRewardResultStatus.Text = "成功";
-                EmployeeRewardResultCount.Text = result.Report.PersonalWorkbookPaths.Count + " 个";
-                SummaryResultStatus.Text = "成功";
-                SummaryResultCount.Text = "1 个文件";
-                FinishedAtText.Text = DateTime.Now.ToString("HH:mm:ss");
+                SetEmployeeRewardResultSuccess(result.Report.PersonalWorkbookPaths.Count + " 个", "1 个文件");
                 ShowCompletion("员工电量奖励生成完成", "奖励总表、个人确认表和校验报告已生成", options.OutputDirectory);
             }
             catch (Exception ex)
@@ -1141,69 +1151,37 @@ namespace HainanSettlementTool.Wpf
 
         private void UpdateResultVisibility(ProvinceCode? province)
         {
-            var hasProvince = province.HasValue;
-            var profile = hasProvince ? ProvinceUiProfile.For(province.Value) : null;
-            var stageTwoVisibility = hasProvince && profile.SupportsStage2 ? Visibility.Visible : Visibility.Collapsed;
-            var employeeRewardVisibility = hasProvince && profile.SupportsEmployeeReward ? Visibility.Visible : Visibility.Collapsed;
-
-            NoProvinceResultHint.Visibility = hasProvince ? Visibility.Collapsed : Visibility.Visible;
-            Stage1ResultRow.Visibility = hasProvince ? Visibility.Visible : Visibility.Collapsed;
-            ProxyResultRow.Visibility = stageTwoVisibility;
-            IntermediaryResultRow.Visibility = stageTwoVisibility;
-            SummaryResultRow.Visibility = stageTwoVisibility;
-            EmployeeRewardResultRow.Visibility = employeeRewardVisibility;
-            FinishedAtRow.Visibility = hasProvince ? Visibility.Visible : Visibility.Collapsed;
-
-            if (!hasProvince)
-            {
-                Stage1ResultLabel.Text = "阶段输出";
-                CompletionOutputLabel.Text = "输出文件夹";
-                return;
-            }
-
-            Stage1ResultLabel.Text = profile.StageOneResultLabel;
-            CompletionOutputLabel.Text = "输出文件夹";
+            _resultController.UpdateResultVisibility(province);
         }
 
         private void SetCompletionWaiting()
         {
-            var province = SelectedProvinceOrNull();
-            var hasProvince = province.HasValue;
-            CompletionIconCircle.Background = hasProvince ? BrushOf("SuccessBrush") : BrushOf("AccentBrush");
-            CompletionIconText.Text = hasProvince ? "\uE73E" : "\uE946";
-            CompletionTitleText.Text = hasProvince ? "等待生成结果" : "等待选择省份";
-            CompletionDetailText.Text = hasProvince ? "运行完成后会在这里显示输出位置" : "选择结算省份后会显示对应输出项";
-            CompletionOutputText.Text = hasProvince ? "尚未生成" : "尚未选择省份";
-            UpdateResultVisibility(province);
+            _resultController.ShowWaiting(SelectedProvinceOrNull());
         }
 
         private void ResetResults()
         {
-            Stage1ResultStatus.Text = "等待";
-            Stage1ResultCount.Text = "-";
-            ProxyResultStatus.Text = "等待";
-            ProxyResultCount.Text = "-";
-            IntermediaryResultStatus.Text = "等待";
-            IntermediaryResultCount.Text = "-";
-            SummaryResultStatus.Text = "等待";
-            SummaryResultCount.Text = "-";
-            EmployeeRewardResultStatus.Text = "等待";
-            EmployeeRewardResultCount.Text = "-";
-            FinishedAtText.Text = "-";
-            _lastOutputDirectory = null;
-            SetCompletionWaiting();
-            CompletionCard.Visibility = Visibility.Visible;
+            _resultController.Reset(SelectedProvinceOrNull());
         }
 
         private void ShowCompletion(string title, string detail, string outputDirectory)
         {
-            _lastOutputDirectory = outputDirectory;
-            CompletionIconCircle.Background = BrushOf("SuccessBrush");
-            CompletionIconText.Text = "\uE73E";
-            CompletionTitleText.Text = title;
-            CompletionDetailText.Text = detail;
-            CompletionOutputText.Text = outputDirectory;
-            CompletionCard.Visibility = Visibility.Visible;
+            _resultController.ShowCompletion(title, detail, outputDirectory);
+        }
+
+        private void SetStage1ResultSuccess(string countText)
+        {
+            _resultController.SetStage1Success(countText);
+        }
+
+        private void SetStage2ResultSuccess(string proxyCountText, string intermediaryCountText, string summaryCountText)
+        {
+            _resultController.SetStage2Success(proxyCountText, intermediaryCountText, summaryCountText);
+        }
+
+        private void SetEmployeeRewardResultSuccess(string personalCountText, string summaryCountText)
+        {
+            _resultController.SetEmployeeRewardSuccess(personalCountText, summaryCountText);
         }
 
         private void LoadSavedInputs(UserInputSnapshot snapshot)
@@ -1379,7 +1357,9 @@ namespace HainanSettlementTool.Wpf
 
         private void OpenOutputDir_Click(object sender, RoutedEventArgs e)
         {
-            var path = !string.IsNullOrWhiteSpace(_lastOutputDirectory) ? _lastOutputDirectory : OutputDirBox.Text.Trim();
+            var path = !string.IsNullOrWhiteSpace(_resultController.LastOutputDirectory)
+                ? _resultController.LastOutputDirectory
+                : OutputDirBox.Text.Trim();
             if (Directory.Exists(path))
             {
                 Process.Start(path);

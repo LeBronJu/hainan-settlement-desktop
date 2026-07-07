@@ -871,6 +871,29 @@ Observed result:
 - `git diff --check` passed with CRLF normalization warnings only.
 - WPF `MessageBox` search had no matches.
 
+WPF MainWindow result decomposition on 2026-07-07:
+
+```powershell
+dotnet msbuild .\src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Debug
+rg -n "_lastOutputDirectory|Stage1ResultStatus\.Text|ProxyResultStatus\.Text|IntermediaryResultStatus\.Text|SummaryResultStatus\.Text|EmployeeRewardResultStatus\.Text|FinishedAtText\.Text|CompletionTitleText\.Text|CompletionOutputText\.Text|CompletionCard\.Visibility" .\src\HainanSettlementTool.Wpf\MainWindow.xaml.cs
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Debug /m
+git diff --check
+rg "MessageBox" -n src\HainanSettlementTool.Wpf
+```
+
+Observed result:
+
+- Added `MainWindowResultController` to own the WPF completion card, output item visibility, result status/count rows, finished-at timestamp, and most recent output directory.
+- `MainWindow.xaml.cs` now reports stage success through result helper methods instead of writing result TextBlocks directly, while workflow orchestration remains in the window.
+- This is an internal UI-architecture slice only; no settlement calculation, Excel read/write, customer matching, confirmation flow, or generated workbook behavior changed.
+- Targeted WPF Debug build passed.
+- Result-control residual scan had no matches for old direct result TextBlock writes or `_lastOutputDirectory`.
+- Full Debug test suite passed: Core 18 tests, Excel 18 tests.
+- Debug build passed for Core, Excel, WinForms, and WPF.
+- `git diff --check` passed with CRLF normalization warnings only.
+- WPF `MessageBox` search had no matches.
+
 ## Documentation Rule
 
 Documentation is now part of the development contract:
@@ -920,6 +943,7 @@ UI:
 - `src/HainanSettlementTool.Wpf/MainWindow.xaml`
 - `src/HainanSettlementTool.Wpf/MainWindow.xaml.cs`
 - `src/HainanSettlementTool.Wpf/MainWindowProgressController.cs`
+- `src/HainanSettlementTool.Wpf/MainWindowResultController.cs`
 - `src/HainanSettlementTool.Wpf/ProvinceUiProfile.cs`
 - `src/HainanSettlementTool.Wpf/Stage2PreflightWindow.xaml`
 - `src/HainanSettlementTool.Wpf/ProvinceStage1LedgerPreflightWindow.xaml`
@@ -942,5 +966,5 @@ Packaging/docs:
 2. Decide later whether repeated manual matches should remain one-time only or support a user-maintained alias table.
 3. Decide whether future Chongqing months should require the target month block to already exist in the ledger, or whether the app should copy the previous month block and create the new month block.
 4. Decide whether to cut a Win10/11 acceptance release from the accepted WPF package or rebuild a fresh release package from `main`.
-5. Continue quality work with WPF as the default UI target; avoid WinForms parity work unless it is a bugfix, build/package compatibility issue, or explicitly requested.
+5. Continue quality work with WPF as the default UI target; next low-risk `MainWindow.xaml.cs` decomposition candidates are log control, modern dialog entry points, and file-path browsing/input state. Avoid WinForms parity work unless it is a bugfix, build/package compatibility issue, or explicitly requested.
 6. Consider adding sanitized employee reward, Stage 2, Chongqing, and `.xls` fixture workbooks later; current regressions use dynamically generated synthetic workbooks and local authorized smoke only.
