@@ -4,11 +4,11 @@ using HainanSettlementTool.Core.Models;
 
 namespace HainanSettlementTool.Core.Services
 {
-    public sealed class Stage2Service
+    public sealed class HainanStage2Service
     {
-        private readonly IStage2ExcelGateway _excel;
+        private readonly IHainanStage2ExcelGateway _excel;
 
-        public Stage2Service(IStage2ExcelGateway excel)
+        public HainanStage2Service(IHainanStage2ExcelGateway excel)
         {
             _excel = excel;
         }

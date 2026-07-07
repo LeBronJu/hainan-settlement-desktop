@@ -153,7 +153,7 @@ namespace HainanSettlementTool.Excel.Tests
 
         private static Stage1Report RunStage1(Stage1Options options)
         {
-            var service = new Stage1Service(new ClosedXmlStage1ExcelGateway());
+            var service = new HainanStage1Service(new ClosedXmlSettlementExcelGateway());
             return service.Run(options, null);
         }
 

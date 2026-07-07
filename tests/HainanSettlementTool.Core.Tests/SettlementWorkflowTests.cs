@@ -69,6 +69,91 @@ namespace HainanSettlementTool.Core.Tests
         }
 
         [TestMethod]
+        public void CleanProvinceStage1PowerDataReturnsSharedSummaryLines()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var gateway = new FakeGateway();
+                var workflow = new SettlementWorkflow(
+                    new HainanStage1Service(gateway),
+                    new HainanStage2Service(gateway),
+                    new EmployeeRewardService(gateway),
+                    new ProvinceStage1Service(gateway));
+                var rawDetailPath = CreateFile(root, "chongqing-raw.xlsx");
+                var options = new ProvinceStage1CleanOptions
+                {
+                    Province = ProvinceCode.Chongqing,
+                    RawDetailPath = rawDetailPath,
+                    OutputDirectory = Path.Combine(root, "out")
+                };
+
+                var result = workflow.CleanProvinceStage1PowerData(options, null);
+
+                Assert.AreSame(gateway.ProvinceStage1CleanResult, result.Report);
+                CollectionAssert.AreEqual(
+                    new[]
+                    {
+                        "重庆阶段一电量清洗完成。",
+                        "电量处理表：" + gateway.ProvinceStage1CleanResult.OutputWorkbookPath,
+                        "报告：" + gateway.ProvinceStage1CleanResult.ReportPath,
+                        "客户数量：2，户号数量：3",
+                        "合计电量：12.3456 兆瓦时"
+                    },
+                    result.SummaryLines.ToArray());
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
+        public void UpdateProvinceStage1LedgerReturnsSharedSummaryLines()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var gateway = new FakeGateway();
+                var workflow = new SettlementWorkflow(
+                    new HainanStage1Service(gateway),
+                    new HainanStage2Service(gateway),
+                    new EmployeeRewardService(gateway),
+                    new ProvinceStage1Service(gateway));
+                var options = new ProvinceStage1LedgerUpdateOptions
+                {
+                    Province = ProvinceCode.Chongqing,
+                    Month = 5,
+                    LedgerPath = CreateFile(root, "ledger.xlsx"),
+                    RawDetailPath = CreateFile(root, "raw.xlsx"),
+                    OutputDirectory = Path.Combine(root, "out")
+                };
+
+                var plan = workflow.PlanProvinceStage1LedgerUpdate(options, null);
+                var result = workflow.UpdateProvinceStage1Ledger(options, null);
+
+                Assert.AreSame(gateway.ProvinceStage1LedgerUpdatePlan, plan);
+                Assert.AreSame(gateway.ProvinceStage1LedgerUpdateResult, result.Report);
+                CollectionAssert.AreEqual(
+                    new[]
+                    {
+                        "重庆阶段一台账更新完成。",
+                        "输出台账：" + gateway.ProvinceStage1LedgerUpdateResult.OutputLedgerPath,
+                        "报告：" + gateway.ProvinceStage1LedgerUpdateResult.ReportPath,
+                        "匹配客户：2，写入电量：2",
+                        "人工匹配：1",
+                        "多户号提示：1",
+                        "合计电量：12.3456 兆瓦时"
+                    },
+                    result.SummaryLines.ToArray());
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
         public void RunStage2ReturnsSharedSummaryLines()
         {
             var root = CreateTempRoot();
@@ -205,8 +290,8 @@ namespace HainanSettlementTool.Core.Tests
         private static SettlementWorkflow CreateWorkflow(FakeGateway gateway)
         {
             return new SettlementWorkflow(
-                new Stage1Service(gateway),
-                new Stage2Service(gateway),
+                new HainanStage1Service(gateway),
+                new HainanStage2Service(gateway),
                 new EmployeeRewardService(gateway));
         }
 
@@ -272,7 +357,7 @@ namespace HainanSettlementTool.Core.Tests
             }
         }
 
-        private sealed class FakeGateway : IStage1ExcelGateway, IStage2ExcelGateway, IEmployeeRewardExcelGateway
+        private sealed class FakeGateway : IHainanStage1ExcelGateway, IHainanStage2ExcelGateway, IEmployeeRewardExcelGateway, IProvinceStage1ExcelGateway
         {
             public bool AddPreflightIssue { get; set; }
 
@@ -301,6 +386,42 @@ namespace HainanSettlementTool.Core.Tests
                 PersonalWorkbookPaths = new List<string> { "a.xlsx", "b.xlsx" }
             };
 
+            public readonly ProvinceStage1CleanResult ProvinceStage1CleanResult = new ProvinceStage1CleanResult
+            {
+                Province = ProvinceCode.Chongqing,
+                Unit = "兆瓦时",
+                OutputWorkbookPath = "chongqing-power.xlsx",
+                ReportPath = "chongqing-power-report.json",
+                CustomerRows = 2,
+                AccountRows = 3,
+                TotalPower = 12.3456
+            };
+
+            public readonly ProvinceStage1LedgerUpdatePlan ProvinceStage1LedgerUpdatePlan = new ProvinceStage1LedgerUpdatePlan
+            {
+                Province = ProvinceCode.Chongqing,
+                Month = 5,
+                Unit = "兆瓦时",
+                LedgerCustomerRows = 2,
+                PowerCustomerRows = 2,
+                MatchedRows = 2,
+                MultiAccountRows = 1
+            };
+
+            public readonly ProvinceStage1LedgerUpdateResult ProvinceStage1LedgerUpdateResult = new ProvinceStage1LedgerUpdateResult
+            {
+                Province = ProvinceCode.Chongqing,
+                Month = 5,
+                Unit = "兆瓦时",
+                OutputLedgerPath = "chongqing-ledger.xlsx",
+                ReportPath = "chongqing-ledger-report.json",
+                MatchedRows = 2,
+                UpdatedPowerRows = 2,
+                ManualMatchedRows = 1,
+                MultiAccountRows = 1,
+                TotalPower = 12.3456
+            };
+
             public List<PowerRow> ReadPowerRows(string powerPath)
             {
                 return new List<PowerRow>();
@@ -327,6 +448,21 @@ namespace HainanSettlementTool.Core.Tests
             public Stage1Report UpdateLedger(Stage1Options options)
             {
                 return Stage1Report;
+            }
+
+            public ProvinceStage1CleanResult CleanPowerData(ProvinceStage1CleanOptions options)
+            {
+                return ProvinceStage1CleanResult;
+            }
+
+            public ProvinceStage1LedgerUpdatePlan PlanLedgerUpdate(ProvinceStage1LedgerUpdateOptions options)
+            {
+                return ProvinceStage1LedgerUpdatePlan;
+            }
+
+            public ProvinceStage1LedgerUpdateResult UpdateLedger(ProvinceStage1LedgerUpdateOptions options)
+            {
+                return ProvinceStage1LedgerUpdateResult;
             }
 
             public Stage2PreflightReport AnalyzeSettlement(Stage2Options options)

@@ -23,7 +23,7 @@ namespace HainanSettlementTool.Excel.Tests
             {
                 WriteRewardLedger(ledgerPath);
 
-                var rows = new ClosedXmlStage1ExcelGateway().ReadLedgerRows(
+                var rows = new ClosedXmlSettlementExcelGateway().ReadLedgerRows(
                     new EmployeeRewardOptions
                     {
                         Year = 2026,
@@ -60,7 +60,7 @@ namespace HainanSettlementTool.Excel.Tests
                 Directory.CreateDirectory(outputDirectory);
                 File.WriteAllText(Path.Combine(outputDirectory, "2026年1-2月员工电量奖励-海南.xlsx"), "existing");
 
-                var result = new EmployeeRewardService(new ClosedXmlStage1ExcelGateway()).Run(
+                var result = new EmployeeRewardService(new ClosedXmlSettlementExcelGateway()).Run(
                     new EmployeeRewardOptions
                     {
                         Year = 2026,

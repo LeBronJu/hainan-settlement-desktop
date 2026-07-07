@@ -1,6 +1,7 @@
 # Agent Instructions
 
-This repository is the standalone C# desktop project for Hainan retail electricity settlement automation.
+This repository is the standalone C# desktop project for multi-province retail electricity settlement automation.
+Hainan is the mature first province module; Chongqing is being added as the second province module, starting with Stage 1 power-data cleaning and ledger update.
 
 ## Safety Rules
 
@@ -21,8 +22,8 @@ The C# version is being built as a maintainable Windows desktop app. It should e
 ## Repository Layout
 
 - `HainanSettlementTool.sln`: solution file.
-- `src/HainanSettlementTool.WinForms/`: Win7/8 maintenance UI. Keep it buildable and fix blocking bugs, but do not add new features or UX improvements unless the user explicitly asks.
-- `src/HainanSettlementTool.Wpf/`: Win10/11 WPF main UI. New UI features and UX improvements belong here by default.
+- `src/HainanSettlementTool.WinForms/`: Win7/8 maintenance UI for the existing Hainan workflow. Keep it buildable and fix blocking bugs, but do not add new province features or UX improvements unless the user explicitly asks.
+- `src/HainanSettlementTool.Wpf/`: Win10/11 WPF main UI. New province entries, new UI features, and UX improvements belong here by default.
 - `src/HainanSettlementTool.Core/`: business models, services, and interfaces.
 - `src/HainanSettlementTool.Excel/`: ClosedXML workbook reading/writing.
 - `docs/architecture.md`: layering and migration boundary.
@@ -48,15 +49,18 @@ This is a single-context repo. See `docs/agents/domain.md`.
 
 - Start every project work session by checking the branch and reading current project instructions before editing. Minimum gate: run `git status --short --branch`, then read `AGENTS.md` and `HANDOFF.md`. Do not rely only on chat history, memory, or a prior agent summary.
 - Before changing an area, read that area's owning document: business settlement rules require `CONTEXT.md`; module boundaries or workflow seams require `docs/architecture.md`; release/packaging requires `docs/RELEASE_CHECKLIST.md`; user-visible setup or package status requires `README.md`; current branch/task state requires `HANDOFF.md`.
+- Before new-province onboarding, WPF province UI, Core multi-province workflow, or Excel multi-province adapter work, also read `docs/dev-notes/multi-province-readiness-2026-07-07.md` and use its P0/P1/P2 readiness order.
 - If context was compacted, the thread was resumed after a pause, or the task direction changed, repeat the relevant reading gate before making further edits.
 - Do not make development changes directly on `main` or `master`. Create a development branch first, using the `codex/` prefix unless the user requests another branch name.
 - This is a local single-developer project. Pull requests are optional; it is acceptable to commit and push a `codex/` branch, then merge locally to `main` when the user authorizes it. Still run the documented validation and documentation-impact checks before merging or releasing.
+- This project allows Codex subagents, spawning, parallel exploration, and other efficiency tools when they materially speed up safe work. Do not repeatedly ask for permission before routine low-risk use. Pause and warn or ask only before high-risk operations such as reading real business files outside an authorized scope, modifying production/user workbooks, destructive git commands, merging to `main`, tagging/releasing, deleting/moving large file trees, or any action that could affect settlement correctness or sensitive data.
 - If an issue is uncertain, ambiguous, or risky, especially when it may affect settlement correctness, workbook safety, or user-visible business rules, stop and analyze it explicitly for the user. Do not encode a guess; ask the user to decide.
 - UI must not contain Excel parsing, matching, amount calculation, or workbook template rules.
 - Core must not reference ClosedXML, WinForms, WPF, or file-format implementation details.
 - Excel layer owns workbook reading/writing and template copying.
 - Keep stage boundaries explicit.
 - Win7/8 WinForms is in maintenance mode. Do not spend quality/refactor work on WinForms parity unless needed for compilation, packaging, blocking bugfixes, shared Core/Excel behavior changes, or explicit user authorization.
+- WPF confirmation, warning, and error dialogs must use project-native modern WPF windows/styles. Do not add system `MessageBox` prompts to new WPF flows; keep OS-native dialogs only for file/folder pickers where appropriate.
 - Keep documentation current without creating noise. Each code, config, script, packaging, release, workflow, architecture, business-rule, UI-behavior, test-process, or task-state change must end with a documentation impact judgment.
 - Final responses for development work must explicitly include documentation impact judgment, validation performed, and work intentionally not done when applicable. This is required even when no documentation was updated. Missing the documentation impact judgment means the task is not complete.
 - Update only documents whose responsibility is affected. User-visible behavior usually affects `README.md` and `HANDOFF.md`; business rules affect `CONTEXT.md`; module boundaries affect `AGENTS.md` plus an ADR or dated dev-note; release and packaging changes affect `README.md`, `HANDOFF.md`, and `docs/RELEASE_CHECKLIST.md`; branch state, validation results, or next steps affect `HANDOFF.md`.
@@ -64,6 +68,8 @@ This is a single-context repo. See `docs/agents/domain.md`.
 - For temporary investigations or one-off architecture notes, add or update a dated file under `docs/dev-notes/`.
 
 ## Current Functional Boundary
+
+The app is evolving from a Hainan-only desktop tool into a multi-province settlement automation tool. Keep province-specific business rules isolated behind province/module naming. Do not add broad `if Hainan / if Chongqing` branches in shared logic when a province-specific service or Excel generator is the cleaner boundary.
 
 Stage 1 currently supports:
 
@@ -86,6 +92,17 @@ Stage 1 and Stage 2 still do not:
 - Auto-fill volatile business fields such as负责人 or 项目开发人.
 - Change ledger customer names to match summary/payment-account names.
 - Treat irregular January/February 2026 data as generic rules.
+
+Chongqing Stage 1 currently targets power-data cleaning and ledger update:
+
+- Input: Chongqing trading-center electricity confirmation statement (`.xlsx/.xls/.csv`).
+- Ledger update input: Chongqing settlement ledger (`.xlsx`).
+- Preferred sheet: `sheet1`; fallback to the first sheet when `sheet1` does not exist.
+- Required headers: `用户名称`, `户号`, `时段`, `用电量`.
+- Unit: `兆瓦时`; do not reuse Hainan's `万千瓦时` unit.
+- Output: Chongqing retail-side power processing workbook plus JSON validation report.
+- Aggregation: by user name for the main summary, with account-number detail retained for audit.
+- Ledger update matches by `电力用户名称`, can apply one-time WPF manual customer matches before writing, writes only target-month `总实际电量/尖/峰/平/谷` to a copied ledger, does not auto-fill `电力用户编码`, and requires WPF confirmation before writing when matching issues exist.
 
 ## Business Rules To Preserve
 

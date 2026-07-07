@@ -26,7 +26,7 @@ namespace HainanSettlementTool.Excel.Tests
                     new[] { "header1", "header2", "header3", RawDetailLine("户号001", "测试客户", 1.1, 2.2, 3.3, 4.4, 5.5) },
                     Encoding.GetEncoding("GB18030"));
 
-                var gateway = new ClosedXmlStage1ExcelGateway();
+                var gateway = new ClosedXmlSettlementExcelGateway();
                 var powerRows = gateway.ReadRawPowerRows(path);
                 var customerCodes = gateway.ReadCustomerCodes(path);
 
@@ -72,7 +72,7 @@ namespace HainanSettlementTool.Excel.Tests
                     },
                     Encoding.GetEncoding("GB18030"));
 
-                var customerCodes = new ClosedXmlStage1ExcelGateway().ReadCustomerCodes(path);
+                var customerCodes = new ClosedXmlSettlementExcelGateway().ReadCustomerCodes(path);
 
                 Assert.IsFalse(customerCodes.ContainsKey("测试客户"));
                 Assert.AreEqual("稳定户号", customerCodes["稳定客户"]);
@@ -103,7 +103,7 @@ namespace HainanSettlementTool.Excel.Tests
                     workbook.SaveAs(path);
                 }
 
-                var gateway = new ClosedXmlStage1ExcelGateway();
+                var gateway = new ClosedXmlSettlementExcelGateway();
                 var powerRows = gateway.ReadRawPowerRows(path);
                 var customerCodes = gateway.ReadCustomerCodes(path);
 

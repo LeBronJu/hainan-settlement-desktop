@@ -5,16 +5,26 @@ namespace HainanSettlementTool.Core.Services
 {
     public sealed class SettlementWorkflow
     {
-        private readonly Stage1Service _stage1Service;
-        private readonly Stage2Service _stage2Service;
+        private readonly HainanStage1Service _stage1Service;
+        private readonly HainanStage2Service _stage2Service;
         private readonly EmployeeRewardService _employeeRewardService;
+        private readonly ProvinceStage1Service _provinceStage1Service;
 
-        public SettlementWorkflow(Stage1Service stage1Service, Stage2Service stage2Service)
+        public SettlementWorkflow(HainanStage1Service stage1Service, HainanStage2Service stage2Service)
             : this(stage1Service, stage2Service, null)
         {
         }
 
-        public SettlementWorkflow(Stage1Service stage1Service, Stage2Service stage2Service, EmployeeRewardService employeeRewardService)
+        public SettlementWorkflow(HainanStage1Service stage1Service, HainanStage2Service stage2Service, EmployeeRewardService employeeRewardService)
+            : this(stage1Service, stage2Service, employeeRewardService, null)
+        {
+        }
+
+        public SettlementWorkflow(
+            HainanStage1Service stage1Service,
+            HainanStage2Service stage2Service,
+            EmployeeRewardService employeeRewardService,
+            ProvinceStage1Service provinceStage1Service)
         {
             if (stage1Service == null)
             {
@@ -29,6 +39,7 @@ namespace HainanSettlementTool.Core.Services
             _stage1Service = stage1Service;
             _stage2Service = stage2Service;
             _employeeRewardService = employeeRewardService;
+            _provinceStage1Service = provinceStage1Service;
         }
 
         public StageWorkflowResult<Stage1Report> RunStage1(Stage1Options options, Action<string> log)
@@ -54,6 +65,64 @@ namespace HainanSettlementTool.Core.Services
                     "电量清洗完成。",
                     "电量处理表：" + report.OutputPath,
                     "客户数量：" + report.PowerRows + "，合计电量：" + report.MonthTotal.ToString("0.####")
+                });
+        }
+
+        public StageWorkflowResult<ProvinceStage1CleanResult> CleanProvinceStage1PowerData(
+            ProvinceStage1CleanOptions options,
+            Action<string> log)
+        {
+            if (_provinceStage1Service == null)
+            {
+                throw new InvalidOperationException("多省份阶段一服务未配置。");
+            }
+
+            var report = _provinceStage1Service.CleanPowerData(options, log);
+            return new StageWorkflowResult<ProvinceStage1CleanResult>(
+                report,
+                new[]
+                {
+                    ProvinceDisplayNames.GetName(report.Province) + "阶段一电量清洗完成。",
+                    "电量处理表：" + report.OutputWorkbookPath,
+                    "报告：" + report.ReportPath,
+                    "客户数量：" + report.CustomerRows + "，户号数量：" + report.AccountRows,
+                    "合计电量：" + report.TotalPower.ToString("0.####") + " " + report.Unit
+                });
+        }
+
+        public ProvinceStage1LedgerUpdatePlan PlanProvinceStage1LedgerUpdate(
+            ProvinceStage1LedgerUpdateOptions options,
+            Action<string> log)
+        {
+            if (_provinceStage1Service == null)
+            {
+                throw new InvalidOperationException("多省份阶段一服务未配置。");
+            }
+
+            return _provinceStage1Service.PlanLedgerUpdate(options, log);
+        }
+
+        public StageWorkflowResult<ProvinceStage1LedgerUpdateResult> UpdateProvinceStage1Ledger(
+            ProvinceStage1LedgerUpdateOptions options,
+            Action<string> log)
+        {
+            if (_provinceStage1Service == null)
+            {
+                throw new InvalidOperationException("多省份阶段一服务未配置。");
+            }
+
+            var report = _provinceStage1Service.UpdateLedger(options, log);
+            return new StageWorkflowResult<ProvinceStage1LedgerUpdateResult>(
+                report,
+                new[]
+                {
+                    ProvinceDisplayNames.GetName(report.Province) + "阶段一台账更新完成。",
+                    "输出台账：" + report.OutputLedgerPath,
+                    "报告：" + report.ReportPath,
+                    "匹配客户：" + report.MatchedRows + "，写入电量：" + report.UpdatedPowerRows,
+                    "人工匹配：" + report.ManualMatchedRows,
+                    "多户号提示：" + report.MultiAccountRows,
+                    "合计电量：" + report.TotalPower.ToString("0.####") + " " + report.Unit
                 });
         }
 

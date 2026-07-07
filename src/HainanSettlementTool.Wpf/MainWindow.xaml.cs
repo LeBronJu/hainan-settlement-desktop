@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -13,15 +14,15 @@ using HainanSettlementTool.Core.Models;
 using HainanSettlementTool.Core.Services;
 using HainanSettlementTool.Excel;
 using Microsoft.Win32;
-using Ookii.Dialogs.Wpf;
 
 namespace HainanSettlementTool.Wpf
 {
     public partial class MainWindow : Window
     {
-        private readonly TextBlock[] _stepTexts;
-        private readonly TextBlock[] _stepStatuses;
-        private string _lastOutputDirectory;
+        private readonly MainWindowProgressController _progressController;
+        private readonly MainWindowResultController _resultController;
+        private readonly MainWindowDialogController _dialogController;
+        private readonly MainWindowPathPickerController _pathPickerController;
         private bool _isBusy;
         private bool _loadingInputs;
         private string _themeMode = ThemeService.SystemMode;
@@ -34,7 +35,10 @@ namespace HainanSettlementTool.Wpf
 
             InitializeComponent();
 
+            _dialogController = new MainWindowDialogController(this);
+            _pathPickerController = new MainWindowPathPickerController(this);
             InitializeThemeCombo(_themeMode);
+            InitializeProvinceCombo();
 
             for (var month = 2; month <= 12; month++)
             {
@@ -50,8 +54,45 @@ namespace HainanSettlementTool.Wpf
             MonthCombo.SelectedIndex = -1;
             RewardStartMonthCombo.SelectedIndex = 0;
             RewardEndMonthCombo.SelectedIndex = -1;
-            _stepTexts = new[] { Step1Text, Step2Text, Step3Text, Step4Text, Step5Text };
-            _stepStatuses = new[] { Step1Status, Step2Status, Step3Status, Step4Status, Step5Status };
+            _progressController = new MainWindowProgressController(
+                StatusText,
+                StatusDot,
+                StatusPill,
+                ProgressTitle,
+                ProgressDescriptionText,
+                ProgressBar,
+                ProgressPercentText,
+                new[] { Step1Text, Step2Text, Step3Text, Step4Text, Step5Text },
+                new[] { Step1Status, Step2Status, Step3Status, Step4Status, Step5Status },
+                BrushOf);
+            _resultController = new MainWindowResultController(
+                CompletionCard,
+                CompletionIconCircle,
+                CompletionIconText,
+                CompletionTitleText,
+                CompletionDetailText,
+                CompletionOutputLabel,
+                CompletionOutputText,
+                NoProvinceResultHint,
+                Stage1ResultRow,
+                Stage1ResultLabel,
+                Stage1ResultStatus,
+                Stage1ResultCount,
+                ProxyResultRow,
+                ProxyResultStatus,
+                ProxyResultCount,
+                IntermediaryResultRow,
+                IntermediaryResultStatus,
+                IntermediaryResultCount,
+                SummaryResultRow,
+                SummaryResultStatus,
+                SummaryResultCount,
+                EmployeeRewardResultRow,
+                EmployeeRewardResultStatus,
+                EmployeeRewardResultCount,
+                FinishedAtRow,
+                FinishedAtText,
+                BrushOf);
             ResetProgress("等待执行", "尚未开始");
             ResetResults();
             AddLog("工具已就绪，等待操作。", "信息");
@@ -131,6 +172,18 @@ namespace HainanSettlementTool.Wpf
             SaveInputs();
         }
 
+        private void ProvinceCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_loadingInputs)
+            {
+                return;
+            }
+
+            UpdateProvinceUi();
+            ResetResults();
+            SaveInputs();
+        }
+
         private void SystemEvents_UserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
         {
             if (_themeMode != ThemeService.SystemMode)
@@ -147,7 +200,9 @@ namespace HainanSettlementTool.Wpf
 
         private void BrowseBaseLedger_Click(object sender, RoutedEventArgs e)
         {
-            BrowseExcel(BaseLedgerBox, "选择基础台账");
+            var profile = SelectedProfileOrNull();
+            var title = profile?.BaseLedgerDialogTitle ?? "选择基础台账";
+            BrowseExcel(BaseLedgerBox, title);
         }
 
         private void BrowsePower_Click(object sender, RoutedEventArgs e)
@@ -157,7 +212,14 @@ namespace HainanSettlementTool.Wpf
 
         private void BrowseRawDetail_Click(object sender, RoutedEventArgs e)
         {
-            BrowseFile(RawDetailBox, "选择原始零售侧明细", "Excel/CSV|*.xlsx;*.xls;*.csv|Excel 文件|*.xlsx;*.xls|CSV 文件|*.csv|所有文件|*.*");
+            var profile = SelectedProfileOrNull();
+            if (profile == null)
+            {
+                ShowErrorMessage("请选择结算省份后再选择电量文件。");
+                return;
+            }
+
+            BrowseFile(RawDetailBox, profile.RawDetailDialogTitle, "Excel/CSV|*.xlsx;*.xls;*.csv|Excel 文件|*.xlsx;*.xls|CSV 文件|*.csv|所有文件|*.*");
         }
 
         private void BrowseReferenceLedger_Click(object sender, RoutedEventArgs e)
@@ -192,48 +254,55 @@ namespace HainanSettlementTool.Wpf
 
         private void BrowseExcel(TextBox target, string title)
         {
-            BrowseFile(target, title, "Excel 文件|*.xlsx|所有文件|*.*");
+            if (_pathPickerController.BrowseExcel(target, title))
+            {
+                SaveInputs();
+            }
         }
 
         private void BrowseFile(TextBox target, string title, string filter)
         {
-            var dialog = new OpenFileDialog
+            if (_pathPickerController.BrowseFile(target, title, filter))
             {
-                Title = title,
-                Filter = filter,
-                CheckFileExists = true
-            };
-
-            if (dialog.ShowDialog(this) == true)
-            {
-                target.Text = dialog.FileName;
                 SaveInputs();
             }
         }
 
         private void BrowseFolder(TextBox target, string title)
         {
-            var dialog = new VistaFolderBrowserDialog
+            if (_pathPickerController.BrowseFolder(target, title))
             {
-                Description = title,
-                UseDescriptionForTitle = true,
-                ShowNewFolderButton = true
-            };
-
-            if (Directory.Exists(target.Text))
-            {
-                dialog.SelectedPath = target.Text;
-            }
-
-            if (dialog.ShowDialog(this) == true)
-            {
-                target.Text = dialog.SelectedPath;
                 SaveInputs();
             }
         }
 
         private async void RunStage1_Click(object sender, RoutedEventArgs e)
         {
+            var profile = SelectedProfileOrNull();
+            if (profile == null)
+            {
+                ShowErrorMessage("请选择结算省份后再执行阶段一。");
+                return;
+            }
+
+            if (!profile.SupportsStage1LedgerUpdate)
+            {
+                ShowErrorMessage(profile.DisplayName + "暂未开放阶段一台账更新。");
+                return;
+            }
+
+            switch (profile.Province)
+            {
+                case ProvinceCode.Hainan:
+                    break;
+                case ProvinceCode.Chongqing:
+                    await RunProvinceStage1LedgerUpdateAsync();
+                    return;
+                default:
+                    ShowErrorMessage(profile.DisplayName + "暂未接入阶段一台账更新。");
+                    return;
+            }
+
             Stage1Options options;
             try
             {
@@ -279,9 +348,7 @@ namespace HainanSettlementTool.Wpf
                 SetProgress(100, "阶段一执行完成");
                 LogSummary(result.SummaryLines);
 
-                Stage1ResultStatus.Text = "成功";
-                Stage1ResultCount.Text = "1 个文件";
-                FinishedAtText.Text = DateTime.Now.ToString("HH:mm:ss");
+                SetStage1ResultSuccess("1 个文件");
                 ShowCompletion("阶段一执行完成", "台账和检查报告已生成", options.OutputDirectory);
             }
             catch (Exception ex)
@@ -299,6 +366,31 @@ namespace HainanSettlementTool.Wpf
 
         private async void CleanPower_Click(object sender, RoutedEventArgs e)
         {
+            var profile = SelectedProfileOrNull();
+            if (profile == null)
+            {
+                ShowErrorMessage("请选择结算省份后再清洗电量数据。");
+                return;
+            }
+
+            if (!profile.SupportsStage1CleanPower)
+            {
+                ShowErrorMessage(profile.DisplayName + "暂未开放只清洗电量数据。");
+                return;
+            }
+
+            switch (profile.Province)
+            {
+                case ProvinceCode.Hainan:
+                    break;
+                case ProvinceCode.Chongqing:
+                    await RunProvinceStage1CleanPowerAsync();
+                    return;
+                default:
+                    ShowErrorMessage(profile.DisplayName + "暂未接入只清洗电量数据。");
+                    return;
+            }
+
             string rawDetailPath;
             string outputPath;
             string outputDirectory;
@@ -311,7 +403,7 @@ namespace HainanSettlementTool.Wpf
                 SaveInputs();
 
                 var message = "即将清洗原始零售侧明细并生成电量处理表。\n\n输出文件：\n" + outputPath;
-                if (MessageBox.Show(this, message, "确认清洗电量", MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK)
+                if (!ConfirmAction("确认清洗电量", "即将清洗电量数据", message, "开始清洗"))
                 {
                     return;
                 }
@@ -351,10 +443,143 @@ namespace HainanSettlementTool.Wpf
                 SetProgress(100, "电量清洗完成");
                 LogSummary(result.SummaryLines);
 
-                Stage1ResultStatus.Text = "成功";
-                Stage1ResultCount.Text = result.Report.PowerRows + " 个客户";
-                FinishedAtText.Text = DateTime.Now.ToString("HH:mm:ss");
+                SetStage1ResultSuccess(result.Report.PowerRows + " 个客户");
                 ShowCompletion("电量清洗完成", "电量处理表已生成", outputDirectory);
+            }
+            catch (Exception ex)
+            {
+                SetStepFailed();
+                SetProgress(100, "执行失败");
+                AddLog(ex.Message, "错误");
+                ShowError(ex);
+            }
+            finally
+            {
+                SetBusy(false);
+            }
+        }
+
+        private async Task RunProvinceStage1CleanPowerAsync()
+        {
+            ProvinceStage1CleanOptions options;
+            try
+            {
+                options = CreateProvinceStage1CleanOptions();
+                SaveInputs();
+
+                var message = "即将清洗重庆交易中心电量确认结算单。\n\n输出内容：用户电量汇总、户号明细、JSON校验报告\n输出文件夹：\n" + options.OutputDirectory;
+                if (!ConfirmAction("确认清洗重庆电量", "即将清洗重庆电量数据", message, "开始清洗"))
+                {
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowError(ex);
+                return;
+            }
+
+            SetBusy(true);
+            ResetResults();
+            ResetProgress("正在清洗重庆电量...", "生成阶段一电量处理表");
+            SetProgress(10, "检查输入文件");
+            SetStepRunning(0);
+            AddLog("开始清洗重庆阶段一电量数据。", "重庆");
+
+            try
+            {
+                StageWorkflowResult<ProvinceStage1CleanResult> result = null;
+                await Task.Run(() =>
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        SetStepDone(0);
+                        SetStepRunning(1);
+                        SetProgress(35, "读取交易中心电量确认结算单");
+                    });
+
+                    result = CreateWorkflow().CleanProvinceStage1PowerData(options, LogThreadSafe);
+                });
+
+                SetStepDone(1);
+                SetStepDone(2);
+                SetStepDone(3);
+                SetStepDone(4);
+                SetProgress(100, "重庆电量清洗完成");
+                LogSummary(result.SummaryLines);
+
+                SetStage1ResultSuccess(result.Report.CustomerRows + " 个客户");
+                ShowCompletion("重庆电量清洗完成", "电量处理表、户号明细和校验报告已生成", options.OutputDirectory);
+            }
+            catch (Exception ex)
+            {
+                SetStepFailed();
+                SetProgress(100, "执行失败");
+                AddLog(ex.Message, "错误");
+                ShowError(ex);
+            }
+            finally
+            {
+                SetBusy(false);
+            }
+        }
+
+        private async Task RunProvinceStage1LedgerUpdateAsync()
+        {
+            ProvinceStage1LedgerUpdateOptions options;
+            try
+            {
+                options = CreateProvinceStage1LedgerUpdateOptions();
+                SaveInputs();
+            }
+            catch (Exception ex)
+            {
+                ShowError(ex);
+                return;
+            }
+
+            SetBusy(true);
+            ResetResults();
+            ResetProgress("正在预检重庆台账...", "读取台账和电量明细");
+            SetProgress(10, "检查输入文件");
+            SetStepRunning(0);
+            AddLog("开始预检重庆阶段一台账更新。", "重庆");
+
+            try
+            {
+                var workflow = CreateWorkflow();
+                ProvinceStage1LedgerUpdatePlan plan = null;
+                await Task.Run(() =>
+                {
+                    Dispatcher.Invoke(() => SetProgress(22, "读取重庆台账和交易中心电量确认单"));
+                    plan = workflow.PlanProvinceStage1LedgerUpdate(options, LogThreadSafe);
+                });
+
+                SetProgress(30, plan.RequiresConfirmation ? "预检发现需要确认的项目" : "预检完成");
+                if (!ConfirmProvinceStage1LedgerUpdate(options, plan))
+                {
+                    AddLog("已取消重庆阶段一台账更新。", "重庆");
+                    ResetProgress("等待执行", "已取消重庆台账更新");
+                    return;
+                }
+
+                SetStepDone(0);
+                SetProgress(40, "写入重庆台账副本");
+                StageWorkflowResult<ProvinceStage1LedgerUpdateResult> result = null;
+                await Task.Run(() =>
+                {
+                    result = workflow.UpdateProvinceStage1Ledger(options, LogThreadSafe);
+                });
+
+                SetStepDone(1);
+                SetStepDone(2);
+                SetStepDone(3);
+                SetStepDone(4);
+                SetProgress(100, "重庆台账更新完成");
+                LogSummary(result.SummaryLines);
+
+                SetStage1ResultSuccess(result.Report.UpdatedPowerRows + " 个客户");
+                ShowCompletion("重庆台账更新完成", "台账副本和更新报告已生成", options.OutputDirectory);
             }
             catch (Exception ex)
             {
@@ -456,13 +681,7 @@ namespace HainanSettlementTool.Wpf
                 SetProgress(100, "阶段二执行完成");
                 LogSummary(result.SummaryLines);
 
-                ProxyResultStatus.Text = "成功";
-                ProxyResultCount.Text = result.Report.ProxyGroups + " 个文件";
-                IntermediaryResultStatus.Text = "成功";
-                IntermediaryResultCount.Text = result.Report.IntermediaryGroups + " 个文件";
-                SummaryResultStatus.Text = "成功";
-                SummaryResultCount.Text = "1 个文件";
-                FinishedAtText.Text = DateTime.Now.ToString("HH:mm:ss");
+                SetStage2ResultSuccess(result.Report.ProxyGroups + " 个文件", result.Report.IntermediaryGroups + " 个文件", "1 个文件");
                 ShowCompletion("阶段二执行完成", "分表和汇总表已生成", options.OutputDirectory);
             }
             catch (Exception ex)
@@ -525,11 +744,7 @@ namespace HainanSettlementTool.Wpf
                 SetProgress(100, "员工电量奖励生成完成");
                 LogSummary(result.SummaryLines);
 
-                EmployeeRewardResultStatus.Text = "成功";
-                EmployeeRewardResultCount.Text = result.Report.PersonalWorkbookPaths.Count + " 个";
-                SummaryResultStatus.Text = "成功";
-                SummaryResultCount.Text = "1 个文件";
-                FinishedAtText.Text = DateTime.Now.ToString("HH:mm:ss");
+                SetEmployeeRewardResultSuccess(result.Report.PersonalWorkbookPaths.Count + " 个", "1 个文件");
                 ShowCompletion("员工电量奖励生成完成", "奖励总表、个人确认表和校验报告已生成", options.OutputDirectory);
             }
             catch (Exception ex)
@@ -616,13 +831,37 @@ namespace HainanSettlementTool.Wpf
             };
         }
 
+        private ProvinceStage1CleanOptions CreateProvinceStage1CleanOptions()
+        {
+            return new ProvinceStage1CleanOptions
+            {
+                Province = SelectedProvince(),
+                Month = SelectedMonthOrZero(),
+                RawDetailPath = RawDetailBox.Text.Trim(),
+                OutputDirectory = OutputDirBox.Text.Trim()
+            };
+        }
+
+        private ProvinceStage1LedgerUpdateOptions CreateProvinceStage1LedgerUpdateOptions()
+        {
+            return new ProvinceStage1LedgerUpdateOptions
+            {
+                Province = SelectedProvince(),
+                Month = SelectedMonth(),
+                LedgerPath = BaseLedgerBox.Text.Trim(),
+                RawDetailPath = RawDetailBox.Text.Trim(),
+                OutputDirectory = OutputDirBox.Text.Trim()
+            };
+        }
+
         private static SettlementWorkflow CreateWorkflow()
         {
-            var gateway = new ClosedXmlStage1ExcelGateway();
+            var gateway = new ClosedXmlSettlementExcelGateway();
             return new SettlementWorkflow(
-                new Stage1Service(gateway),
-                new Stage2Service(gateway),
-                new EmployeeRewardService(gateway));
+                new HainanStage1Service(gateway),
+                new HainanStage2Service(gateway),
+                new EmployeeRewardService(gateway),
+                new ProvinceStage1Service(gateway));
         }
 
         private void LogSummary(IEnumerable<string> summaryLines)
@@ -643,6 +882,11 @@ namespace HainanSettlementTool.Wpf
             }
 
             return MonthCombo.SelectedIndex + 2;
+        }
+
+        private int SelectedMonthOrZero()
+        {
+            return MonthCombo.SelectedIndex < 0 ? 0 : MonthCombo.SelectedIndex + 2;
         }
 
         private int SelectedRewardStartMonth()
@@ -675,6 +919,15 @@ namespace HainanSettlementTool.Wpf
             _loadingInputs = false;
         }
 
+        private void InitializeProvinceCombo()
+        {
+            _loadingInputs = true;
+            ProvinceCombo.DisplayMemberPath = nameof(ProvinceUiProfile.DisplayName);
+            ProvinceCombo.ItemsSource = ProvinceUiProfile.Supported;
+            ProvinceCombo.SelectedIndex = -1;
+            _loadingInputs = false;
+        }
+
         private static int ThemeIndex(string mode)
         {
             switch (ThemeService.NormalizeMode(mode))
@@ -701,13 +954,30 @@ namespace HainanSettlementTool.Wpf
             }
         }
 
+        private ProvinceCode SelectedProvince()
+        {
+            var province = SelectedProvinceOrNull();
+            if (!province.HasValue)
+            {
+                throw new InvalidOperationException("请选择结算省份。");
+            }
+
+            return province.Value;
+        }
+
+        private ProvinceCode? SelectedProvinceOrNull()
+        {
+            return SelectedProfileOrNull()?.Province;
+        }
+
+        private ProvinceUiProfile SelectedProfileOrNull()
+        {
+            return ProvinceCombo.SelectedItem as ProvinceUiProfile;
+        }
+
         private bool ConfirmRun(string stageName, int month, string outputDirectory)
         {
-            var dialog = new ConfirmRunWindow(stageName, month, outputDirectory)
-            {
-                Owner = this
-            };
-            return dialog.ShowDialog() == true;
+            return _dialogController.ConfirmRun(stageName, month, outputDirectory);
         }
 
         private bool ConfirmEmployeeRewardRun(EmployeeRewardOptions options)
@@ -716,7 +986,7 @@ namespace HainanSettlementTool.Wpf
                 ? "2026年" + options.StartMonth + "月"
                 : "2026年" + options.StartMonth + "-" + options.EndMonth + "月";
             var message = "即将生成员工电量奖励表。\n\n期间：" + period + "\n输出文件夹：\n" + options.OutputDirectory;
-            return MessageBox.Show(this, message, "确认生成员工电量奖励", MessageBoxButton.OKCancel, MessageBoxImage.Question) == MessageBoxResult.OK;
+            return ConfirmAction("确认生成员工电量奖励", "即将生成员工电量奖励", message, "开始生成");
         }
 
         private bool ConfirmStage2Preflight(Stage2PreflightReport report)
@@ -752,146 +1022,147 @@ namespace HainanSettlementTool.Wpf
 
             MonthCombo.IsEnabled = monthEnabled;
             SettlementMonthLabel.Foreground = monthEnabled ? BrushOf("FieldTextBrush") : BrushOf("MutedBrush");
-            SharedSettingsCaption.Text = employeeRewardSelected
-                ? "员工电量奖励使用本页的开始/结束月份，输出仍保存到这个文件夹中"
-                : "阶段一和阶段二生成的所有文件都会保存到这个文件夹中";
+            UpdateProvinceUi();
+            if (employeeRewardSelected)
+            {
+                SharedSettingsCaption.Text = "员工电量奖励使用本页的开始/结束月份，输出仍保存到这个文件夹中";
+            }
+        }
+
+        private void UpdateProvinceUi()
+        {
+            if (ProvinceCombo == null || StageOnePanel == null)
+            {
+                return;
+            }
+
+            var province = SelectedProvinceOrNull();
+            var hasProvince = province.HasValue;
+            var profile = SelectedProfileOrNull();
+            if (hasProvince && !profile.SupportsEmployeeReward && MainTabControl.SelectedItem == EmployeeRewardTab)
+            {
+                MainTabControl.SelectedItem = MainSettlementTab;
+            }
+
+            MainSettlementTab.Header = hasProvince ? profile.MainSettlementTabHeader : "结算流程";
+            EmployeeRewardTab.Visibility = hasProvince && profile.SupportsEmployeeReward ? Visibility.Visible : Visibility.Collapsed;
+            ProvinceEmptyPanel.Visibility = hasProvince ? Visibility.Collapsed : Visibility.Visible;
+            StageOnePanel.Visibility = hasProvince ? Visibility.Visible : Visibility.Collapsed;
+            StageTwoPanel.Visibility = hasProvince && profile.SupportsStage2 ? Visibility.Visible : Visibility.Collapsed;
+            Grid.SetColumnSpan(StageOnePanel, hasProvince && profile.SupportsStage2 ? 1 : 2);
+            StageOnePanel.Margin = hasProvince && profile.SupportsStage2 ? new Thickness(0, 0, 8, 0) : new Thickness(0);
+
+            Stage1TitleText.Text = hasProvince ? profile.StageOneTitle : "请先选择结算省份";
+            Stage1CaptionText.Text = !hasProvince
+                ? "不同省份的结算口径不同，必须先选择省份再执行。"
+                : profile.StageOneCaption;
+            BaseLedgerLabel.Text = hasProvince ? profile.BaseLedgerLabel : "基础台账（先选择省份）";
+            PowerLabel.Text = hasProvince ? profile.ExistingPowerLabel : "电量处理表";
+            RawDetailLabel.Text = hasProvince ? profile.RawDetailLabel : "电量文件（先选择省份）";
+            ReferenceLedgerLabel.Text = hasProvince ? profile.ReferenceLedgerLabel : "参考台账（可选）";
+            RunStage1ButtonText.Text = hasProvince ? profile.RunStageOneButtonText : "开始 执行阶段一";
+            CleanPowerButton.Content = hasProvince ? profile.CleanPowerButtonText : "只清洗电量";
+
+            var ledgerVisibility = hasProvince ? Visibility.Visible : Visibility.Collapsed;
+            var existingPowerVisibility = hasProvince && profile.ShowsExistingPowerInput ? Visibility.Visible : Visibility.Collapsed;
+            var referenceLedgerVisibility = hasProvince && profile.ShowsReferenceLedgerInput ? Visibility.Visible : Visibility.Collapsed;
+            BaseLedgerLabel.Visibility = ledgerVisibility;
+            BaseLedgerRow.Visibility = ledgerVisibility;
+            PowerLabel.Visibility = existingPowerVisibility;
+            PowerRow.Visibility = existingPowerVisibility;
+            ReferenceLedgerLabel.Visibility = referenceLedgerVisibility;
+            ReferenceLedgerRow.Visibility = referenceLedgerVisibility;
+            CopyReferenceExistingCheckBox.Visibility = referenceLedgerVisibility;
+
+            RunStage1Button.IsEnabled = !_isBusy && hasProvince && profile.SupportsStage1LedgerUpdate;
+            CleanPowerButton.IsEnabled = !_isBusy && hasProvince && profile.SupportsStage1CleanPower;
+            RunStage2Button.IsEnabled = !_isBusy && hasProvince && profile.SupportsStage2;
+            RunEmployeeRewardButton.IsEnabled = !_isBusy && hasProvince && profile.SupportsEmployeeReward;
+            UpdateResultVisibility(province);
+            SharedSettingsCaption.Text = !hasProvince
+                ? "请先选择结算省份；选择后会显示对应省份的可用功能"
+                : profile.SharedSettingsCaption;
         }
 
         private void RefreshThemeDependentState()
         {
             UpdateSharedSettingsState();
-            if (StatusText.Text == "待确认" || StatusText.Text == "运行中")
-            {
-                SetStatus(StatusText.Text, "WarningBrush", "StatusBusyBrush");
-            }
-            else
-            {
-                SetStatus(StatusText.Text, "SuccessBrush", "StatusReadyBrush");
-            }
+            _progressController.RefreshStatusBrushes();
         }
 
         private void SetStatus(string text, string dotBrushKey, string backgroundBrushKey)
         {
-            StatusText.Text = text;
-            StatusDot.Fill = BrushOf(dotBrushKey);
-            StatusPill.Background = BrushOf(backgroundBrushKey);
+            _progressController.SetStatus(text, dotBrushKey, backgroundBrushKey);
         }
 
         private void ResetProgress(string title, string description)
         {
-            ProgressTitle.Text = title;
-            ProgressDescriptionText.Text = description;
-            SetProgress(0, description);
-            for (var i = 0; i < _stepTexts.Length; i++)
-            {
-                SetStepWaiting(i);
-            }
+            _progressController.ResetProgress(title, description);
         }
 
         private void SetProgress(int value, string description)
         {
-            ProgressBar.Value = value;
-            ProgressPercentText.Text = value + "%";
-            ProgressDescriptionText.Text = description;
+            _progressController.SetProgress(value, description);
         }
 
         private void SetStepWaiting(int index)
         {
-            _stepTexts[index].Text = "○  " + StepName(index);
-            _stepTexts[index].Foreground = BrushOf("MutedBrush");
-            _stepStatuses[index].Text = "等待中";
-            _stepStatuses[index].Foreground = BrushOf("MutedBrush");
+            _progressController.SetStepWaiting(index);
         }
 
         private void SetStepRunning(int index)
         {
-            _stepTexts[index].Text = "●  " + StepName(index);
-            _stepTexts[index].Foreground = BrushOf("AccentBrush");
-            _stepStatuses[index].Text = "进行中";
-            _stepStatuses[index].Foreground = BrushOf("AccentBrush");
+            _progressController.SetStepRunning(index);
         }
 
         private void SetStepNeedsConfirmation(int index)
         {
-            _stepTexts[index].Text = "●  " + StepName(index);
-            _stepTexts[index].Foreground = BrushOf("WarningBrush");
-            _stepStatuses[index].Text = "待确认";
-            _stepStatuses[index].Foreground = BrushOf("WarningBrush");
+            _progressController.SetStepNeedsConfirmation(index);
         }
 
         private void SetStepDone(int index)
         {
-            _stepTexts[index].Text = "●  " + StepName(index);
-            _stepTexts[index].Foreground = BrushOf("SuccessBrush");
-            _stepStatuses[index].Text = "完成";
-            _stepStatuses[index].Foreground = BrushOf("SuccessBrush");
-
-            if (index + 1 < _stepTexts.Length)
-            {
-                SetStepRunning(index + 1);
-                SetProgress(Math.Min(90, 25 + (index + 1) * 15), StepName(index + 1));
-            }
+            _progressController.SetStepDone(index);
         }
 
         private void SetStepFailed()
         {
-            for (var i = 0; i < _stepStatuses.Length; i++)
-            {
-                if (_stepStatuses[i].Text == "进行中")
-                {
-                    _stepTexts[i].Text = "●  " + StepName(i);
-                    _stepTexts[i].Foreground = BrushOf("ErrorBrush");
-                    _stepStatuses[i].Text = "失败";
-                    _stepStatuses[i].Foreground = BrushOf("ErrorBrush");
-                    return;
-                }
-            }
+            _progressController.SetStepFailed();
         }
 
-        private static string StepName(int index)
+        private void UpdateResultVisibility(ProvinceCode? province)
         {
-            switch (index)
-            {
-                case 0:
-                    return "检查输入文件";
-                case 1:
-                    return "读取台账数据";
-                case 2:
-                    return "生成结算文件";
-                case 3:
-                    return "写入结果报告";
-                default:
-                    return "保存结果文件";
-            }
+            _resultController.UpdateResultVisibility(province);
+        }
+
+        private void SetCompletionWaiting()
+        {
+            _resultController.ShowWaiting(SelectedProvinceOrNull());
         }
 
         private void ResetResults()
         {
-            Stage1ResultStatus.Text = "等待";
-            Stage1ResultCount.Text = "-";
-            ProxyResultStatus.Text = "等待";
-            ProxyResultCount.Text = "-";
-            IntermediaryResultStatus.Text = "等待";
-            IntermediaryResultCount.Text = "-";
-            SummaryResultStatus.Text = "等待";
-            SummaryResultCount.Text = "-";
-            EmployeeRewardResultStatus.Text = "等待";
-            EmployeeRewardResultCount.Text = "-";
-            FinishedAtText.Text = "-";
-            _lastOutputDirectory = null;
-            CompletionTitleText.Text = "等待生成结果";
-            CompletionDetailText.Text = "运行完成后会在这里显示输出位置";
-            CompletionOutputText.Text = "尚未生成";
-            CompletionCard.Visibility = Visibility.Visible;
+            _resultController.Reset(SelectedProvinceOrNull());
         }
 
         private void ShowCompletion(string title, string detail, string outputDirectory)
         {
-            _lastOutputDirectory = outputDirectory;
-            CompletionTitleText.Text = title;
-            CompletionDetailText.Text = detail;
-            CompletionOutputText.Text = outputDirectory;
-            CompletionCard.Visibility = Visibility.Visible;
+            _resultController.ShowCompletion(title, detail, outputDirectory);
+        }
+
+        private void SetStage1ResultSuccess(string countText)
+        {
+            _resultController.SetStage1Success(countText);
+        }
+
+        private void SetStage2ResultSuccess(string proxyCountText, string intermediaryCountText, string summaryCountText)
+        {
+            _resultController.SetStage2Success(proxyCountText, intermediaryCountText, summaryCountText);
+        }
+
+        private void SetEmployeeRewardResultSuccess(string personalCountText, string summaryCountText)
+        {
+            _resultController.SetEmployeeRewardSuccess(personalCountText, summaryCountText);
         }
 
         private void LoadSavedInputs(UserInputSnapshot snapshot)
@@ -929,6 +1200,7 @@ namespace HainanSettlementTool.Wpf
                     IntermediaryTemplateDirectory = IntermediaryTemplateDirBox.Text.Trim(),
                     SummaryTemplatePath = SummaryTemplateBox.Text.Trim(),
                     RewardLedgerPath = RewardLedgerBox.Text.Trim(),
+                    ProvinceCode = SelectedProvinceOrNull()?.ToString() ?? string.Empty,
                     ThemeMode = _themeMode
                 });
             }
@@ -965,7 +1237,48 @@ namespace HainanSettlementTool.Wpf
 
         private void ShowError(Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "出错了", MessageBoxButton.OK, MessageBoxImage.Error);
+            _dialogController.ShowError(ex);
+        }
+
+        private void ShowErrorMessage(string message)
+        {
+            _dialogController.ShowErrorMessage(message);
+        }
+
+        private bool ConfirmAction(string title, string heading, string message, string primaryButtonText)
+        {
+            return _dialogController.ConfirmAction(title, heading, message, primaryButtonText);
+        }
+
+        private bool ConfirmProvinceStage1LedgerUpdate(ProvinceStage1LedgerUpdateOptions options, ProvinceStage1LedgerUpdatePlan plan)
+        {
+            var message = new StringBuilder();
+            message.AppendLine("结算月份：2026年" + options.Month + "月");
+            message.AppendLine("匹配客户：" + plan.MatchedRows + " / " + plan.PowerCustomerRows);
+            message.AppendLine("多户号客户：" + plan.MultiAccountRows + " 行（仅提示，不写入B列）");
+            message.AppendLine("输出文件夹：");
+            message.AppendLine(options.OutputDirectory);
+
+            if (plan.RequiresConfirmation)
+            {
+                var dialog = new ProvinceStage1LedgerPreflightWindow(options, plan)
+                {
+                    Owner = this
+                };
+
+                if (dialog.ShowDialog() == true)
+                {
+                    options.CustomerDecisions = dialog.CustomerDecisions;
+                    options.ManualCustomerMatches = dialog.ManualCustomerMatches;
+                    return true;
+                }
+
+                return false;
+            }
+
+            message.AppendLine();
+            message.AppendLine("未发现匹配异常。确认后会生成台账副本，不会覆盖原文件。");
+            return ConfirmAction("确认重庆台账更新", "即将写入重庆台账副本", message.ToString(), "开始写入");
         }
 
         private void ClearStage1_Click(object sender, RoutedEventArgs e)
@@ -1007,7 +1320,7 @@ namespace HainanSettlementTool.Wpf
             {
                 Title = "保存运行日志",
                 Filter = "文本文件|*.txt|所有文件|*.*",
-                FileName = "海南售电结算运行日志.txt"
+                FileName = "售电结算运行日志.txt"
             };
 
             if (dialog.ShowDialog(this) == true)
@@ -1018,7 +1331,9 @@ namespace HainanSettlementTool.Wpf
 
         private void OpenOutputDir_Click(object sender, RoutedEventArgs e)
         {
-            var path = !string.IsNullOrWhiteSpace(_lastOutputDirectory) ? _lastOutputDirectory : OutputDirBox.Text.Trim();
+            var path = !string.IsNullOrWhiteSpace(_resultController.LastOutputDirectory)
+                ? _resultController.LastOutputDirectory
+                : OutputDirBox.Text.Trim();
             if (Directory.Exists(path))
             {
                 Process.Start(path);

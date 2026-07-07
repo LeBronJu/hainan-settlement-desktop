@@ -1,6 +1,6 @@
 # Handoff
 
-Last updated: 2026-07-02
+Last updated: 2026-07-07
 
 ## Project
 
@@ -26,10 +26,17 @@ The stable local reference folder is for future comparison/orientation only; do 
 - Stable local reference folder: `D:\Document\文件处理\稳定参考版海南结算`. It is for future comparison/orientation only; do not read real workbook contents there without explicit user authorization for the current task.
 - Employee reward reference folder recorded by the user on 2026-07-02: `D:\Document\文件处理\稳定参考版海南结算\电量奖励参考`. It was inspected read-only for the employee reward design; the implemented module uses the files as output-shape references, not runtime inputs.
 - Repository-safe real smoke entry point: `scripts/run_real_smoke.ps1`. It accepts paths as parameters and must not hard-code real production paths.
+- Chongqing local working root mentioned by the user: `C:\Users\juqx2\Desktop\2026年-重庆`. Treat files under this root as real business data. On 2026-07-06 the user authorized read-only inspection of one Chongqing transaction-center source workbook, one manually cleaned comparison workbook, and the current Chongqing ledger workbook for designing the Chongqing Stage 1 cleaning and ledger-update module. Do not commit those files or generated outputs.
 
 ## Current Git State
 
-- Current branch: `main`
+- Current branch: `codex/wpf-path-picker-controller`
+- Branch purpose: continue today's WPF-first quality mainline by extracting file/folder picker entry points from `MainWindow.xaml.cs`.
+- Previous dialog branch: `codex/wpf-dialog-controller`, pushed through `191b0ff Extract WPF dialog controller`.
+- Previous naming branch: `codex/province-neutral-naming`, pushed through `2f93013 Clarify province-neutral naming boundaries`.
+- The Chongqing target-month block fix is isolated on `codex/chongqing-month-block-copy` and was pushed through `e45d358 Document WPF Chongqing test package`.
+- Multi-province readiness note: `docs/dev-notes/multi-province-readiness-2026-07-07.md`. Read it before new-province onboarding, WPF province UI, Core multi-province workflow, or Excel multi-province adapter work.
+- Previous uncommitted WPF small-window work was reviewed on 2026-07-06. The action-row `DockPanel LastChildFill="False"` fixes were already present on the Chongqing branch, the remaining `MinHeight="720"` fix was reapplied, and the old stash was dropped.
 - Employee reward module has been merged to `main` from `codex/employee-reward-module`. The user completed practical testing on 2026-07-02 and reported no blocking issues.
 - Latest employee reward feature commit before this handoff update: `feb933f Add employee reward module`
 - `main` now contains the employee reward module and WPF theme support after `v1.0.1`, but no newer release tag has been cut yet.
@@ -43,9 +50,17 @@ The stable local reference folder is for future comparison/orientation only; do 
 - Win10/11 WPF is the primary UI entry for new features and UX work.
 - Win7/8 WinForms remains part of `main` as a maintenance compatibility entry: keep it buildable, packageable, and fix blocking bugs only unless explicitly requested.
 - Win7/8 and Win10/11 share Core/Excel logic but remain separate desktop apps.
+- Latest local WPF test package:
+  - `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-115127.zip`
+  - unpacked directory: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-115127`
+  - built from `codex/wpf-path-picker-controller` after implementing Chongqing customer-resolution decisions and WPF display-title fixes.
+- Previous local WPF test package from the Chongqing month-block branch:
+  - `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-105743.zip`
+  - unpacked directory: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-105743`
+  - built from `codex/chongqing-month-block-copy` after `074401a` and `f60d325`.
 - Do not add real ledgers, customer data, settlement outputs, screenshots, or finance/payment data to git.
 
-Use `git status --short --branch` before editing. The expected handoff worktree should be clean on `main`; no real Excel files or generated settlement outputs should be tracked.
+Use `git status --short --branch` before editing. The expected handoff worktree should be clean on the current `codex/` development branch unless the user explicitly authorizes merging to `main`; no real Excel files or generated settlement outputs should be tracked.
 
 ## Release 1.0.1
 
@@ -185,6 +200,47 @@ Known limits:
 - The implementation generates an internal layout based on the reference workbooks instead of copying the reference templates. The user completed practical testing on 2026-07-02 and reported no blocking issues, but a formal release has not been cut yet.
 - Win7/8 WinForms has no employee reward UI entry; this follows the maintenance-only WinForms policy.
 
+### Chongqing Stage 1 Power Cleaning And Ledger Update
+
+Inputs:
+
+- Chongqing trading-center electricity confirmation statement (`.xlsx`, `.xls`, or `.csv`).
+- Chongqing settlement ledger (`.xlsx`) when updating the ledger.
+- Settlement month from the file title/name, with the UI month as fallback.
+- Shared output folder.
+
+Outputs:
+
+- `x月重庆零售侧用户电量数据处理表.xlsx`.
+- `x月重庆零售侧用户电量校验报告.json`.
+- `x月重庆售电结算台账-阶段一更新.xlsx`.
+- `x月重庆阶段一台账更新报告.json`.
+
+Current behavior:
+
+- The module is exposed only in the Win10/11 WPF app through the new province selector. Selecting `重庆` shows the Stage 1 account-update area and enables `清洗并更新台账` plus `只清洗电量数据`.
+- Excel input prefers the `sheet1` worksheet and falls back to the first sheet when `sheet1` is absent. CSV input is read as a single table.
+- Required headers are `用户名称`, `户号`, `时段`, and `用电量`.
+- Unit is `兆瓦时`; this must remain separate from Hainan's `万千瓦时` Stage 1 ledger unit.
+- Period values map as `尖峰` -> `尖`, `高峰` -> `峰`, `平段` -> `平`, `低谷` -> `谷`.
+- Output main sheet `用户电量汇总` aggregates by customer name. Output detail sheet `户号明细` retains account-number rows for audit and later ledger-update work.
+- Missing customer name, missing account number, invalid period, non-numeric power, and negative power stop generation as serious source-data errors.
+- Ledger update matches by `电力用户名称`, not `电力用户编码`.
+- WPF preflight collects one-time customer handling decisions for unmatched power customers. Each displayed unmatched power customer must explicitly choose `新增客户到台账`, `不匹配，本月不写入`, or one existing ledger customer. Existing ledger customer targets can be used only once in the same preflight; create/skip actions can be repeated.
+- Ledger update does not fill `电力用户编码` / B-column account numbers; account numbers remain in the cleaned detail workbook and report for traceability.
+- Ledger update writes only target-month `总实际电量（兆瓦时）` and `尖/峰/平/谷` into a copied ledger. It does not overwrite the source ledger.
+- If the target month block is absent, ledger update creates it by copying the previous Chongqing 30-column month block, changing the month label, clearing the target-month `总实际电量/尖/峰/平/谷` power columns, and preserving template columns such as coefficients, refund, agent/intermediary formulas, and remarks.
+- `代理或自营=自营` customers can legitimately have blank agent/intermediary fixed fields and blank monthly agent/intermediary revenue columns; Stage 1 must not fill those fields or treat the blanks as errors.
+- When the user chooses `新增客户到台账`, Chongqing Stage 1 inserts a row only in the output ledger copy, writes the customer name and target-month `总实际电量/尖/峰/平/谷`, preserves copied row formatting/formulas, and leaves `电力用户编码` / B-column account number plus负责人/代理/居间 fields blank for manual completion.
+- Missing/new/ledger-only customers, possible alias candidates, multiple-account customers, month mismatch, and existing target-month power differences are surfaced in a WPF confirmation before writing and also written to the JSON report.
+
+Known limits / next required behavior:
+
+- Chongqing Stage 2 settlement generation is not implemented.
+- Customer-name alias mapping is not automatic or persistent; possible aliases are reported and the WPF preflight lets the user choose one-time manual matches for the current run.
+- The new Chongqing customer-resolution behavior is implemented with synthetic regression coverage and packaged for user acceptance, but has not yet been validated against the user's real Chongqing workbooks in this session.
+- Current regressions use synthetic workbooks; no real Chongqing workbook is committed.
+
 ## UI State
 
 Two desktop entries exist and should continue to coexist:
@@ -198,6 +254,8 @@ Do not add WinForms-only features or UX improvements by default. New UI work sho
 Stage 2 workflow handling keeps WPF responsible for the confirmation dialog and progress UI, while Core `SettlementWorkflow` owns the preflight plan and the confirmed/cancelled generation decision.
 The employee reward module currently exists only in the WPF app as a separate tab. It reuses the shared output folder and has its own start/end month selectors.
 The WPF app supports UI theme selection in the custom title bar: `跟随系统`, `浅色`, and `深色`. The setting is stored in the existing WPF input snapshot XML. This is UI-only; generated Excel workbooks remain theme-independent, light, and print-safe.
+The WPF app now has a top-level settlement-province selector. It defaults to empty on startup so the user must explicitly choose the province before running business actions. Before a province is selected, the main business area shows only a neutral empty state; stale file paths, run buttons, and province-specific output rows must stay hidden. `海南` keeps the mature Stage 1, Stage 2, and employee reward entries. `重庆` currently exposes only Stage 1 power cleaning; Hainan-only Stage 2 and employee reward UI entries are hidden when Chongqing is selected.
+WPF business confirmation, warning, and error prompts should use project-native modern WPF dialogs, not system `MessageBox`; OS-native dialogs are still acceptable for file and folder selection.
 
 ## Latest Verification
 
@@ -565,6 +623,420 @@ Observed result:
 - Excel tests: 14 passed.
 - Debug build passes for Core, Excel, WinForms, and WPF.
 
+Chongqing Stage 1 power-cleaning branch verification on 2026-07-06:
+
+```powershell
+dotnet test .\tests\HainanSettlementTool.Core.Tests\HainanSettlementTool.Core.Tests.csproj /p:Configuration=Debug --filter CleanProvinceStage1PowerDataReturnsSharedSummaryLines
+dotnet test .\tests\HainanSettlementTool.Excel.Tests\HainanSettlementTool.Excel.Tests.csproj /p:Configuration=Debug --filter ChongqingPowerCleanGeneratorTests
+dotnet msbuild .\src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Debug
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Debug /m
+```
+
+Observed result:
+
+- New Core workflow test passed.
+- New Excel tests passed, including Chongqing customer/account aggregation and negative-power stop behavior.
+- WPF Debug build passed.
+- Full Debug test suite passed: Core 17 tests, Excel 16 tests.
+- Debug build passed for Core, Excel, WinForms, and WPF.
+
+Authorized Chongqing Stage 1 real sample smoke on 2026-07-06:
+
+- Input source workbook inspected read-only: `C:\Users\juqx2\Desktop\2026年-重庆\重庆\重庆2026年电量确认结算单\2026年05月售电公司电量确认结算单.xlsx`
+- Manual comparison workbook inspected read-only: `C:\Users\juqx2\Desktop\2026年-重庆\数据清洗—5月用户电量统计表.xlsx`
+- Output folder: `C:\Users\juqx2\Desktop\2026年-重庆\test\codex-chongqing-smoke-20260706-142318`
+- The generator produced `5月重庆零售侧用户电量数据处理表.xlsx` and `5月重庆零售侧用户电量校验报告.json`.
+- JSON report result: source sheet `sheet1`, raw rows 212, customer rows 26, account rows 46, total power 12887.548 MWh, and one skipped non-power tail row.
+- Generated customer summary matched the manual cleaned workbook on customer count, total power, and every row-level numeric power vector. One customer-name text difference remained between the raw transaction-center source and the manual cleaned workbook; the matching numeric vector confirms it is a name/alias difference, not a power calculation difference.
+
+WPF small-window stash cleanup on 2026-07-06:
+
+```powershell
+dotnet msbuild .\src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Debug
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+```
+
+Observed result:
+
+- The historical `wpf-small-window-quality before chongqing work` stash was reviewed instead of blindly popped.
+- Current branch already contained the action-row `DockPanel LastChildFill="False"` fixes.
+- The remaining WPF launch-window fix was reapplied by setting `MinHeight` to 720 while keeping the default launch height at 900.
+- WPF Debug build passed.
+- Full Debug test suite passed: Core 17 tests, Excel 16 tests.
+- The reviewed stash was dropped after its remaining change was reapplied.
+- Win10/11 WPF test package generated at `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260706-143742.zip`.
+
+WPF province selector and dialog polish on 2026-07-06:
+
+```powershell
+dotnet msbuild .\src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Debug
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Debug /m
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+.\scripts\package_wpf_release.ps1
+```
+
+Observed result:
+
+- The settlement-province selector was moved to its own top row in the shared settings card and no longer restores a saved/default province on startup.
+- Business actions now require an explicit province selection; no-selection state disables execution and shows a modern WPF error dialog.
+- Remaining WPF `MessageBox` confirmations/errors in `MainWindow` were replaced by a project-native modern dialog. Stage 2 preflight already uses a custom WPF confirmation window; file/folder pickers still use OS-native dialogs.
+- The development rule now states that WPF business confirmation, warning, and error prompts must use project-native WPF dialogs instead of system `MessageBox`.
+- WPF Debug build passed.
+- Debug build passed for Core, Excel, WinForms, and WPF.
+- Full Debug test suite passed: Core 17 tests, Excel 16 tests.
+- Win10/11 WPF test package generated at `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260706-151425.zip`.
+
+Authorized Chongqing ledger read-only structure analysis on 2026-07-06:
+
+- Ledger inspected read-only: `C:\Users\juqx2\Desktop\2026年-重庆\重庆2026年售电结算台账20260609.xlsx`
+- Structure: one `Sheet1`, 30 rows, 194 columns, three-level header, customer data rows 4-29, 26 customer rows.
+- Fixed fields found in row 2 include `电力用户编码`, `电力用户名称`, `合同年用电量（兆瓦时）`, `履约开始月份`, `履约结束月份`, `项目开发人`, `代理或自营`, and `负责人`.
+- The `电力用户编码` column is blank for all 26 rows. Because Chongqing customers can have multiple account numbers, the app no longer auto-fills this column and does not use it as a matching key.
+- Current customer rows have no blank customer names, no blank负责人, no blank项目开发人, and no duplicate customer names. Business type count is 7 self-operated and 19 proxy rows.
+- Month blocks were identified by row-1 merged headers. Existing blocks cover January through May 2026. The May block starts at `FI`: total actual power in `FI`, periods in `FJ:FM` (`尖/峰/平/谷`), coefficient columns in `FN:FO`, and downstream benefit fields after that.
+- The current May ledger power values already match the generated Chongqing cleaned power output on customer count, total power, and every numeric power vector. The same one customer-name text difference remains, so the next module needs an alias/mismatch report rather than silent fuzzy matching.
+
+Chongqing Stage 1 ledger update implementation verification on 2026-07-06:
+
+```powershell
+dotnet msbuild .\src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Debug
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+```
+
+Observed result:
+
+- Added Core models for Chongqing ledger update options, preflight plan, issues, and result.
+- Added `ChongqingLedgerStage1Updater` in the Excel layer.
+- WPF `清洗并更新台账` is now enabled for Chongqing and runs a preflight before writing.
+- WPF preflight uses the modern dialog and shows matching issues before generating a copied ledger.
+- Synthetic tests passed for workflow summary and Chongqing ledger update writing.
+- Core tests: 18 passed.
+- Excel tests: 17 passed.
+- WPF Debug build passed.
+- Win10/11 WPF test package generated at `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260706-154127.zip`.
+
+Authorized Chongqing Stage 1 ledger update real smoke on 2026-07-06:
+
+- Inputs inspected read-only: `C:\Users\juqx2\Desktop\2026年-重庆\重庆2026年售电结算台账20260609.xlsx` and `C:\Users\juqx2\Desktop\2026年-重庆\重庆\重庆2026年电量确认结算单\2026年05月售电公司电量确认结算单.xlsx`
+- Output folder: `C:\Users\juqx2\Desktop\2026年-重庆\test\codex-chongqing-ledger-update-smoke-20260706-153825`
+- Generated output ledger: `5月重庆售电结算台账-阶段一更新.xlsx`
+- Generated report: `5月重庆阶段一台账更新报告.json`
+- Real-smoke preflight required confirmation: 25 matched customer rows, 7 multi-account rows, 1 power customer not in ledger, 1 ledger customer not in power table, 1 possible alias candidate, and 0 existing target-month power differences.
+- The smoke wrote 25 matched power rows into the copied ledger and did not modify the original ledger or fill B-column account codes.
+
+Chongqing Stage 1 B-column account-code policy update on 2026-07-06:
+
+```powershell
+dotnet test .\tests\HainanSettlementTool.Core.Tests\HainanSettlementTool.Core.Tests.csproj /p:Configuration=Debug --filter UpdateProvinceStage1LedgerReturnsSharedSummaryLines
+dotnet test .\tests\HainanSettlementTool.Excel.Tests\HainanSettlementTool.Excel.Tests.csproj /p:Configuration=Debug --filter ChongqingPowerCleanGeneratorTests
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Debug /m
+git diff --check
+git status --short | Select-String -Pattern '\.(xlsx|xls|csv|png|jpg|jpeg|pdf)$'
+```
+
+Observed result:
+
+- User decided Chongqing B-column `电力用户编码` should not be automatically maintained because one customer may have multiple account numbers.
+- `ChongqingLedgerStage1Updater` now writes only target-month power columns and never writes or compares B-column account codes.
+- WPF preflight now shows multi-account customers as a reminder only, with wording that B column is not written.
+- Synthetic Chongqing ledger update test now verifies B-column values stay blank while power columns are written.
+- Full Debug test suite passed: Core 18 tests and Excel 17 tests.
+- Debug build passed for Core, Excel, WinForms, and WPF.
+- `git diff --check` passed with CRLF normalization warnings only.
+- No real Excel, CSV, image, PDF, or generated sensitive output file appears in `git status`.
+
+Chongqing Stage 1 one-time manual customer matching on 2026-07-06:
+
+```powershell
+dotnet msbuild .\src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Debug
+dotnet test .\tests\HainanSettlementTool.Excel.Tests\HainanSettlementTool.Excel.Tests.csproj /p:Configuration=Debug --filter ChongqingPowerCleanGeneratorTests
+dotnet test .\tests\HainanSettlementTool.Core.Tests\HainanSettlementTool.Core.Tests.csproj /p:Configuration=Debug --filter UpdateProvinceStage1LedgerReturnsSharedSummaryLines
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Debug /m
+.\scripts\package_wpf_release.ps1
+```
+
+Observed result:
+
+- Added `ProvinceStage1CustomerMatch` and manual-match lists on Chongqing Stage 1 ledger update options, plans, and results.
+- Added a WPF Stage 1 preflight window that lets the user map unmatched cleaned power customers to ledger-only customers for the current run only.
+- Manual matches are validated as one source customer to one target ledger customer; duplicate target selections are blocked before writing.
+- `ChongqingLedgerStage1Updater` now writes exact matches plus confirmed manual matches into the copied ledger and records manual matches in the JSON update report.
+- Synthetic alias test verifies a cleaned power customer with an old name can be written into a ledger customer row with a different current name.
+- Full Debug test suite passed: Core 18 tests and Excel 18 tests.
+- Debug build passed for Core, Excel, WinForms, and WPF.
+- Win10/11 WPF test package generated at `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260706-171820.zip`.
+- Package contents checked for the WPF executable, config, Core/Excel DLLs, and ClosedXML DLL.
+
+WPF no-province empty state polish on 2026-07-06:
+
+```powershell
+dotnet msbuild .\src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Debug
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Debug /m
+.\scripts\package_wpf_release.ps1
+```
+
+Observed result:
+
+- When the WPF settlement province is empty, the main business tab now shows a neutral empty state instead of stale file paths, province-specific labels, and run buttons.
+- The right-side completion/output card now shows a no-province waiting state and hides province-specific output rows and completion time until a province is selected.
+- Selecting a province resets the right-side previous-result summary so old success counts from another province are not shown under the new province.
+- Full Debug test suite passed: Core 18 tests and Excel 18 tests.
+- Debug build passed for Core, Excel, WinForms, and WPF.
+- `git diff --check` passed with CRLF normalization warnings only.
+- WPF `MessageBox` search had no matches.
+- No real Excel, CSV, image, PDF, or generated sensitive output file appears in `git status`.
+- Win10/11 WPF test package generated at `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260706-173120.zip`.
+- Package contents checked for the WPF executable, config, Core/Excel DLLs, and ClosedXML DLL.
+
+WPF Chongqing preflight manual matching polish on 2026-07-06:
+
+```powershell
+dotnet msbuild .\src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Debug
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Debug /m
+.\scripts\package_wpf_release.ps1
+```
+
+Observed result:
+
+- The preflight manual-match dialog now uses clearer labels: unmatched source rows are shown as `待匹配客户名称`, and the right side is `选择台账客户名称（必选）`.
+- The ledger-customer dropdown now renders `CustomerTargetOption.DisplayText` through an item template and `ToString()` fallback, so it no longer displays the WPF view-model type name.
+- Manual matching rows no longer default to silent no-write. The user must explicitly choose a ledger customer or choose `不匹配，本月不写入`; otherwise confirmation is blocked with a validation message.
+- `电量客户不在台账` and `台账客户不在电量表` are presented inside the customer manual-matching area, while `其它预检项目` only contains the remaining non-matching warnings.
+- Full Debug test suite passed: Core 18 tests and Excel 18 tests.
+- Debug build passed for Core, Excel, WinForms, and WPF.
+- `git diff --check` passed with CRLF normalization warnings only.
+- WPF `MessageBox` search had no matches.
+- No real Excel, CSV, image, PDF, or generated sensitive output file appears in `git status`.
+- Win10/11 WPF test package generated at `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260706-173952.zip`.
+- Package contents checked for the WPF executable, config, Core/Excel DLLs, and ClosedXML DLL.
+
+Multi-province readiness architecture self-audit on 2026-07-07:
+
+Observed result:
+
+- Added `docs/dev-notes/multi-province-readiness-2026-07-07.md`.
+- Identified the main third-province readiness debt: WPF province UI/profile logic, Excel province-stage adapter dispatch, Core province-stage validation, stable preflight issue codes, and province onboarding contract tests.
+- Recorded P0/P1/P2 readiness order so future new-province work can first reduce the highest-risk coupling instead of adding more scattered province branches.
+- Updated `AGENTS.md` and this handoff so future sessions read the readiness note before new-province onboarding, WPF province UI, Core multi-province workflow, or Excel multi-province adapter work.
+- Recorded the project collaboration rule that Codex subagents/spawning/parallel exploration are allowed for safe efficiency, with user warning/confirmation reserved for high-risk operations.
+- No build or test run was required; this was a documentation-only architecture audit.
+
+Multi-province P0 readiness slice on 2026-07-07:
+
+```powershell
+dotnet msbuild .\src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Debug
+dotnet test .\tests\HainanSettlementTool.Excel.Tests\HainanSettlementTool.Excel.Tests.csproj /p:Configuration=Debug --filter ChongqingPowerCleanGeneratorTests
+dotnet test .\tests\HainanSettlementTool.Core.Tests\HainanSettlementTool.Core.Tests.csproj /p:Configuration=Debug --filter UpdateProvinceStage1LedgerReturnsSharedSummaryLines
+```
+
+Observed result:
+
+- Added WPF `ProvinceUiProfile` to centralize province display name, stage availability, Stage 1 labels, button text, result labels, and file-picker titles for Hainan and Chongqing.
+- `MainWindow` now binds the province dropdown to profile objects and uses profile capabilities for tab visibility, input-row visibility, result-row visibility, and Stage 1 button enablement.
+- Stage 1 run/clean actions now explicitly dispatch by `ProvinceCode`, so a future newly listed province will not silently run the Hainan workflow.
+- Added stable `ProvinceStage1LedgerUpdateIssue.Kind` plus `ProvinceStage1LedgerUpdateIssueKinds` while keeping Chinese `Category` for WPF display and JSON compatibility.
+- WPF Stage 1 preflight manual-matching grouping now uses stable issue kinds, with Chinese category fallback for old or hand-built issue objects.
+- Added Excel internal `IProvinceStage1Adapter` and `ChongqingProvinceStage1Adapter`; `ClosedXmlSettlementExcelGateway` now dispatches multi-province Stage 1 Excel work through an adapter dictionary instead of direct Chongqing if branches.
+- Added a repository `.vscode/settings.json` pointing VSCode at `HainanSettlementTool.sln` to reduce false WPF code-behind diagnostics.
+- Targeted WPF Debug build passed.
+- Targeted Chongqing Excel tests passed: 4 tests.
+- Targeted Core workflow test passed: 1 test.
+- Full Debug test suite passed: Core 18 tests, Excel 18 tests.
+- Debug build passed for Core, Excel, WinForms, and WPF.
+- `git diff --check` passed with CRLF normalization warnings only.
+- WPF `MessageBox` search had no matches.
+- No real Excel, CSV, image, PDF, or generated sensitive output file appears in `git status`.
+
+WPF Release test package on 2026-07-07:
+
+```powershell
+.\scripts\package_wpf_release.ps1
+```
+
+Observed result:
+
+- Win10/11 WPF test package generated at `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-100359.zip`.
+- Package contents checked for the WPF executable, config, Core/Excel DLLs, ClosedXML DLLs, and runtime dependency DLLs.
+- This is a development test package from `codex/wpf-mainwindow-decomposition`, not a formal release tag.
+
+WPF MainWindow progress decomposition on 2026-07-07:
+
+```powershell
+dotnet msbuild .\src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Debug
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Debug /m
+git diff --check
+rg "MessageBox" -n src\HainanSettlementTool.Wpf
+```
+
+Observed result:
+
+- Added `MainWindowProgressController` to own the WPF status pill, progress bar, progress description, and five-step status rendering.
+- `MainWindow.xaml.cs` keeps the existing workflow call sites through thin helper methods, but no longer directly owns step text/status arrays or step rendering rules.
+- This is an internal UI-architecture slice only; no settlement calculation, Excel read/write, customer matching, or generated workbook behavior changed.
+- Targeted WPF Debug build passed.
+- Full Debug test suite passed: Core 18 tests, Excel 18 tests.
+- Debug build passed for Core, Excel, WinForms, and WPF.
+- `git diff --check` passed with CRLF normalization warnings only.
+- WPF `MessageBox` search had no matches.
+
+WPF MainWindow result decomposition on 2026-07-07:
+
+```powershell
+dotnet msbuild .\src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Debug
+rg -n "_lastOutputDirectory|Stage1ResultStatus\.Text|ProxyResultStatus\.Text|IntermediaryResultStatus\.Text|SummaryResultStatus\.Text|EmployeeRewardResultStatus\.Text|FinishedAtText\.Text|CompletionTitleText\.Text|CompletionOutputText\.Text|CompletionCard\.Visibility" .\src\HainanSettlementTool.Wpf\MainWindow.xaml.cs
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Debug /m
+git diff --check
+rg "MessageBox" -n src\HainanSettlementTool.Wpf
+```
+
+Observed result:
+
+- Added `MainWindowResultController` to own the WPF completion card, output item visibility, result status/count rows, finished-at timestamp, and most recent output directory.
+- `MainWindow.xaml.cs` now reports stage success through result helper methods instead of writing result TextBlocks directly, while workflow orchestration remains in the window.
+- This is an internal UI-architecture slice only; no settlement calculation, Excel read/write, customer matching, confirmation flow, or generated workbook behavior changed.
+- Targeted WPF Debug build passed.
+- Result-control residual scan had no matches for old direct result TextBlock writes or `_lastOutputDirectory`.
+- Full Debug test suite passed: Core 18 tests, Excel 18 tests.
+- Debug build passed for Core, Excel, WinForms, and WPF.
+- `git diff --check` passed with CRLF normalization warnings only.
+- WPF `MessageBox` search had no matches.
+
+Chongqing Stage 1 target-month block creation fix on 2026-07-07:
+
+```powershell
+dotnet test .\tests\HainanSettlementTool.Excel.Tests\HainanSettlementTool.Excel.Tests.csproj /p:Configuration=Debug --filter UpdateLedgerCreatesTargetMonthBlockFromPreviousChongqingLedger
+dotnet test .\tests\HainanSettlementTool.Excel.Tests\HainanSettlementTool.Excel.Tests.csproj /p:Configuration=Debug --filter ChongqingPowerCleanGeneratorTests
+dotnet test .\tests\HainanSettlementTool.Core.Tests\HainanSettlementTool.Core.Tests.csproj /p:Configuration=Debug --filter ProvinceStage1
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Debug /m
+git diff --check
+rg "MessageBox" -n src\HainanSettlementTool.Wpf
+```
+
+Observed result:
+
+- Diagnosed the bug with three user-authorized real Chongqing ledgers inspected read-only: the 4-month ledger ended at the 4月 block, while the manually prepared 5-month ledgers had an added 30-column 5月 block.
+- Added Chongqing ledger update behavior that creates a missing target month block from the previous month block, clears only the target month `总实际电量/尖/峰/平/谷` columns, and preserves the remaining monthly template columns/formulas.
+- Added synthetic regression coverage for updating a 5月 ledger from a 4月-only Chongqing ledger, including a `代理或自营=自营` customer whose agent/intermediary revenue columns stay blank.
+- The new regression failed before the fix with `重庆台账中未找到5月电量区块` and passed after the fix.
+- Targeted Chongqing Excel tests passed: 5 tests.
+- Targeted Core province-stage tests passed: 2 tests.
+- Full Debug test suite passed: Core 18 tests, Excel 19 tests.
+- Debug build passed for Core, Excel, WinForms, and WPF.
+- `git diff --check` passed with CRLF normalization warnings only.
+- WPF `MessageBox` search had no matches.
+- The broader project/namespace name `HainanSettlementTool` remains unchanged for now. Province-neutral naming cleanup has been promoted into today's multi-province technical-debt mainline, but it should still be done through low-risk internal slices instead of a large all-at-once project/namespace rename.
+
+WPF local Release test package on 2026-07-07:
+
+```powershell
+.\scripts\package_wpf_release.ps1
+```
+
+Observed result:
+
+- Release build passed for Core, Excel, WinForms, WPF, and both test projects as part of the packaging script.
+- Package directory created at `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-105743`.
+- Zip package created at `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-105743.zip`.
+- Package content was checked and includes the Win10/11 exe, `.exe.config`, required `.dll` files, and `README.txt`.
+- `git status --short --branch` was clean after packaging; generated `dist/` artifacts are not tracked.
+
+Province-neutral naming slice on 2026-07-07:
+
+```powershell
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Debug /m
+dotnet test .\tests\HainanSettlementTool.Core.Tests\HainanSettlementTool.Core.Tests.csproj /p:Configuration=Debug --filter SettlementWorkflowTests
+dotnet test .\tests\HainanSettlementTool.Excel.Tests\HainanSettlementTool.Excel.Tests.csproj /p:Configuration=Debug --filter "ChongqingPowerCleanGeneratorTests|Stage1LedgerUpdaterTests|Stage2SettlementGeneratorTests|EmployeeRewardGeneratorTests|RawDetailReaderTests"
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+git diff --check
+rg "MessageBox" -n src\HainanSettlementTool.Wpf
+```
+
+Observed result:
+
+- Renamed the Hainan-specific Stage 1/Stage 2 service and gateway interfaces to `HainanStage1Service`, `HainanStage2Service`, `IHainanStage1ExcelGateway`, and `IHainanStage2ExcelGateway`.
+- Renamed the combined ClosedXML gateway to `ClosedXmlSettlementExcelGateway` because it now coordinates Hainan Stage 1, Hainan Stage 2, employee reward, and multi-province Stage 1 adapters.
+- Added `ProvinceDisplayNames` so Core/Excel/WPF no longer call `ProvinceStage1Service` just to format province names.
+- Updated the WPF shell title and saved-log default name to multi-province wording.
+- `UserInputStore` now writes to the neutral AppData folder `SettlementAutomationTool` and still falls back to the old `HainanSettlementTool` folder on load.
+- Debug build passed for Core, Excel, WinForms, WPF, and both test projects.
+- Targeted Core workflow tests passed: 9 tests.
+- Targeted Excel coverage for renamed gateway/service callers passed: 19 tests.
+- Full Debug test suite passed: Core 18 tests, Excel 19 tests.
+- `git diff --check` passed with CRLF normalization warnings only.
+- WPF `MessageBox` search had no matches.
+
+WPF dialog-controller slice on 2026-07-07:
+
+```powershell
+dotnet msbuild .\src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Debug /m
+rg -n "new ModernDialogWindow|new ConfirmRunWindow|MessageBox" src\HainanSettlementTool.Wpf\MainWindow.xaml.cs src\HainanSettlementTool.Wpf
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Debug /m
+git diff --check
+```
+
+Observed result:
+
+- Added `MainWindowDialogController` to own `ModernDialogWindow` and `ConfirmRunWindow` creation for common main-window error, warning, and run-confirmation prompts.
+- `MainWindow.xaml.cs` keeps thin helper methods, so existing workflow call sites and prompt behavior stay unchanged.
+- Targeted WPF Debug build passed.
+- Dialog residual scan shows window construction only inside `MainWindowDialogController`; no WPF `MessageBox` usage was introduced.
+- Debug build passed for Core, Excel, WinForms, WPF, and both test projects.
+- `git diff --check` passed with CRLF normalization warnings only.
+
+WPF path-picker-controller slice on 2026-07-07:
+
+```powershell
+dotnet msbuild .\src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Debug /m
+rg -n "new OpenFileDialog|new VistaFolderBrowserDialog|Ookii\.Dialogs\.Wpf|CheckFileExists|UseDescriptionForTitle|ShowNewFolderButton" src\HainanSettlementTool.Wpf\MainWindow.xaml.cs src\HainanSettlementTool.Wpf
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Debug /m
+git diff --check
+```
+
+Observed result:
+
+- Added `MainWindowPathPickerController` to own `OpenFileDialog` and `VistaFolderBrowserDialog` creation.
+- `MainWindow.xaml.cs` now keeps thin browse helpers that call the controller and save inputs after a successful selection.
+- Targeted WPF Debug build passed.
+- Path-picker residual scan shows file/folder dialog construction only inside `MainWindowPathPickerController`.
+- Debug build passed for Core, Excel, WinForms, WPF, and both test projects.
+- `git diff --check` passed with CRLF normalization warnings only.
+
+Chongqing Stage 1 customer-resolution and WPF display fixes on 2026-07-07:
+
+```powershell
+dotnet test .\tests\HainanSettlementTool.Excel.Tests\HainanSettlementTool.Excel.Tests.csproj /p:Configuration=Debug --filter UpdateLedgerAppliesCreateAndSkipCustomerDecisions
+dotnet test .\tests\HainanSettlementTool.Excel.Tests\HainanSettlementTool.Excel.Tests.csproj /p:Configuration=Debug --filter ChongqingPowerCleanGeneratorTests
+dotnet msbuild .\src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Debug /m
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Debug /m
+.\scripts\package_wpf_release.ps1
+```
+
+Observed result:
+
+- Added Core customer-decision model for multi-province Stage 1: `MatchExisting`, `CreateNew`, and `SkipWrite`.
+- Chongqing Stage 1 WPF preflight now requires every unmatched power customer to choose `新增客户到台账`, `不匹配，本月不写入`, or one existing ledger customer. Existing ledger targets are unique per preflight; create/skip actions can repeat.
+- Chongqing ledger update now applies create/skip decisions. `CreateNew` inserts a row only in the output copy, writes customer name and target-month power, preserves copied formatting/formulas, and leaves B-column/customer-code plus负责人/代理/居间 fields blank for manual completion. `SkipWrite` leaves the customer out of the ledger update and records the decision in JSON.
+- Hainan Stage 1 behavior was not changed.
+- Fixed WPF display fallbacks so the province selector and preflight customer-target dropdown show reader-facing text instead of internal type names.
+- WPF visible window title/header changed to `清能电力-结算自动化工具`; project/namespace/assembly/package names were not renamed.
+- Added synthetic regression coverage for a Chongqing run with one created customer and one skipped customer. The targeted new test passed.
+- Targeted Chongqing Excel tests passed: 6 tests.
+- Targeted WPF Debug build passed.
+- Full Debug test suite passed: Core 18 tests, Excel 20 tests.
+- Debug build passed for Core, Excel, WinForms, WPF, and both test projects.
+- Release packaging script passed and created `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-115127.zip`.
+- Package content was checked and includes the Win10/11 exe, `.exe.config`, required `.dll` files, and `README.txt`.
+- No real Excel, real ledger, customer data, screenshots, or settlement outputs were read for this implementation/validation.
+
 ## Documentation Rule
 
 Documentation is now part of the development contract:
@@ -573,6 +1045,7 @@ Documentation is now part of the development contract:
 - Read the owning document before changing a responsibility area: `CONTEXT.md` for settlement rules, `docs/architecture.md` for module seams or workflow structure, `README.md` for user-facing setup/package status, and `docs/RELEASE_CHECKLIST.md` for release or packaging.
 - Repeat the relevant reading gate after context compaction, a long pause, or a task direction change.
 - This is a local single-developer project. Pull requests are optional; after a feature branch is committed and pushed, local merge to `main` is acceptable when the user authorizes it.
+- Codex subagents, spawning, parallel exploration, and other efficiency tools are allowed for this project when they materially speed up safe work. Routine low-risk use does not require repeated confirmation; pause and warn or ask only before high-risk operations such as reading real business files outside an authorized scope, modifying production/user workbooks, destructive git commands, merging to `main`, tagging/releasing, deleting/moving large file trees, or actions that could affect settlement correctness or sensitive data.
 - Every code, config, script, packaging, business-rule, UI-behavior, test-workflow, or task-state change must end with a documentation impact judgment.
 - Update only documents whose responsibility is affected; do not rewrite unaffected docs for process compliance.
 - Business-rule changes must check `CONTEXT.md`; module-boundary changes must check `AGENTS.md` and an ADR or dev note; release/packaging changes must check `README.md` and `docs/RELEASE_CHECKLIST.md`; branch state, validation results, or next steps must check this `HANDOFF.md`.
@@ -585,8 +1058,10 @@ Documentation is now part of the development contract:
 
 Core:
 
-- `src/HainanSettlementTool.Core/Services/Stage1Service.cs`
-- `src/HainanSettlementTool.Core/Services/Stage2Service.cs`
+- `src/HainanSettlementTool.Core/Services/HainanStage1Service.cs`
+- `src/HainanSettlementTool.Core/Services/HainanStage2Service.cs`
+- `src/HainanSettlementTool.Core/Services/IHainanStage1ExcelGateway.cs`
+- `src/HainanSettlementTool.Core/Services/IHainanStage2ExcelGateway.cs`
 - `src/HainanSettlementTool.Core/Services/SettlementWorkflow.cs`
 - `src/HainanSettlementTool.Core/Services/Stage2WorkflowPlan.cs`
 - `src/HainanSettlementTool.Core/Services/Stage2WorkflowResult.cs`
@@ -594,6 +1069,8 @@ Core:
 - `src/HainanSettlementTool.Core/Services/EmployeeRewardService.cs`
 - `src/HainanSettlementTool.Core/Services/IEmployeeRewardExcelGateway.cs`
 - `src/HainanSettlementTool.Core/Services/FileAccessGuard.cs`
+- `src/HainanSettlementTool.Core/Models/ProvinceDisplayNames.cs`
+- `src/HainanSettlementTool.Core/Models/ProvinceStage1LedgerUpdateIssueKinds.cs`
 
 Excel:
 
@@ -603,13 +1080,22 @@ Excel:
 - `src/HainanSettlementTool.Excel/LedgerStage1Updater.cs`
 - `src/HainanSettlementTool.Excel/Stage2SettlementGenerator.cs`
 - `src/HainanSettlementTool.Excel/EmployeeRewardGenerator.cs`
+- `src/HainanSettlementTool.Excel/ClosedXmlSettlementExcelGateway.cs`
+- `src/HainanSettlementTool.Excel/IProvinceStage1Adapter.cs`
+- `src/HainanSettlementTool.Excel/ChongqingProvinceStage1Adapter.cs`
 
 UI:
 
 - `src/HainanSettlementTool.WinForms/MainForm.cs`
 - `src/HainanSettlementTool.Wpf/MainWindow.xaml`
 - `src/HainanSettlementTool.Wpf/MainWindow.xaml.cs`
+- `src/HainanSettlementTool.Wpf/MainWindowDialogController.cs`
+- `src/HainanSettlementTool.Wpf/MainWindowPathPickerController.cs`
+- `src/HainanSettlementTool.Wpf/MainWindowProgressController.cs`
+- `src/HainanSettlementTool.Wpf/MainWindowResultController.cs`
+- `src/HainanSettlementTool.Wpf/ProvinceUiProfile.cs`
 - `src/HainanSettlementTool.Wpf/Stage2PreflightWindow.xaml`
+- `src/HainanSettlementTool.Wpf/ProvinceStage1LedgerPreflightWindow.xaml`
 
 Packaging/docs:
 
@@ -625,8 +1111,9 @@ Packaging/docs:
 
 ## Next Steps
 
-1. Decide whether to cut a Win10/11 acceptance release from the accepted WPF package or rebuild a fresh release package from `main`.
-2. Continue quality work with WPF as the default UI target; avoid WinForms parity work unless it is a bugfix, build/package compatibility issue, or explicitly requested.
-3. Consider adding sanitized employee reward fixture workbooks later; current regressions use dynamically generated synthetic workbooks and a local temporary real smoke.
-4. Consider adding sanitized Stage 2 fixture workbooks later; current regressions use dynamically generated synthetic workbooks.
-5. Consider adding a sanitized `.xls` fixture later; real `.xls` smoke passed, but the repository still has no committed `.xls` regression fixture.
+1. Have the user test `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-115127.zip` against a Chongqing work copy.
+2. If the user authorizes a real-data smoke, run it read-only against specifically authorized Chongqing input files and write outputs only to an explicitly selected test/output folder.
+3. If user testing accepts the Chongqing month-block and customer-resolution behavior, merge the relevant `codex/` branch chain to `main` with user authorization, then decide whether to rebuild a Win10/11 acceptance package or cut a formal release.
+4. Continue WPF quality work after the Chongqing bugfix branch is accepted; next low-risk `MainWindow.xaml.cs` decomposition candidate remains log control. Avoid WinForms parity work unless it is a bugfix, build/package compatibility issue, or explicitly requested.
+5. Decide later whether repeated manual matches should remain one-time only or support a user-maintained alias table.
+6. Consider adding sanitized employee reward, Stage 2, Chongqing, and `.xls` fixture workbooks later; current regressions use dynamically generated synthetic workbooks and local authorized smoke only.

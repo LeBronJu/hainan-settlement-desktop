@@ -56,7 +56,7 @@ If an output file already exists, the generator creates a timestamped unique fil
   - `IEmployeeRewardExcelGateway`
 - Excel:
   - `EmployeeRewardGenerator`
-  - `ClosedXmlStage1ExcelGateway` implements the employee reward gateway in addition to the existing stage 1/2 gateways.
+  - `ClosedXmlSettlementExcelGateway` implements the employee reward gateway in addition to the existing stage 1/2 gateways.
 - WPF:
   - Adds an `员工电量奖励` tab.
   - UI collects ledger path, start/end months, and uses the shared output folder.
