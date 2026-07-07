@@ -223,9 +223,9 @@
                                                     <Path Stroke="{DynamicResource SuccessBrush}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M3,9 H21 M8,4 V20 M13,4 V20 M18,4 V20" />
                                                 </Canvas>
                                             </Viewbox>
-                                            <TextBlock Text="阶段二：生成分表和汇总表" Margin="12,0,0,0" FontSize="19" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center" />
+                                            <TextBlock x:Name="Stage2TitleText" Text="阶段二：生成分表和汇总表" Margin="12,0,0,0" FontSize="19" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center" />
                                         </StackPanel>
-                                        <TextBlock Text="生成代理/居间分表和汇总表，输出结算结果" Style="{StaticResource CaptionText}" Margin="36,8,0,0" />
+                                        <TextBlock x:Name="Stage2CaptionText" Text="生成代理/居间分表和汇总表，输出结算结果" Style="{StaticResource CaptionText}" Margin="36,8,0,0" />
                                     </StackPanel>
                                 </Border>
 
@@ -260,6 +260,16 @@
                                         <Button Grid.Column="1" Content="浏览" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" Click="BrowseIntermediaryTemplateDir_Click" />
                                     </Grid>
 
+                                    <TextBlock x:Name="RefundTemplateDirLabel" Text="退补分表文件夹" Style="{StaticResource FieldLabel}" Visibility="Collapsed" />
+                                    <Grid x:Name="RefundTemplateDirRow" Visibility="Collapsed">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="82" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox x:Name="RefundTemplateDirBox" Style="{StaticResource ModernTextBox}" IsReadOnly="True" />
+                                        <Button Grid.Column="1" Content="浏览" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" Click="BrowseRefundTemplateDir_Click" />
+                                    </Grid>
+
                                     <TextBlock Text="上月/修正版汇总表（必填）" Style="{StaticResource FieldLabel}" />
                                     <Grid>
                                         <Grid.ColumnDefinitions>
@@ -275,7 +285,7 @@
                                         <Button x:Name="RunStage2Button" Style="{StaticResource PrimaryButton}" Click="RunStage2_Click">
                                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                                 <TextBlock Text="&#xE768;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" />
-                                                <TextBlock Text="开始 执行阶段二" Margin="8,0,0,0" VerticalAlignment="Center" />
+                                                <TextBlock x:Name="RunStage2ButtonText" Text="开始 执行阶段二" Margin="8,0,0,0" VerticalAlignment="Center" />
                                             </StackPanel>
                                         </Button>
                                         <Button x:Name="ClearStage2Button" DockPanel.Dock="Right" Content="清空" Style="{StaticResource SecondaryButton}" Click="ClearStage2_Click" />

@@ -162,6 +162,17 @@ namespace HainanSettlementTool.Wpf
             SetFinishedNow();
         }
 
+        public void SetStage2PreflightSuccess()
+        {
+            _proxyResultStatus.Text = "预检";
+            _proxyResultCount.Text = "未生成";
+            _intermediaryResultStatus.Text = "预检";
+            _intermediaryResultCount.Text = "未生成";
+            _summaryResultStatus.Text = "预检";
+            _summaryResultCount.Text = "未生成";
+            SetFinishedNow();
+        }
+
         public void SetEmployeeRewardSuccess(string personalCountText, string summaryCountText)
         {
             _employeeRewardResultStatus.Text = "成功";

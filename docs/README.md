@@ -22,7 +22,7 @@
 | `docs/dev-notes/chongqing-stage2-analysis-2026-07-07.md` | 当前任务 note | 重庆阶段二实现前的表格结构、风险、实现边界和用户确认事项。 |
 | `docs/dev-notes/multi-province-readiness-2026-07-07.md` | 当前架构 note | 新省份接入、WPF 省份 UI、Core/Excel 多省份 seam 工作前必须读。 |
 | `docs/dev-notes/employee-reward-module-2026-07-02.md` | 当前模块 note | 员工电量奖励模块的输入、输出、读取规则和验证记录。 |
-| `docs/dev-notes/win7-8-maintenance-mode-2026-06-29.md` | 当前政策 note | 判断 WinForms 是否需要跟进新功能或仅维护兼容时。 |
+| `docs/dev-notes/win7-8-maintenance-mode-2026-06-29.md` | 当前政策 note | 判断 Win7/8 WinForms 冻结/退役边界，或用户明确重新开启 Win7/8 支持时。 |
 | `docs/dev-notes/documentation-sync-gate-2026-06-25.md` | 当前流程 note | 判断文档影响、决定该更新哪些文档时。 |
 | `docs/dev-notes/real-smoke-runner-2026-06-29.md` | 历史工具 note | 记录 real smoke runner 设计意图；当前脚本引用旧服务/网关名，刷新前不要当作可直接运行入口。 |
 

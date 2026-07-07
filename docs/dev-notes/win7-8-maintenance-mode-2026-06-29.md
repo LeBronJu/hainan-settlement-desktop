@@ -1,36 +1,39 @@
-# Win7/8 Maintenance Mode
+# Win7/8 Frozen Compatibility Policy
 
 Date: 2026-06-29
 
-Status: current policy note. Use this file to decide whether WinForms should receive a change; current document ownership is listed in `docs/README.md`.
+Status: current policy note. Use this file to decide whether WinForms should receive work; current document ownership is listed in `docs/README.md`.
 
 ## Decision
 
-Win10/11 WPF is now the primary UI entry for new features and UX improvements.
+As of 2026-07-07, Win7/8 WinForms support is frozen and no longer maintained as a release target.
 
-Win7/8 WinForms remains available as a maintenance compatibility entry:
+Win10/11 WPF is the primary and only actively maintained desktop UI entry for new features, UX work, packaging, and user testing.
 
-- keep it buildable;
-- keep it packageable while Win7/8 packages are still released;
-- fix blocking bugs;
-- adapt it only when shared Core/Excel changes require compatibility work;
-- do not add new WinForms-only features or UX improvements unless the user explicitly asks.
+Win7/8 WinForms remains in the repository only as a historical compatibility entry:
+
+- do not add new WinForms features;
+- do not implement WinForms parity for WPF work;
+- do not spend refactor or UX effort on WinForms;
+- do not create new Win7/8 release packages by default;
+- shared Core/Excel settlement fixes may still benefit WinForms incidentally;
+- reopen Win7/8 work only if the user explicitly reverses this policy.
 
 ## Why
 
-Win7/8 users are now rare, but the WinForms entry still provides compatibility for a small user group and is already part of the public release package set.
+The user decided on 2026-07-07 to end Win7/8 maintenance instead of continuing to carry duplicate UI and packaging work.
 
-Maintaining feature parity across WinForms and WPF is now more expensive than its value. The project should reduce duplicate UI workflow work while preserving workbook correctness and safety in shared Core/Excel modules.
+Keeping the project focused on Win10/11 WPF reduces UI drift and lets workbook correctness work stay in the shared Core/Excel layers.
 
 ## Practical Rules
 
-- New UI behavior defaults to WPF.
-- Settlement correctness, workbook safety, and report behavior still belong in Core/Excel whenever possible.
-- WinForms changes are appropriate for build failures, packaging failures, blocking user bugs, or explicit Win7/8 support requests.
-- Release packages may continue to include Win7/8 as a maintenance package; release notes should avoid implying it is the primary experience.
+- New UI behavior goes to WPF only.
+- Formal and test packages default to Win10/11 WPF only.
+- WinForms build failures are not automatically release blockers unless they break shared solution validation selected for the task.
+- If shared Core/Excel changes affect WinForms incidentally, do not add WinForms-specific workaround code unless the user explicitly asks.
 
-## Not Decided
+## Not Deleted
 
-- Win7/8 package removal is not scheduled.
-- The WinForms project is not deleted.
-- Existing WinForms workflows are not rewritten only for parity with WPF.
+- The WinForms project is not deleted in this policy change.
+- Existing historical releases and historical Win7/8 packages remain historical artifacts.
+- `scripts/package_release.ps1` may remain in the repository as a historical compatibility script, but it is not part of the default future release path.

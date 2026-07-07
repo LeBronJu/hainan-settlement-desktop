@@ -19,9 +19,10 @@ dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Release /m
 .\scripts\check_build_portability.ps1
 .\scripts\check_docs_guardrails.ps1
 git diff --check
-.\scripts\package_release.ps1
 .\scripts\package_wpf_release.ps1
 ```
+
+Win7/8 WinForms is frozen as a historical compatibility entry. Do not run `.\scripts\package_release.ps1` for default releases unless the user explicitly reopens Win7/8 support.
 
 ## Documentation Impact Gate
 
@@ -47,10 +48,9 @@ Do not update unrelated documents just to satisfy the gate.
 ## Assets And Publish
 
 - GitHub Release assets use stable ASCII filenames:
-  - `HainanSettlementTool-Win7-8-<tag>.zip`
   - `HainanSettlementTool-Win10-11-<tag>.zip`
 - Push `main` and the tag.
-- Create or update the GitHub Release with the two zip assets.
+- Create or update the GitHub Release with the Win10/11 WPF zip asset.
 - Final response must include:
   - Documentation impact judgment.
   - Validation commands run.

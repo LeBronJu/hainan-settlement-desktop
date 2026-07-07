@@ -1,7 +1,7 @@
 # Agent Instructions
 
 This repository is the standalone C# desktop project for multi-province retail electricity settlement automation.
-Hainan is the mature first province module. Chongqing Stage 1 power cleaning and ledger update are implemented; Chongqing Stage 2 is in design/implementation preparation and is not implemented current behavior.
+Hainan is the mature first province module. Chongqing Stage 1 power cleaning and ledger update are implemented; Chongqing Stage 2 has a WPF preflight entry and Excel Analyze-only slice, but workbook generation is not implemented current behavior.
 
 ## Safety Rules
 
@@ -22,7 +22,7 @@ The C# version is being built as a maintainable Windows desktop app. It should e
 ## Repository Layout
 
 - `HainanSettlementTool.sln`: solution file.
-- `src/HainanSettlementTool.WinForms/`: Win7/8 maintenance UI for the existing Hainan workflow. Keep it buildable and fix blocking bugs, but do not add new province features or UX improvements unless the user explicitly asks.
+- `src/HainanSettlementTool.WinForms/`: retired Win7/8 compatibility UI for the existing Hainan workflow. Keep it from blocking solution builds when practical, but do not spend feature, UX, packaging, or parity work on it unless the user explicitly reopens Win7/8 support.
 - `src/HainanSettlementTool.Wpf/`: Win10/11 WPF main UI. New province entries, new UI features, and UX improvements belong here by default.
 - `src/HainanSettlementTool.Core/`: business models, services, and interfaces.
 - `src/HainanSettlementTool.Excel/`: ClosedXML workbook reading/writing.
@@ -62,7 +62,7 @@ This is a single-context repo. See `docs/agents/domain.md`.
 - Core must not reference ClosedXML, WinForms, WPF, or file-format implementation details.
 - Excel layer owns workbook reading/writing and template copying.
 - Keep stage boundaries explicit.
-- Win7/8 WinForms is in maintenance mode. Do not spend quality/refactor work on WinForms parity unless needed for compilation, packaging, blocking bugfixes, shared Core/Excel behavior changes, or explicit user authorization.
+- Win7/8 WinForms is frozen/retired. Do not spend quality, refactor, package, or feature work on WinForms parity unless the user explicitly reopens Win7/8 support. Shared Core/Excel fixes may still benefit it incidentally.
 - WPF confirmation, warning, and error dialogs must use project-native modern WPF windows/styles. Do not add system `MessageBox` prompts to new WPF flows; keep OS-native dialogs only for file/folder pickers where appropriate.
 - Keep documentation current without creating noise. Each code, config, script, packaging, release, workflow, architecture, business-rule, UI-behavior, test-process, or task-state change must end with a documentation impact judgment.
 - Final responses for development work must explicitly include documentation impact judgment, validation performed, and work intentionally not done when applicable. This is required even when no documentation was updated. Missing the documentation impact judgment means the task is not complete.
@@ -102,9 +102,9 @@ dotnet msbuild ".\HainanSettlementTool.sln" /restore /p:Configuration=Debug /m
 ## UI Support Policy
 
 - Win10/11 WPF is the primary user experience and default target for new UI features.
-- Win7/8 WinForms remains available as a maintenance compatibility entry.
-- Shared settlement correctness, workbook safety, and report generation fixes still belong in Core/Excel and benefit both entries.
-- WinForms-only changes should be limited to blocking bugfixes, build/package compatibility, or explicitly requested support.
+- Win7/8 WinForms is a frozen historical compatibility entry, not a maintained release target.
+- Shared settlement correctness, workbook safety, and report generation fixes still belong in Core/Excel and may benefit both entries incidentally.
+- Do not produce new Win7/8 packages or WinForms parity work unless the user explicitly reverses the retirement decision.
 
 ## Compatibility Target
 

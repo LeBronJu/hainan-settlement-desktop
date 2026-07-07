@@ -64,10 +64,10 @@ Historical real-data authorizations recorded for context only. They are not stan
 
 ## Current Packages
 
-Latest local WPF test package built after the Hainan payment-party guard and Chongqing Stage 2 Analyze-only slice:
+Latest local WPF test package built after the Chongqing Stage 2 WPF preflight entry and Win7/8 freeze policy update:
 
-- `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-173137.zip`
-- Unpacked directory: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-173137`
+- `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-175657.zip`
+- Unpacked directory: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-175657`
 
 Latest local acceptance packages before the log-controller merge:
 
@@ -111,16 +111,17 @@ Chongqing Stage 1:
 
 Chongqing Stage 2:
 
-- Partially implemented for Core contract and Excel preflight analysis only; not user-runnable yet.
+- Partially implemented for Core contract, Excel Analyze-only preflight, and Win10/11 WPF preflight entry.
 - Analysis is documented in `docs/dev-notes/chongqing-stage2-analysis-2026-07-07.md`.
 - First Core contract slice is implemented: `ChongqingStage2Options`, preflight/report/issue models, `ChongqingStage2Service`, `IChongqingStage2ExcelGateway`, and workflow plan/complete/run entry points.
-- Excel Analyze-only slice is implemented: `ChongqingStage2SettlementGenerator` reads the Chongqing ledger target-month 30-column block, identifies proxy/intermediary/refund groups, and reports new summary subjects requiring payment-party selection. Workbook generation still explicitly throws as not implemented, and WPF entry is still not implemented, so the feature is not user-runnable yet.
-- Keep this work in Win10/11 WPF plus Core/Excel shared layers; do not add WinForms parity unless explicitly requested.
+- Excel Analyze-only slice is implemented: `ChongqingStage2SettlementGenerator` reads the Chongqing ledger target-month 30-column block, identifies proxy/intermediary/refund groups, and reports new summary subjects requiring payment-party selection. Workbook generation still explicitly throws as not implemented.
+- WPF entry currently runs only preflight and payment-party selection. It does not call `Generate` and does not write分表、退补表、汇总表.
+- Keep this work in Win10/11 WPF plus Core/Excel shared layers; do not add WinForms parity unless the user explicitly reopens Win7/8 support.
 
 WinForms:
 
-- Win7/8 WinForms is maintenance mode only.
-- Keep it buildable/packageable and fix blocking bugs, but route new province UX work to WPF.
+- Win7/8 WinForms is frozen as a historical compatibility entry.
+- Do not spend feature, UX, parity, or package work on WinForms unless the user explicitly reopens Win7/8 support.
 
 ## Chongqing Stage 2 Reminders
 
@@ -140,7 +141,7 @@ Key implementation constraints:
 - Chongqing Stage 2 must handle代理费、居间费、退补电费. Current observed data has no effective居间 rows, but the user confirmed future居间 should follow代理 structure.
 - Proxy split sheets must carry `少回收电能量电费`; adjusted income is original income minus that value.
 - Refund split sheets use segmented尖峰/峰/平/谷 prices and cannot reuse proxy/intermediary single-price formulas.
-- Some `.xlsx` files in authorized Chongqing template folders were unreadable non-xlsx containers; preflight/report must not silently ignore them.
+- Authorized Chongqing proxy/退补 template folders were rechecked on 2026-07-07; current real `.xlsx` templates are standard xlsx ZIP containers. Still ignore `._*` / `~$*` noise and report unreadable, duplicate, or missing templates in preflight instead of silently skipping them.
 - Existing summary rows should inherit template fixed fields and long-term fields.
 - New Chongqing summary subjects should not silently default to Hainan `清辉`. Recommended first implementation: WPF preflight requires payment-party selection (`清能`/`清辉`) for new summary subjects, and generated reports flag defaulted fields for manual review.
 - First validation target should be a read-only 5月 replay against the manual 5月 result, with outputs only in an explicitly authorized test directory.
@@ -170,12 +171,13 @@ Most recent documentation validation:
 - Hainan Stage 2 new-summary payment-party guard on 2026-07-07: Core tests passed (26), Excel tests passed (23), Debug solution build passed, and Release solution build passed.
 - Chongqing Stage 2 Core contract and Excel Analyze-only slices on 2026-07-07: Core tests passed (26), Excel tests passed (27), and Debug solution build passed.
 - WPF package script passed on 2026-07-07 after those slices and created `HainanSettlementTool-Win10-11-Release-20260707-173137.zip`.
+- Chongqing Stage 2 WPF preflight entry / Win7-8 freeze update on 2026-07-07: WPF Debug build passed, Debug tests passed (Core 26, Excel 27), WPF Release build passed, docs guardrails passed, `git diff --check` passed, and WPF package script created `HainanSettlementTool-Win10-11-Release-20260707-175657.zip`. Real Chongqing 5月 Analyze-only preflight was run read-only against latest summary and 20260512 historical summary; both returned 0 payment-party issues.
 
 For new code changes, rerun focused tests and builds. For pure documentation changes, run at least `git diff --check` plus targeted stale-wording/link scans.
 
 ## Next Steps
 
 1. Implement `ChongqingStage2SettlementGenerator` behind `IChongqingStage2ExcelGateway`, starting with synthetic workbook tests for ledger month-block parsing and report/preflight output.
-2. Add WPF entry only after Excel preflight/generation can run on synthetic fixtures.
+2. Implement 重庆阶段二代理分表、退补分表、汇总表 workbook 写入 behind `ChongqingStage2SettlementGenerator`, starting from synthetic workbook tests.
 3. Use the first validation target from the Chongqing Stage 2 note: read-only 5月 replay and compare against the manual 5月 result, writing outputs only to an explicitly authorized test directory.
 4. Defer persistent customer alias tables, WinForms parity, and cross-province generic Stage 2 abstraction unless the user explicitly reprioritizes them.

@@ -244,6 +244,11 @@ namespace HainanSettlementTool.Wpf
             BrowseFolder(IntermediaryTemplateDirBox, "选择上月居间分表文件夹");
         }
 
+        private void BrowseRefundTemplateDir_Click(object sender, RoutedEventArgs e)
+        {
+            BrowseFolder(RefundTemplateDirBox, "选择退补分表文件夹");
+        }
+
         private void BrowseSummaryTemplate_Click(object sender, RoutedEventArgs e)
         {
             BrowseExcel(SummaryTemplateBox, "选择上月/修正版汇总表");
@@ -598,6 +603,12 @@ namespace HainanSettlementTool.Wpf
 
         private async void RunStage2_Click(object sender, RoutedEventArgs e)
         {
+            if (SelectedProvinceOrNull() == ProvinceCode.Chongqing)
+            {
+                await RunChongqingStage2PreflightAsync();
+                return;
+            }
+
             Stage2Options options;
             try
             {
@@ -690,6 +701,96 @@ namespace HainanSettlementTool.Wpf
             {
                 SetStepFailed();
                 SetProgress(100, "执行失败");
+                AddLog(ex.Message, "错误");
+                ShowError(ex);
+            }
+            finally
+            {
+                SetBusy(false);
+            }
+        }
+
+        private async Task RunChongqingStage2PreflightAsync()
+        {
+            ChongqingStage2Options options;
+            try
+            {
+                options = CreateChongqingStage2Options();
+                SaveInputs();
+                var message = new StringBuilder();
+                message.AppendLine("结算月份：2026年" + options.Month + "月");
+                message.AppendLine("输出文件夹：");
+                message.AppendLine(options.OutputDirectory);
+                message.AppendLine();
+                message.AppendLine("当前只读取重庆台账、代理/居间/退补模板和汇总表进行预检，不写出分表、退补表或汇总表。");
+                if (!ConfirmAction("确认重庆阶段二预检", "即将执行重庆阶段二预检", message.ToString(), "开始预检"))
+                {
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowError(ex);
+                return;
+            }
+
+            SetBusy(true);
+            ResetResults();
+            ResetProgress("正在执行重庆阶段二预检...", "检查输入文件");
+            SetProgress(8, "检查输入文件");
+            SetStepRunning(0);
+            AddLog("开始执行重庆阶段二预检。", "重庆阶段二");
+
+            try
+            {
+                var workflow = CreateWorkflow();
+                ChongqingStage2WorkflowPlan plan = null;
+                await Task.Run(() =>
+                {
+                    Dispatcher.Invoke(() => SetProgress(16, "读取重庆台账和汇总表模板"));
+                    plan = workflow.PlanChongqingStage2(options);
+                });
+
+                var preflight = plan.Preflight;
+                SetProgress(60, preflight.HasIssues ? "预检发现需要确认的变化" : "预检完成");
+                var confirmed = true;
+                if (plan.RequiresConfirmation)
+                {
+                    SetStatus("待确认", "WarningBrush", "StatusBusyBrush");
+                    SetStepNeedsConfirmation(0);
+                    AddLog("重庆阶段二预检发现 " + preflight.Issues.Count + " 条需要确认的变化。", "重庆阶段二");
+                    confirmed = ConfirmChongqingStage2Preflight(preflight, options);
+                    if (confirmed)
+                    {
+                        SetStatus("运行中", "WarningBrush", "StatusBusyBrush");
+                    }
+                }
+                else
+                {
+                    AddLog("重庆阶段二预检通过，未发现需要确认的变化。", "重庆阶段二");
+                }
+
+                if (!confirmed)
+                {
+                    AddLog("已取消重庆阶段二预检。", "重庆阶段二");
+                    ResetProgress("等待执行", "已取消重庆阶段二预检");
+                    return;
+                }
+
+                SetStepDone(0);
+                SetStepWaiting(1);
+                SetStepWaiting(2);
+                SetStepWaiting(3);
+                SetStepWaiting(4);
+                SetProgress(100, "重庆阶段二预检完成，未写出结算文件");
+                AddLog("重庆阶段二预检完成；分表、退补表和汇总表 workbook 写入仍在实现中，本次未写出结算文件。", "重庆阶段二");
+                SetStage2PreflightSuccess();
+                ShowCompletion("重庆阶段二预检完成", "当前只完成预检，未生成结算文件", options.OutputDirectory);
+            }
+            catch (Exception ex)
+            {
+                SetStepFailed();
+                SetProgress(100, "预检失败");
                 AddLog(ex.Message, "错误");
                 ShowError(ex);
             }
@@ -814,6 +915,20 @@ namespace HainanSettlementTool.Wpf
             };
         }
 
+        private ChongqingStage2Options CreateChongqingStage2Options()
+        {
+            return new ChongqingStage2Options
+            {
+                Month = SelectedMonth(),
+                LedgerPath = CompletedLedgerBox.Text.Trim(),
+                ProxyTemplateDirectory = ProxyTemplateDirBox.Text.Trim(),
+                IntermediaryTemplateDirectory = IntermediaryTemplateDirBox.Text.Trim(),
+                RefundTemplateDirectory = RefundTemplateDirBox.Text.Trim(),
+                SummaryTemplatePath = SummaryTemplateBox.Text.Trim(),
+                OutputDirectory = OutputDirBox.Text.Trim()
+            };
+        }
+
         private EmployeeRewardOptions CreateEmployeeRewardOptions()
         {
             var startMonth = SelectedRewardStartMonth();
@@ -863,7 +978,8 @@ namespace HainanSettlementTool.Wpf
                 new HainanStage1Service(gateway),
                 new HainanStage2Service(gateway),
                 new EmployeeRewardService(gateway),
-                new ProvinceStage1Service(gateway));
+                new ProvinceStage1Service(gateway),
+                new ChongqingStage2Service(gateway));
         }
 
         private void LogSummary(IEnumerable<string> summaryLines)
@@ -1007,6 +1123,22 @@ namespace HainanSettlementTool.Wpf
             return confirmed;
         }
 
+        private bool ConfirmChongqingStage2Preflight(ChongqingStage2PreflightReport report, ChongqingStage2Options options)
+        {
+            var dialog = new ChongqingStage2PreflightWindow(report)
+            {
+                Owner = this
+            };
+            var confirmed = dialog.ShowDialog() == true;
+            if (confirmed)
+            {
+                options.SummarySubjectDecisions.Clear();
+                options.SummarySubjectDecisions.AddRange(dialog.SummarySubjectDecisions);
+            }
+
+            return confirmed;
+        }
+
         private void SetBusy(bool busy)
         {
             _isBusy = busy;
@@ -1048,6 +1180,7 @@ namespace HainanSettlementTool.Wpf
             var province = SelectedProvinceOrNull();
             var hasProvince = province.HasValue;
             var profile = SelectedProfileOrNull();
+            var isChongqing = province == ProvinceCode.Chongqing;
             if (hasProvince && !profile.SupportsEmployeeReward && MainTabControl.SelectedItem == EmployeeRewardTab)
             {
                 MainTabControl.SelectedItem = MainSettlementTab;
@@ -1071,10 +1204,16 @@ namespace HainanSettlementTool.Wpf
             ReferenceLedgerLabel.Text = hasProvince ? profile.ReferenceLedgerLabel : "参考台账（可选）";
             RunStage1ButtonText.Text = hasProvince ? profile.RunStageOneButtonText : "开始 执行阶段一";
             CleanPowerButton.Content = hasProvince ? profile.CleanPowerButtonText : "只清洗电量";
+            Stage2TitleText.Text = isChongqing ? "阶段二：重庆结算预检" : "阶段二：生成分表和汇总表";
+            Stage2CaptionText.Text = isChongqing
+                ? "预检代理/居间/退补分表和汇总表；workbook 写入仍在实现中"
+                : "生成代理/居间分表和汇总表，输出结算结果";
+            RunStage2ButtonText.Text = isChongqing ? "开始 重庆阶段二预检" : "开始 执行阶段二";
 
             var ledgerVisibility = hasProvince ? Visibility.Visible : Visibility.Collapsed;
             var existingPowerVisibility = hasProvince && profile.ShowsExistingPowerInput ? Visibility.Visible : Visibility.Collapsed;
             var referenceLedgerVisibility = hasProvince && profile.ShowsReferenceLedgerInput ? Visibility.Visible : Visibility.Collapsed;
+            var chongqingStage2Visibility = isChongqing ? Visibility.Visible : Visibility.Collapsed;
             BaseLedgerLabel.Visibility = ledgerVisibility;
             BaseLedgerRow.Visibility = ledgerVisibility;
             PowerLabel.Visibility = existingPowerVisibility;
@@ -1082,6 +1221,9 @@ namespace HainanSettlementTool.Wpf
             ReferenceLedgerLabel.Visibility = referenceLedgerVisibility;
             ReferenceLedgerRow.Visibility = referenceLedgerVisibility;
             CopyReferenceExistingCheckBox.Visibility = referenceLedgerVisibility;
+            RefundTemplateDirLabel.Visibility = chongqingStage2Visibility;
+            RefundTemplateDirRow.Visibility = chongqingStage2Visibility;
+            AllowMissingOwnerCheckBox.Visibility = isChongqing ? Visibility.Collapsed : Visibility.Visible;
 
             RunStage1Button.IsEnabled = !_isBusy && hasProvince && profile.SupportsStage1LedgerUpdate;
             CleanPowerButton.IsEnabled = !_isBusy && hasProvince && profile.SupportsStage1CleanPower;
@@ -1169,6 +1311,11 @@ namespace HainanSettlementTool.Wpf
             _resultController.SetStage2Success(proxyCountText, intermediaryCountText, summaryCountText);
         }
 
+        private void SetStage2PreflightSuccess()
+        {
+            _resultController.SetStage2PreflightSuccess();
+        }
+
         private void SetEmployeeRewardResultSuccess(string personalCountText, string summaryCountText)
         {
             _resultController.SetEmployeeRewardSuccess(personalCountText, summaryCountText);
@@ -1184,6 +1331,7 @@ namespace HainanSettlementTool.Wpf
             CompletedLedgerBox.Text = snapshot.CompletedLedgerPath ?? string.Empty;
             ProxyTemplateDirBox.Text = snapshot.ProxyTemplateDirectory ?? string.Empty;
             IntermediaryTemplateDirBox.Text = snapshot.IntermediaryTemplateDirectory ?? string.Empty;
+            RefundTemplateDirBox.Text = snapshot.RefundTemplateDirectory ?? string.Empty;
             SummaryTemplateBox.Text = snapshot.SummaryTemplatePath ?? string.Empty;
             RewardLedgerBox.Text = snapshot.RewardLedgerPath ?? string.Empty;
 
@@ -1207,6 +1355,7 @@ namespace HainanSettlementTool.Wpf
                     CompletedLedgerPath = CompletedLedgerBox.Text.Trim(),
                     ProxyTemplateDirectory = ProxyTemplateDirBox.Text.Trim(),
                     IntermediaryTemplateDirectory = IntermediaryTemplateDirBox.Text.Trim(),
+                    RefundTemplateDirectory = RefundTemplateDirBox.Text.Trim(),
                     SummaryTemplatePath = SummaryTemplateBox.Text.Trim(),
                     RewardLedgerPath = RewardLedgerBox.Text.Trim(),
                     ProvinceCode = SelectedProvinceOrNull()?.ToString() ?? string.Empty,
@@ -1229,6 +1378,7 @@ namespace HainanSettlementTool.Wpf
                 || !string.IsNullOrWhiteSpace(snapshot.CompletedLedgerPath)
                 || !string.IsNullOrWhiteSpace(snapshot.ProxyTemplateDirectory)
                 || !string.IsNullOrWhiteSpace(snapshot.IntermediaryTemplateDirectory)
+                || !string.IsNullOrWhiteSpace(snapshot.RefundTemplateDirectory)
                 || !string.IsNullOrWhiteSpace(snapshot.SummaryTemplatePath)
                 || !string.IsNullOrWhiteSpace(snapshot.RewardLedgerPath);
         }
@@ -1304,6 +1454,7 @@ namespace HainanSettlementTool.Wpf
             CompletedLedgerBox.Clear();
             ProxyTemplateDirBox.Clear();
             IntermediaryTemplateDirBox.Clear();
+            RefundTemplateDirBox.Clear();
             SummaryTemplateBox.Clear();
             AllowMissingOwnerCheckBox.IsChecked = false;
             SaveInputs();

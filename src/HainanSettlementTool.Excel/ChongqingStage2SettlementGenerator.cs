@@ -146,7 +146,8 @@ namespace HainanSettlementTool.Excel
                 return;
             }
 
-            using (var workbook = new XLWorkbook(options.SummaryTemplatePath))
+            using (var stream = File.Open(options.SummaryTemplatePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (var workbook = new XLWorkbook(stream))
             {
                 var mainSheet = FindSummaryWorksheet(workbook);
                 var knownKeys = new HashSet<string>(ReadSummaryMeta(mainSheet).Select(item => SummaryKey(item.Entity, item.Kind)));
