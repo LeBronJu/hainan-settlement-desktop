@@ -14,7 +14,6 @@ using HainanSettlementTool.Core.Models;
 using HainanSettlementTool.Core.Services;
 using HainanSettlementTool.Excel;
 using Microsoft.Win32;
-using Ookii.Dialogs.Wpf;
 
 namespace HainanSettlementTool.Wpf
 {
@@ -23,6 +22,7 @@ namespace HainanSettlementTool.Wpf
         private readonly MainWindowProgressController _progressController;
         private readonly MainWindowResultController _resultController;
         private readonly MainWindowDialogController _dialogController;
+        private readonly MainWindowPathPickerController _pathPickerController;
         private bool _isBusy;
         private bool _loadingInputs;
         private string _themeMode = ThemeService.SystemMode;
@@ -36,6 +36,7 @@ namespace HainanSettlementTool.Wpf
             InitializeComponent();
 
             _dialogController = new MainWindowDialogController(this);
+            _pathPickerController = new MainWindowPathPickerController(this);
             InitializeThemeCombo(_themeMode);
             InitializeProvinceCombo();
 
@@ -253,42 +254,24 @@ namespace HainanSettlementTool.Wpf
 
         private void BrowseExcel(TextBox target, string title)
         {
-            BrowseFile(target, title, "Excel 文件|*.xlsx|所有文件|*.*");
+            if (_pathPickerController.BrowseExcel(target, title))
+            {
+                SaveInputs();
+            }
         }
 
         private void BrowseFile(TextBox target, string title, string filter)
         {
-            var dialog = new OpenFileDialog
+            if (_pathPickerController.BrowseFile(target, title, filter))
             {
-                Title = title,
-                Filter = filter,
-                CheckFileExists = true
-            };
-
-            if (dialog.ShowDialog(this) == true)
-            {
-                target.Text = dialog.FileName;
                 SaveInputs();
             }
         }
 
         private void BrowseFolder(TextBox target, string title)
         {
-            var dialog = new VistaFolderBrowserDialog
+            if (_pathPickerController.BrowseFolder(target, title))
             {
-                Description = title,
-                UseDescriptionForTitle = true,
-                ShowNewFolderButton = true
-            };
-
-            if (Directory.Exists(target.Text))
-            {
-                dialog.SelectedPath = target.Text;
-            }
-
-            if (dialog.ShowDialog(this) == true)
-            {
-                target.Text = dialog.SelectedPath;
                 SaveInputs();
             }
         }

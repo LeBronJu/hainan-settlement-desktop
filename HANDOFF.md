@@ -30,8 +30,9 @@ The stable local reference folder is for future comparison/orientation only; do 
 
 ## Current Git State
 
-- Current branch: `codex/wpf-dialog-controller`
-- Branch purpose: continue today's WPF-first quality mainline by extracting modern dialog entry points from `MainWindow.xaml.cs`.
+- Current branch: `codex/wpf-path-picker-controller`
+- Branch purpose: continue today's WPF-first quality mainline by extracting file/folder picker entry points from `MainWindow.xaml.cs`.
+- Previous dialog branch: `codex/wpf-dialog-controller`, pushed through `191b0ff Extract WPF dialog controller`.
 - Previous naming branch: `codex/province-neutral-naming`, pushed through `2f93013 Clarify province-neutral naming boundaries`.
 - The Chongqing target-month block fix is isolated on `codex/chongqing-month-block-copy` and was pushed through `e45d358 Document WPF Chongqing test package`.
 - Multi-province readiness note: `docs/dev-notes/multi-province-readiness-2026-07-07.md`. Read it before new-province onboarding, WPF province UI, Core multi-province workflow, or Excel multi-province adapter work.
@@ -985,6 +986,24 @@ Observed result:
 - Debug build passed for Core, Excel, WinForms, WPF, and both test projects.
 - `git diff --check` passed with CRLF normalization warnings only.
 
+WPF path-picker-controller slice on 2026-07-07:
+
+```powershell
+dotnet msbuild .\src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Debug /m
+rg -n "new OpenFileDialog|new VistaFolderBrowserDialog|Ookii\.Dialogs\.Wpf|CheckFileExists|UseDescriptionForTitle|ShowNewFolderButton" src\HainanSettlementTool.Wpf\MainWindow.xaml.cs src\HainanSettlementTool.Wpf
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Debug /m
+git diff --check
+```
+
+Observed result:
+
+- Added `MainWindowPathPickerController` to own `OpenFileDialog` and `VistaFolderBrowserDialog` creation.
+- `MainWindow.xaml.cs` now keeps thin browse helpers that call the controller and save inputs after a successful selection.
+- Targeted WPF Debug build passed.
+- Path-picker residual scan shows file/folder dialog construction only inside `MainWindowPathPickerController`.
+- Debug build passed for Core, Excel, WinForms, WPF, and both test projects.
+- `git diff --check` passed with CRLF normalization warnings only.
+
 ## Documentation Rule
 
 Documentation is now part of the development contract:
@@ -1038,6 +1057,7 @@ UI:
 - `src/HainanSettlementTool.Wpf/MainWindow.xaml`
 - `src/HainanSettlementTool.Wpf/MainWindow.xaml.cs`
 - `src/HainanSettlementTool.Wpf/MainWindowDialogController.cs`
+- `src/HainanSettlementTool.Wpf/MainWindowPathPickerController.cs`
 - `src/HainanSettlementTool.Wpf/MainWindowProgressController.cs`
 - `src/HainanSettlementTool.Wpf/MainWindowResultController.cs`
 - `src/HainanSettlementTool.Wpf/ProvinceUiProfile.cs`
