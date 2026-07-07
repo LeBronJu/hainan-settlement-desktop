@@ -8,6 +8,7 @@ namespace HainanSettlementTool.Wpf
 {
     public partial class ProvinceStage1LedgerPreflightWindow : Window
     {
+        private const string CreateNewCustomerValue = "__CREATE_NEW__";
         private const string SkipManualMatchValue = "__NO_WRITE__";
         private readonly List<ManualMatchRowViewModel> _manualMatchRows;
 
@@ -43,13 +44,25 @@ namespace HainanSettlementTool.Wpf
         public List<ProvinceStage1CustomerMatch> ManualCustomerMatches { get; private set; } =
             new List<ProvinceStage1CustomerMatch>();
 
+        public List<ProvinceStage1CustomerDecision> CustomerDecisions { get; private set; } =
+            new List<ProvinceStage1CustomerDecision>();
+
         private static List<ManualMatchRowViewModel> BuildManualMatchRows(ProvinceStage1LedgerUpdatePlan plan)
         {
             var targetOptions = new List<CustomerTargetOption>
             {
                 new CustomerTargetOption
                 {
+                    Value = CreateNewCustomerValue,
+                    CustomerName = null,
+                    DecisionKind = ProvinceStage1CustomerDecisionKind.CreateNew,
+                    DisplayText = "新增客户到台账"
+                },
+                new CustomerTargetOption
+                {
+                    Value = SkipManualMatchValue,
                     CustomerName = SkipManualMatchValue,
+                    DecisionKind = ProvinceStage1CustomerDecisionKind.SkipWrite,
                     DisplayText = "不匹配，本月不写入"
                 }
             };
@@ -57,14 +70,11 @@ namespace HainanSettlementTool.Wpf
                 .OrderBy(name => name)
                 .Select(name => new CustomerTargetOption
                 {
+                    Value = name,
                     CustomerName = name,
+                    DecisionKind = ProvinceStage1CustomerDecisionKind.MatchExisting,
                     DisplayText = name
                 }));
-
-            if (targetOptions.Count <= 1)
-            {
-                return new List<ManualMatchRowViewModel>();
-            }
 
             return plan.PowerOnlyCustomers
                 .OrderBy(name => name)
@@ -72,7 +82,7 @@ namespace HainanSettlementTool.Wpf
                 {
                     SourceCustomerName = name,
                     TargetOptions = targetOptions,
-                    SelectedTargetName = null
+                    SelectedTargetValue = null
                 })
                 .ToList();
         }
@@ -102,9 +112,7 @@ namespace HainanSettlementTool.Wpf
         private static bool IsManualMatchingIssue(ProvinceStage1LedgerUpdateIssue issue)
         {
             return issue.Kind == ProvinceStage1LedgerUpdateIssueKinds.PowerCustomerMissingInLedger
-                || issue.Kind == ProvinceStage1LedgerUpdateIssueKinds.LedgerCustomerMissingInPower
-                || issue.Category == "电量客户不在台账"
-                || issue.Category == "台账客户不在电量表";
+                || issue.Category == "电量客户不在台账";
         }
 
         private static string BuildCustomerSummary(IList<string> customers)
@@ -126,7 +134,7 @@ namespace HainanSettlementTool.Wpf
         private void Ok_Click(object sender, RoutedEventArgs e)
         {
             var unselectedRows = _manualMatchRows
-                .Where(row => string.IsNullOrWhiteSpace(row.SelectedTargetName))
+                .Where(row => string.IsNullOrWhiteSpace(row.SelectedTargetValue))
                 .ToList();
             if (unselectedRows.Count > 0)
             {
@@ -135,11 +143,24 @@ namespace HainanSettlementTool.Wpf
                 return;
             }
 
-            var selected = _manualMatchRows
-                .Where(row => row.SelectedTargetName != SkipManualMatchValue)
+            var selectedOptions = _manualMatchRows
+                .Select(row => new
+                {
+                    Row = row,
+                    Option = row.TargetOptions.FirstOrDefault(option => option.Value == row.SelectedTargetValue)
+                })
                 .ToList();
-            var duplicateTargets = selected
-                .GroupBy(row => row.SelectedTargetName)
+
+            if (selectedOptions.Any(item => item.Option == null))
+            {
+                ErrorText.Text = "存在无法识别的客户处理决定，请重新选择。";
+                ErrorText.Visibility = Visibility.Visible;
+                return;
+            }
+
+            var duplicateTargets = selectedOptions
+                .Where(item => item.Option.DecisionKind == ProvinceStage1CustomerDecisionKind.MatchExisting)
+                .GroupBy(item => item.Option.CustomerName)
                 .Where(group => group.Count() > 1)
                 .Select(group => group.Key)
                 .ToList();
@@ -151,11 +172,22 @@ namespace HainanSettlementTool.Wpf
                 return;
             }
 
-            ManualCustomerMatches = selected
-                .Select(row => new ProvinceStage1CustomerMatch
+            CustomerDecisions = selectedOptions
+                .Select(item => new ProvinceStage1CustomerDecision
                 {
-                    SourceCustomerName = row.SourceCustomerName,
-                    TargetCustomerName = row.SelectedTargetName
+                    SourceCustomerName = item.Row.SourceCustomerName,
+                    DecisionKind = item.Option.DecisionKind,
+                    TargetCustomerName = item.Option.DecisionKind == ProvinceStage1CustomerDecisionKind.MatchExisting
+                        ? item.Option.CustomerName
+                        : null
+                })
+                .ToList();
+            ManualCustomerMatches = CustomerDecisions
+                .Where(decision => decision.DecisionKind == ProvinceStage1CustomerDecisionKind.MatchExisting)
+                .Select(decision => new ProvinceStage1CustomerMatch
+                {
+                    SourceCustomerName = decision.SourceCustomerName,
+                    TargetCustomerName = decision.TargetCustomerName
                 })
                 .ToList();
             DialogResult = true;
@@ -177,12 +209,14 @@ namespace HainanSettlementTool.Wpf
         {
             public string SourceCustomerName { get; set; }
             public List<CustomerTargetOption> TargetOptions { get; set; }
-            public string SelectedTargetName { get; set; }
+            public string SelectedTargetValue { get; set; }
         }
 
         public sealed class CustomerTargetOption
         {
+            public string Value { get; set; }
             public string CustomerName { get; set; }
+            public ProvinceStage1CustomerDecisionKind DecisionKind { get; set; }
             public string DisplayText { get; set; }
 
             public override string ToString()

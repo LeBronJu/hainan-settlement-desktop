@@ -154,5 +154,10 @@ namespace HainanSettlementTool.Wpf
 
             return profile;
         }
+
+        public override string ToString()
+        {
+            return DisplayName;
+        }
     }
 }

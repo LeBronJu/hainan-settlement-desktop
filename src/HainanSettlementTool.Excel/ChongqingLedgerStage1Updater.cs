@@ -59,6 +59,12 @@ namespace HainanSettlementTool.Excel
                     updatedRows++;
                 }
 
+                foreach (var newCustomer in context.NewCustomerRows)
+                {
+                    InsertNewCustomerRow(context.Worksheet, context.Map, context.LedgerRows, newCustomer);
+                    updatedRows++;
+                }
+
                 workbook.SaveAs(outputPath);
 
                 var result = new ProvinceStage1LedgerUpdateResult
@@ -75,9 +81,12 @@ namespace HainanSettlementTool.Excel
                     MatchedRows = context.Plan.MatchedRows,
                     UpdatedPowerRows = updatedRows,
                     ManualMatchedRows = context.Plan.ManualMatchedRows,
+                    CreatedCustomerRows = context.Plan.CreatedCustomerRows,
+                    SkippedCustomerRows = context.Plan.SkippedCustomerRows,
                     MultiAccountRows = context.Plan.MultiAccountRows,
-                    SkippedRows = context.Plan.MissingInLedgerRows,
+                    SkippedRows = context.Plan.MissingInLedgerRows + context.Plan.SkippedCustomerRows,
                     TotalPower = Math.Round(context.PowerData.CustomerRows.Sum(row => row.Total), 4),
+                    CustomerDecisions = context.Plan.CustomerDecisions,
                     ManualCustomerMatches = context.Plan.ManualCustomerMatches,
                     Warnings = context.Plan.Warnings,
                     Issues = context.Plan.Issues
@@ -113,7 +122,23 @@ namespace HainanSettlementTool.Excel
                         .OrderBy(value => value, StringComparer.Ordinal)
                         .ToList());
             var exactMatchedKeys = ledgerRowsByKey.Keys.Intersect(powerRowsByKey.Keys).ToList();
-            var manualMatches = ResolveManualMatches(options.ManualCustomerMatches, ledgerRowsByKey, powerRowsByKey, exactMatchedKeys);
+            var customerDecisions = ResolveCustomerDecisions(options, ledgerRowsByKey, powerRowsByKey, exactMatchedKeys);
+            var manualMatches = customerDecisions
+                .Where(decision => decision.DecisionKind == ProvinceStage1CustomerDecisionKind.MatchExisting)
+                .Select(decision => new ProvinceStage1CustomerMatch
+                {
+                    SourceCustomerName = decision.SourceCustomerName,
+                    TargetCustomerName = decision.TargetCustomerName
+                })
+                .ToList();
+            var newCustomerRows = customerDecisions
+                .Where(decision => decision.DecisionKind == ProvinceStage1CustomerDecisionKind.CreateNew)
+                .Select(decision => new NewCustomerPowerRow
+                {
+                    CustomerName = decision.SourceCustomerName,
+                    PowerRow = powerRowsByKey[TextUtil.CustomerKey(decision.SourceCustomerName)]
+                })
+                .ToList();
             var powerRowsByLedgerKey = new Dictionary<string, ChongqingPowerCleanGenerator.ChongqingPowerAggregateRow>();
             var powerKeyByLedgerKey = new Dictionary<string, string>();
 
@@ -143,6 +168,7 @@ namespace HainanSettlementTool.Excel
                 powerKeyByLedgerKey,
                 accountNumbersByKey,
                 ledgerWarnings,
+                customerDecisions,
                 manualMatches);
             return new LedgerUpdateContext
             {
@@ -151,6 +177,7 @@ namespace HainanSettlementTool.Excel
                 PowerData = powerData,
                 LedgerRows = ledgerRows,
                 PowerRowsByLedgerKey = powerRowsByLedgerKey,
+                NewCustomerRows = newCustomerRows,
                 AccountNumbersByKey = accountNumbersByKey,
                 Plan = plan
             };
@@ -168,10 +195,16 @@ namespace HainanSettlementTool.Excel
             IDictionary<string, string> powerKeyByLedgerKey,
             IDictionary<string, List<string>> accountNumbersByKey,
             IList<string> ledgerWarnings,
+            IList<ProvinceStage1CustomerDecision> customerDecisions,
             IList<ProvinceStage1CustomerMatch> manualMatches)
         {
             var matchedKeys = powerRowsByLedgerKey.Keys.ToList();
             var matchedPowerKeys = new HashSet<string>(powerKeyByLedgerKey.Values);
+            foreach (var decision in customerDecisions)
+            {
+                matchedPowerKeys.Add(TextUtil.CustomerKey(decision.SourceCustomerName));
+            }
+
             var plan = new ProvinceStage1LedgerUpdatePlan
             {
                 Province = ProvinceCode.Chongqing,
@@ -181,6 +214,9 @@ namespace HainanSettlementTool.Excel
                 PowerCustomerRows = powerData.CustomerRows.Count,
                 MatchedRows = matchedKeys.Count,
                 ManualMatchedRows = manualMatches.Count,
+                CreatedCustomerRows = customerDecisions.Count(decision => decision.DecisionKind == ProvinceStage1CustomerDecisionKind.CreateNew),
+                SkippedCustomerRows = customerDecisions.Count(decision => decision.DecisionKind == ProvinceStage1CustomerDecisionKind.SkipWrite),
+                CustomerDecisions = customerDecisions.ToList(),
                 ManualCustomerMatches = manualMatches.ToList(),
                 Warnings = powerData.Warnings.Concat(ledgerWarnings).ToList()
             };
@@ -212,6 +248,18 @@ namespace HainanSettlementTool.Excel
                     plan.ExistingDifferentPowerRows++;
                     AddIssue(plan, ProvinceStage1LedgerUpdateIssueKinds.ExistingPowerDifference, "已有电量差异", "警告", ledgerRow.CustomerName, "台账目标月份已有电量，且与清洗结果不一致；继续后会按清洗结果写入副本。");
                 }
+            }
+
+            foreach (var decision in customerDecisions.Where(item => item.DecisionKind == ProvinceStage1CustomerDecisionKind.CreateNew))
+            {
+                var powerRow = powerRowsByKey[TextUtil.CustomerKey(decision.SourceCustomerName)];
+                AddIssue(plan, ProvinceStage1LedgerUpdateIssueKinds.CreatedCustomer, "新增客户到台账", "提示", powerRow.CustomerName, "该电量客户将新增到本次生成的台账副本，仅写入客户名称和目标月份电量。");
+            }
+
+            foreach (var decision in customerDecisions.Where(item => item.DecisionKind == ProvinceStage1CustomerDecisionKind.SkipWrite))
+            {
+                var powerRow = powerRowsByKey[TextUtil.CustomerKey(decision.SourceCustomerName)];
+                AddIssue(plan, ProvinceStage1LedgerUpdateIssueKinds.SkippedPowerCustomer, "本月不写入", "提示", powerRow.CustomerName, "该电量客户已按本次选择跳过，不会写入台账副本。");
             }
 
             var missingInLedger = powerRowsByKey.Keys.Except(matchedPowerKeys).ToList();
@@ -247,14 +295,33 @@ namespace HainanSettlementTool.Excel
             return plan;
         }
 
-        private static List<ProvinceStage1CustomerMatch> ResolveManualMatches(
-            IList<ProvinceStage1CustomerMatch> matches,
+        private static List<ProvinceStage1CustomerDecision> ResolveCustomerDecisions(
+            ProvinceStage1LedgerUpdateOptions options,
             IDictionary<string, LedgerCustomerRow> ledgerRowsByKey,
             IDictionary<string, ChongqingPowerCleanGenerator.ChongqingPowerAggregateRow> powerRowsByKey,
             IList<string> exactMatchedKeys)
         {
-            var resolved = new List<ProvinceStage1CustomerMatch>();
-            if (matches == null || matches.Count == 0)
+            var decisions = new List<ProvinceStage1CustomerDecision>();
+            if (options.CustomerDecisions != null)
+            {
+                decisions.AddRange(options.CustomerDecisions.Where(decision => decision != null));
+            }
+
+            if ((options.CustomerDecisions == null || options.CustomerDecisions.Count == 0)
+                && options.ManualCustomerMatches != null)
+            {
+                decisions.AddRange(options.ManualCustomerMatches
+                    .Where(match => match != null)
+                    .Select(match => new ProvinceStage1CustomerDecision
+                    {
+                        SourceCustomerName = match.SourceCustomerName,
+                        TargetCustomerName = match.TargetCustomerName,
+                        DecisionKind = ProvinceStage1CustomerDecisionKind.MatchExisting
+                    }));
+            }
+
+            var resolved = new List<ProvinceStage1CustomerDecision>();
+            if (decisions.Count == 0)
             {
                 return resolved;
             }
@@ -262,60 +329,137 @@ namespace HainanSettlementTool.Excel
             var exactMatched = new HashSet<string>(exactMatchedKeys);
             var sourceKeys = new HashSet<string>();
             var targetKeys = new HashSet<string>();
-            foreach (var match in matches)
+            foreach (var decision in decisions)
             {
-                if (match == null)
-                {
-                    continue;
-                }
-
-                var sourceName = TextUtil.S(match.SourceCustomerName);
-                var targetName = TextUtil.S(match.TargetCustomerName);
-                if (string.IsNullOrWhiteSpace(sourceName) || string.IsNullOrWhiteSpace(targetName))
+                var sourceName = TextUtil.S(decision.SourceCustomerName);
+                if (string.IsNullOrWhiteSpace(sourceName))
                 {
                     continue;
                 }
 
                 var sourceKey = TextUtil.CustomerKey(sourceName);
-                var targetKey = TextUtil.CustomerKey(targetName);
                 if (!powerRowsByKey.ContainsKey(sourceKey))
                 {
-                    throw new InvalidOperationException("人工匹配的电量客户在清洗结果中不存在：" + sourceName);
-                }
-
-                if (!ledgerRowsByKey.ContainsKey(targetKey))
-                {
-                    throw new InvalidOperationException("人工匹配的台账客户不存在：" + targetName);
+                    throw new InvalidOperationException("客户处理决定中的电量客户在清洗结果中不存在：" + sourceName);
                 }
 
                 if (exactMatched.Contains(sourceKey))
                 {
-                    throw new InvalidOperationException("人工匹配的电量客户已按名称精确匹配，无需再手动匹配：" + sourceName);
-                }
-
-                if (exactMatched.Contains(targetKey))
-                {
-                    throw new InvalidOperationException("人工匹配的台账客户已按名称精确匹配，不能被其他电量客户覆盖：" + targetName);
+                    throw new InvalidOperationException("客户处理决定中的电量客户已按名称精确匹配，无需再手动处理：" + sourceName);
                 }
 
                 if (!sourceKeys.Add(sourceKey))
                 {
-                    throw new InvalidOperationException("同一个电量客户不能重复人工匹配：" + sourceName);
+                    throw new InvalidOperationException("同一个电量客户不能重复设置处理决定：" + sourceName);
                 }
 
-                if (!targetKeys.Add(targetKey))
+                if (decision.DecisionKind == ProvinceStage1CustomerDecisionKind.MatchExisting)
                 {
-                    throw new InvalidOperationException("同一个台账客户不能被多个电量客户人工匹配：" + targetName);
+                    var targetName = TextUtil.S(decision.TargetCustomerName);
+                    if (string.IsNullOrWhiteSpace(targetName))
+                    {
+                        throw new InvalidOperationException("匹配已有台账客户时必须选择台账客户：" + sourceName);
+                    }
+
+                    var targetKey = TextUtil.CustomerKey(targetName);
+                    if (!ledgerRowsByKey.ContainsKey(targetKey))
+                    {
+                        throw new InvalidOperationException("客户处理决定中的台账客户不存在：" + targetName);
+                    }
+
+                    if (exactMatched.Contains(targetKey))
+                    {
+                        throw new InvalidOperationException("客户处理决定中的台账客户已按名称精确匹配，不能被其他电量客户覆盖：" + targetName);
+                    }
+
+                    if (!targetKeys.Add(targetKey))
+                    {
+                        throw new InvalidOperationException("同一个台账客户不能被多个电量客户人工匹配：" + targetName);
+                    }
+
+                    resolved.Add(new ProvinceStage1CustomerDecision
+                    {
+                        SourceCustomerName = powerRowsByKey[sourceKey].CustomerName,
+                        TargetCustomerName = ledgerRowsByKey[targetKey].CustomerName,
+                        DecisionKind = ProvinceStage1CustomerDecisionKind.MatchExisting
+                    });
+                    continue;
                 }
 
-                resolved.Add(new ProvinceStage1CustomerMatch
+                if (decision.DecisionKind != ProvinceStage1CustomerDecisionKind.CreateNew
+                    && decision.DecisionKind != ProvinceStage1CustomerDecisionKind.SkipWrite)
+                {
+                    throw new InvalidOperationException("不支持的客户处理决定：" + decision.DecisionKind);
+                }
+
+                resolved.Add(new ProvinceStage1CustomerDecision
                 {
                     SourceCustomerName = powerRowsByKey[sourceKey].CustomerName,
-                    TargetCustomerName = ledgerRowsByKey[targetKey].CustomerName
+                    DecisionKind = decision.DecisionKind
                 });
             }
 
             return resolved;
+        }
+
+        private static void InsertNewCustomerRow(
+            IXLWorksheet worksheet,
+            LedgerMap map,
+            IList<LedgerCustomerRow> ledgerRows,
+            NewCustomerPowerRow newCustomer)
+        {
+            var templateRowNumber = ledgerRows.Count == 0
+                ? map.DataStartRow
+                : ledgerRows.Max(row => row.RowNumber);
+            var newRowNumber = ledgerRows.Count == 0
+                ? map.DataStartRow
+                : templateRowNumber + 1;
+            var lastColumn = Math.Max(worksheet.LastColumnUsed()?.ColumnNumber() ?? map.ValleyColumn, map.ValleyColumn);
+
+            if (ledgerRows.Count == 0)
+            {
+                worksheet.Row(newRowNumber).InsertRowsAbove(1);
+                templateRowNumber = newRowNumber - 1;
+            }
+            else
+            {
+                worksheet.Row(templateRowNumber).InsertRowsBelow(1);
+            }
+
+            worksheet.Range(templateRowNumber, 1, templateRowNumber, lastColumn)
+                .CopyTo(worksheet.Cell(newRowNumber, 1));
+
+            for (var column = 1; column <= lastColumn; column++)
+            {
+                var cell = worksheet.Cell(newRowNumber, column);
+                if (string.IsNullOrWhiteSpace(cell.FormulaA1))
+                {
+                    cell.Clear(XLClearOptions.Contents);
+                }
+            }
+
+            worksheet.Cell(newRowNumber, map.CustomerNameColumn).Value = newCustomer.CustomerName;
+            WritePower(worksheet, newRowNumber, map, newCustomer.PowerRow);
+
+            ledgerRows.Add(new LedgerCustomerRow
+            {
+                RowNumber = newRowNumber,
+                CustomerName = newCustomer.CustomerName,
+                Key = TextUtil.CustomerKey(newCustomer.CustomerName)
+            });
+        }
+
+        private static void WritePower(
+            IXLWorksheet worksheet,
+            int row,
+            LedgerMap map,
+            ChongqingPowerCleanGenerator.ChongqingPowerAggregateRow powerRow)
+        {
+            worksheet.Cell(row, map.TotalColumn).Value = powerRow.Total;
+            worksheet.Cell(row, map.SharpColumn).Value = powerRow.Sharp;
+            worksheet.Cell(row, map.PeakColumn).Value = powerRow.Peak;
+            worksheet.Cell(row, map.FlatColumn).Value = powerRow.Flat;
+            worksheet.Cell(row, map.ValleyColumn).Value = powerRow.Valley;
         }
 
         private static IXLWorksheet FindLedgerWorksheet(XLWorkbook workbook)
@@ -576,6 +720,14 @@ namespace HainanSettlementTool.Excel
                 matchedRows = result.MatchedRows,
                 updatedPowerRows = result.UpdatedPowerRows,
                 manualMatchedRows = result.ManualMatchedRows,
+                createdCustomerRows = result.CreatedCustomerRows,
+                skippedCustomerRows = result.SkippedCustomerRows,
+                customerDecisions = result.CustomerDecisions.Select(decision => new
+                {
+                    sourceCustomerName = decision.SourceCustomerName,
+                    decisionKind = decision.DecisionKind.ToString(),
+                    targetCustomerName = decision.TargetCustomerName
+                }),
                 manualCustomerMatches = result.ManualCustomerMatches.Select(match => new
                 {
                     sourceCustomerName = match.SourceCustomerName,
@@ -619,6 +771,7 @@ namespace HainanSettlementTool.Excel
             public ChongqingPowerCleanGenerator.ChongqingPowerDataSet PowerData { get; set; }
             public List<LedgerCustomerRow> LedgerRows { get; set; }
             public Dictionary<string, ChongqingPowerCleanGenerator.ChongqingPowerAggregateRow> PowerRowsByLedgerKey { get; set; }
+            public List<NewCustomerPowerRow> NewCustomerRows { get; set; }
             public Dictionary<string, List<string>> AccountNumbersByKey { get; set; }
             public ProvinceStage1LedgerUpdatePlan Plan { get; set; }
         }
@@ -639,6 +792,12 @@ namespace HainanSettlementTool.Excel
             public int RowNumber { get; set; }
             public string CustomerName { get; set; }
             public string Key { get; set; }
+        }
+
+        private sealed class NewCustomerPowerRow
+        {
+            public string CustomerName { get; set; }
+            public ChongqingPowerCleanGenerator.ChongqingPowerAggregateRow PowerRow { get; set; }
         }
     }
 }

@@ -16,9 +16,12 @@ namespace HainanSettlementTool.Core.Models
         public int MatchedRows { get; set; }
         public int UpdatedPowerRows { get; set; }
         public int ManualMatchedRows { get; set; }
+        public int CreatedCustomerRows { get; set; }
+        public int SkippedCustomerRows { get; set; }
         public int MultiAccountRows { get; set; }
         public int SkippedRows { get; set; }
         public double TotalPower { get; set; }
+        public List<ProvinceStage1CustomerDecision> CustomerDecisions { get; set; } = new List<ProvinceStage1CustomerDecision>();
         public List<ProvinceStage1CustomerMatch> ManualCustomerMatches { get; set; } = new List<ProvinceStage1CustomerMatch>();
         public List<string> Warnings { get; set; } = new List<string>();
         public List<ProvinceStage1LedgerUpdateIssue> Issues { get; set; } = new List<ProvinceStage1LedgerUpdateIssue>();

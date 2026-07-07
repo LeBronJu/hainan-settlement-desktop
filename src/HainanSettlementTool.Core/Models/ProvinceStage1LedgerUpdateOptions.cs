@@ -9,6 +9,7 @@ namespace HainanSettlementTool.Core.Models
         public string LedgerPath { get; set; }
         public string RawDetailPath { get; set; }
         public string OutputDirectory { get; set; }
+        public List<ProvinceStage1CustomerDecision> CustomerDecisions { get; set; } = new List<ProvinceStage1CustomerDecision>();
         public List<ProvinceStage1CustomerMatch> ManualCustomerMatches { get; set; } = new List<ProvinceStage1CustomerMatch>();
     }
 }

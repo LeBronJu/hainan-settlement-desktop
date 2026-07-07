@@ -246,6 +246,80 @@ namespace HainanSettlementTool.Excel.Tests
         }
 
         [TestMethod]
+        public void UpdateLedgerAppliesCreateAndSkipCustomerDecisions()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var raw = Path.Combine(root, "2026年05月售电公司电量确认结算单.xlsx");
+                var ledger = Path.Combine(root, "重庆2026年售电结算台账-4月.xlsx");
+                var outputDirectory = Path.Combine(root, "out");
+                WriteChongqingWorkbook(raw, customerBName: "新增客户D", extraCustomerName: "跳过客户E");
+                WriteChongqingLedgerWithPreviousMonthOnly(ledger);
+                var gateway = new ClosedXmlSettlementExcelGateway();
+                var options = new ProvinceStage1LedgerUpdateOptions
+                {
+                    Province = ProvinceCode.Chongqing,
+                    Month = 5,
+                    LedgerPath = ledger,
+                    RawDetailPath = raw,
+                    OutputDirectory = outputDirectory
+                };
+
+                var plan = gateway.PlanLedgerUpdate(options);
+                CollectionAssert.Contains(plan.PowerOnlyCustomers, "新增客户D");
+                CollectionAssert.Contains(plan.PowerOnlyCustomers, "跳过客户E");
+
+                options.CustomerDecisions.Add(new ProvinceStage1CustomerDecision
+                {
+                    SourceCustomerName = "新增客户D",
+                    DecisionKind = ProvinceStage1CustomerDecisionKind.CreateNew
+                });
+                options.CustomerDecisions.Add(new ProvinceStage1CustomerDecision
+                {
+                    SourceCustomerName = "跳过客户E",
+                    DecisionKind = ProvinceStage1CustomerDecisionKind.SkipWrite
+                });
+
+                var result = gateway.UpdateLedger(options);
+
+                Assert.AreEqual(1, result.CreatedCustomerRows);
+                Assert.AreEqual(1, result.SkippedCustomerRows);
+                Assert.AreEqual(2, result.UpdatedPowerRows);
+                Assert.AreEqual(2, result.CustomerDecisions.Count);
+                Assert.IsTrue(result.Issues.Any(issue => issue.Kind == ProvinceStage1LedgerUpdateIssueKinds.CreatedCustomer));
+                Assert.IsTrue(result.Issues.Any(issue => issue.Kind == ProvinceStage1LedgerUpdateIssueKinds.SkippedPowerCustomer));
+
+                using (var updated = new XLWorkbook(result.OutputLedgerPath))
+                {
+                    var ws = updated.Worksheet("Sheet1");
+                    var mayStart = FindMonthStartColumn(ws, "5月");
+                    var newCustomer = FindLedgerRow(ws, "新增客户D");
+                    Assert.ThrowsException<AssertFailedException>(() => FindLedgerRow(ws, "跳过客户E"));
+                    Assert.AreEqual(string.Empty, ws.Cell(newCustomer, 2).GetString());
+                    Assert.AreEqual(string.Empty, ws.Cell(newCustomer, 7).GetString());
+                    Assert.AreEqual(string.Empty, ws.Cell(newCustomer, 8).GetString());
+                    Assert.AreEqual(string.Empty, ws.Cell(newCustomer, 9).GetString());
+                    Assert.AreEqual(12, ws.Cell(newCustomer, mayStart).GetDouble(), 0.00001);
+                    Assert.AreEqual(4, ws.Cell(newCustomer, mayStart + 1).GetDouble(), 0.00001);
+                    Assert.AreEqual(8, ws.Cell(newCustomer, mayStart + 2).GetDouble(), 0.00001);
+                    Assert.IsTrue(ws.Cell(newCustomer, mayStart + 24).HasFormula);
+                    StringAssert.Contains(ws.Cell(newCustomer, mayStart + 24).FormulaA1, ws.Cell(newCustomer, mayStart).Address.ToStringRelative());
+                }
+
+                var report = JObject.Parse(File.ReadAllText(result.ReportPath));
+                Assert.AreEqual(1, (int)report["createdCustomerRows"]);
+                Assert.AreEqual(1, (int)report["skippedCustomerRows"]);
+                Assert.AreEqual("CreateNew", (string)report["customerDecisions"][0]["decisionKind"]);
+                Assert.AreEqual("SkipWrite", (string)report["customerDecisions"][1]["decisionKind"]);
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
         public void UpdateLedgerCreatesTargetMonthBlockFromPreviousChongqingLedger()
         {
             var root = CreateTempRoot();
@@ -315,7 +389,7 @@ namespace HainanSettlementTool.Excel.Tests
             }
         }
 
-        private static void WriteChongqingWorkbook(string path, bool includeNegative = false, string customerBName = "测试客户B")
+        private static void WriteChongqingWorkbook(string path, bool includeNegative = false, string customerBName = "测试客户B", string extraCustomerName = null)
         {
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             using (var workbook = new XLWorkbook())
@@ -345,6 +419,12 @@ namespace HainanSettlementTool.Excel.Tests
                 WriteRow(ws, row++, "测试客户A", "A-002", "M3", "低谷", 3.0);
                 WriteRow(ws, row++, customerBName, "B-001", "M4", "尖峰", includeNegative ? -1.0 : 4.0);
                 WriteRow(ws, row++, customerBName, "B-001", "M4", "高峰", 8.0);
+                if (!string.IsNullOrWhiteSpace(extraCustomerName))
+                {
+                    WriteRow(ws, row++, extraCustomerName, "E-001", "M5", "尖峰", 1.0);
+                    WriteRow(ws, row++, extraCustomerName, "E-001", "M5", "高峰", 2.0);
+                }
+
                 ws.Cell(row, 1).Value = "确认人：";
 
                 workbook.SaveAs(path);

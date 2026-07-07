@@ -1268,6 +1268,7 @@ namespace HainanSettlementTool.Wpf
 
                 if (dialog.ShowDialog() == true)
                 {
+                    options.CustomerDecisions = dialog.CustomerDecisions;
                     options.ManualCustomerMatches = dialog.ManualCustomerMatches;
                     return true;
                 }

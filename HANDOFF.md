@@ -50,11 +50,14 @@ The stable local reference folder is for future comparison/orientation only; do 
 - Win10/11 WPF is the primary UI entry for new features and UX work.
 - Win7/8 WinForms remains part of `main` as a maintenance compatibility entry: keep it buildable, packageable, and fix blocking bugs only unless explicitly requested.
 - Win7/8 and Win10/11 share Core/Excel logic but remain separate desktop apps.
-- Latest local WPF test package for the Chongqing bugfix branch:
+- Latest local WPF test package:
+  - `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-115127.zip`
+  - unpacked directory: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-115127`
+  - built from `codex/wpf-path-picker-controller` after implementing Chongqing customer-resolution decisions and WPF display-title fixes.
+- Previous local WPF test package from the Chongqing month-block branch:
   - `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-105743.zip`
   - unpacked directory: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-105743`
   - built from `codex/chongqing-month-block-copy` after `074401a` and `f60d325`.
-- User testing after this package exposed the next Chongqing Stage 1 customer-resolution requirement: unmatched power customers need an explicit dropdown choice for `新增客户到台账`, `不匹配，本月不写入`, or one existing ledger customer. Existing ledger customer targets must be selectable only once per preflight; create/skip actions can be repeated. This is not yet implemented in the package above.
 - Do not add real ledgers, customer data, settlement outputs, screenshots, or finance/payment data to git.
 
 Use `git status --short --branch` before editing. The expected handoff worktree should be clean on the current `codex/` development branch unless the user explicitly authorizes merging to `main`; no real Excel files or generated settlement outputs should be tracked.
@@ -223,18 +226,19 @@ Current behavior:
 - Output main sheet `用户电量汇总` aggregates by customer name. Output detail sheet `户号明细` retains account-number rows for audit and later ledger-update work.
 - Missing customer name, missing account number, invalid period, non-numeric power, and negative power stop generation as serious source-data errors.
 - Ledger update matches by `电力用户名称`, not `电力用户编码`.
-- WPF preflight can collect one-time customer handling decisions for unmatched power customers. The target behavior is: each displayed unmatched customer must explicitly choose `新增客户到台账`, `不匹配，本月不写入`, or one existing ledger customer. Existing ledger customer targets can be used only once in the same preflight; create/skip actions can be repeated. The current package still lacks the `新增客户到台账` action and needs the next implementation slice.
+- WPF preflight collects one-time customer handling decisions for unmatched power customers. Each displayed unmatched power customer must explicitly choose `新增客户到台账`, `不匹配，本月不写入`, or one existing ledger customer. Existing ledger customer targets can be used only once in the same preflight; create/skip actions can be repeated.
 - Ledger update does not fill `电力用户编码` / B-column account numbers; account numbers remain in the cleaned detail workbook and report for traceability.
 - Ledger update writes only target-month `总实际电量（兆瓦时）` and `尖/峰/平/谷` into a copied ledger. It does not overwrite the source ledger.
 - If the target month block is absent, ledger update creates it by copying the previous Chongqing 30-column month block, changing the month label, clearing the target-month `总实际电量/尖/峰/平/谷` power columns, and preserving template columns such as coefficients, refund, agent/intermediary formulas, and remarks.
 - `代理或自营=自营` customers can legitimately have blank agent/intermediary fixed fields and blank monthly agent/intermediary revenue columns; Stage 1 must not fill those fields or treat the blanks as errors.
+- When the user chooses `新增客户到台账`, Chongqing Stage 1 inserts a row only in the output ledger copy, writes the customer name and target-month `总实际电量/尖/峰/平/谷`, preserves copied row formatting/formulas, and leaves `电力用户编码` / B-column account number plus负责人/代理/居间 fields blank for manual completion.
 - Missing/new/ledger-only customers, possible alias candidates, multiple-account customers, month mismatch, and existing target-month power differences are surfaced in a WPF confirmation before writing and also written to the JSON report.
 
 Known limits / next required behavior:
 
 - Chongqing Stage 2 settlement generation is not implemented.
 - Customer-name alias mapping is not automatic or persistent; possible aliases are reported and the WPF preflight lets the user choose one-time manual matches for the current run.
-- The next Chongqing Stage 1 slice must add `新增客户到台账`: insert a row only in the output ledger copy, write customer name and target-month power, preserve template formatting/formulas, and leave `电力用户编码` / B-column account number plus负责人/代理/居间 fields for manual completion.
+- The new Chongqing customer-resolution behavior is implemented with synthetic regression coverage and packaged for user acceptance, but has not yet been validated against the user's real Chongqing workbooks in this session.
 - Current regressions use synthetic workbooks; no real Chongqing workbook is committed.
 
 ## UI State
@@ -1005,6 +1009,34 @@ Observed result:
 - Debug build passed for Core, Excel, WinForms, WPF, and both test projects.
 - `git diff --check` passed with CRLF normalization warnings only.
 
+Chongqing Stage 1 customer-resolution and WPF display fixes on 2026-07-07:
+
+```powershell
+dotnet test .\tests\HainanSettlementTool.Excel.Tests\HainanSettlementTool.Excel.Tests.csproj /p:Configuration=Debug --filter UpdateLedgerAppliesCreateAndSkipCustomerDecisions
+dotnet test .\tests\HainanSettlementTool.Excel.Tests\HainanSettlementTool.Excel.Tests.csproj /p:Configuration=Debug --filter ChongqingPowerCleanGeneratorTests
+dotnet msbuild .\src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Debug /m
+dotnet test .\HainanSettlementTool.sln /p:Configuration=Debug
+dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Debug /m
+.\scripts\package_wpf_release.ps1
+```
+
+Observed result:
+
+- Added Core customer-decision model for multi-province Stage 1: `MatchExisting`, `CreateNew`, and `SkipWrite`.
+- Chongqing Stage 1 WPF preflight now requires every unmatched power customer to choose `新增客户到台账`, `不匹配，本月不写入`, or one existing ledger customer. Existing ledger targets are unique per preflight; create/skip actions can repeat.
+- Chongqing ledger update now applies create/skip decisions. `CreateNew` inserts a row only in the output copy, writes customer name and target-month power, preserves copied formatting/formulas, and leaves B-column/customer-code plus负责人/代理/居间 fields blank for manual completion. `SkipWrite` leaves the customer out of the ledger update and records the decision in JSON.
+- Hainan Stage 1 behavior was not changed.
+- Fixed WPF display fallbacks so the province selector and preflight customer-target dropdown show reader-facing text instead of internal type names.
+- WPF visible window title/header changed to `清能电力-结算自动化工具`; project/namespace/assembly/package names were not renamed.
+- Added synthetic regression coverage for a Chongqing run with one created customer and one skipped customer. The targeted new test passed.
+- Targeted Chongqing Excel tests passed: 6 tests.
+- Targeted WPF Debug build passed.
+- Full Debug test suite passed: Core 18 tests, Excel 20 tests.
+- Debug build passed for Core, Excel, WinForms, WPF, and both test projects.
+- Release packaging script passed and created `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-115127.zip`.
+- Package content was checked and includes the Win10/11 exe, `.exe.config`, required `.dll` files, and `README.txt`.
+- No real Excel, real ledger, customer data, screenshots, or settlement outputs were read for this implementation/validation.
+
 ## Documentation Rule
 
 Documentation is now part of the development contract:
@@ -1079,13 +1111,9 @@ Packaging/docs:
 
 ## Next Steps
 
-1. Start a focused Chongqing customer-resolution implementation branch from the accepted base, preferably after deciding whether to base it on `codex/chongqing-month-block-copy` plus the later WPF quality slices or to merge/rebase the branch chain first.
-2. Implement the next Chongqing Stage 1 preflight behavior: dropdown first item `新增客户到台账`, second item `不匹配，本月不写入`, then existing ledger customers; every row must choose explicitly; existing ledger customer targets are unique per preflight, while create/skip actions can repeat.
-3. Update Core/Excel models so the customer decision can represent `MatchExisting`, `CreateNew`, and `SkipWrite`; use this as a province-neutral seam without changing Hainan's current mature auto-add behavior.
-4. Add Chongqing ledger row insertion for `CreateNew`: write only to the output copy, copy safe template formatting/formulas, write customer name and target-month power, leave B-column/customer-code and volatile business fields for manual completion, and record the decision in JSON.
-5. Fix the WPF province selector display bug where the selected value shows an internal type name instead of `海南` / `重庆`; likely add `ToString()` or adjust the selection display for `ProvinceUiProfile`.
-6. Rename the WPF visible app title/header from the old Hainan wording / generic multi-province wording to `清能电力-结算自动化工具`. Do not rename project files, root namespaces, assemblies, package names, or release asset names without a separate risk review.
-7. Continue WPF quality work after the Chongqing bugfix branch is testable; next low-risk `MainWindow.xaml.cs` decomposition candidate remains log control. Avoid WinForms parity work unless it is a bugfix, build/package compatibility issue, or explicitly requested.
-8. Decide later whether repeated manual matches should remain one-time only or support a user-maintained alias table.
-9. If user testing accepts the Chongqing month-block and customer-resolution behavior, merge the relevant `codex/` branch chain to `main` with user authorization, then decide whether to rebuild a Win10/11 acceptance package or cut a formal release.
-10. Consider adding sanitized employee reward, Stage 2, Chongqing, and `.xls` fixture workbooks later; current regressions use dynamically generated synthetic workbooks and local authorized smoke only.
+1. Have the user test `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-115127.zip` against a Chongqing work copy.
+2. If the user authorizes a real-data smoke, run it read-only against specifically authorized Chongqing input files and write outputs only to an explicitly selected test/output folder.
+3. If user testing accepts the Chongqing month-block and customer-resolution behavior, merge the relevant `codex/` branch chain to `main` with user authorization, then decide whether to rebuild a Win10/11 acceptance package or cut a formal release.
+4. Continue WPF quality work after the Chongqing bugfix branch is accepted; next low-risk `MainWindow.xaml.cs` decomposition candidate remains log control. Avoid WinForms parity work unless it is a bugfix, build/package compatibility issue, or explicitly requested.
+5. Decide later whether repeated manual matches should remain one-time only or support a user-maintained alias table.
+6. Consider adding sanitized employee reward, Stage 2, Chongqing, and `.xls` fixture workbooks later; current regressions use dynamically generated synthetic workbooks and local authorized smoke only.

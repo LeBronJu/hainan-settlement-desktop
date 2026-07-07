@@ -61,7 +61,7 @@
                     BorderThickness="1"
                     CornerRadius="6"
                     Padding="14">
-                <TextBlock Text="可将电量表中未匹配的客户手动匹配到台账客户。本次选择只用于当前生成的台账副本，不会保存为长期别名规则；每个待判断客户都必须手动选择匹配目标或明确选择本月不写入。"
+                <TextBlock Text="可将电量表中未匹配的客户新增到台账副本、手动匹配到台账客户，或明确选择本月不写入。本次选择只用于当前生成的台账副本，不会保存为长期别名规则；每个待判断客户都必须手动选择处理方式。"
                            Foreground="{DynamicResource FieldTextBrush}"
                            TextWrapping="Wrap" />
             </Border>
@@ -157,12 +157,12 @@
                                                            HorizontalAlignment="Center"
                                                            VerticalAlignment="Center" />
                                                 <StackPanel Grid.Column="2">
-                                                    <TextBlock Text="选择台账客户名称（必选）"
+                                                    <TextBlock Text="选择处理方式或台账客户（必选）"
                                                                Foreground="{DynamicResource MutedBrush}"
                                                                FontSize="12" />
                                                     <ComboBox ItemsSource="{Binding TargetOptions}"
-                                                              SelectedValuePath="CustomerName"
-                                                              SelectedValue="{Binding SelectedTargetName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                              SelectedValuePath="Value"
+                                                              SelectedValue="{Binding SelectedTargetValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                               TextSearch.TextPath="DisplayText"
                                                               IsTextSearchEnabled="True"
                                                               Style="{StaticResource ModernComboBox}"
