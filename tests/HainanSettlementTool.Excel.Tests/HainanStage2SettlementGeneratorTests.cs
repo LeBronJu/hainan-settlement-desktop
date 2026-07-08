@@ -9,7 +9,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace HainanSettlementTool.Excel.Tests
 {
     [TestClass]
-    public sealed class Stage2SettlementGeneratorTests
+    public sealed class HainanStage2SettlementGeneratorTests
     {
         [TestMethod]
         public void GenerateSettlementExtendsDetailTotalsAndRepairsTemplateFormatting()

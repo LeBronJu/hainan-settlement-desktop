@@ -11,7 +11,7 @@ namespace HainanSettlementTool.Excel
         private readonly RawDetailReader _rawDetailReader = new RawDetailReader();
         private readonly CustomerCodeReader _customerCodeReader = new CustomerCodeReader();
         private readonly LedgerStage1Updater _ledgerUpdater = new LedgerStage1Updater();
-        private readonly Stage2SettlementGenerator _stage2Generator = new Stage2SettlementGenerator();
+        private readonly HainanStage2SettlementGenerator _stage2Generator = new HainanStage2SettlementGenerator();
         private readonly ChongqingStage2SettlementGenerator _chongqingStage2Generator = new ChongqingStage2SettlementGenerator();
         private readonly EmployeeRewardGenerator _employeeRewardGenerator = new EmployeeRewardGenerator();
         private readonly Dictionary<ProvinceCode, IProvinceStage1Adapter> _provinceStage1Adapters;

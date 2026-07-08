@@ -20,6 +20,7 @@
 | 文档 | 状态 | 用法 |
 | --- | --- | --- |
 | `docs/dev-notes/chongqing-stage2-analysis-2026-07-07.md` | 当前任务 note | 重庆阶段二实现前的表格结构、风险、实现边界和用户确认事项。 |
+| `docs/dev-notes/multi-province-code-quality-2026-07-08.md` | 当前任务 note | 多省份代码质量、海南命名中性化、大类拆分和执行连续性。 |
 | `docs/dev-notes/multi-province-readiness-2026-07-07.md` | 当前架构 note | 新省份接入、WPF 省份 UI、Core/Excel 多省份 seam 工作前必须读。 |
 | `docs/dev-notes/employee-reward-module-2026-07-02.md` | 当前模块 note | 员工电量奖励模块的输入、输出、读取规则和验证记录。 |
 | `docs/dev-notes/win7-8-maintenance-mode-2026-06-29.md` | 当前政策 note | 判断 Win7/8 WinForms 冻结/退役边界，或用户明确重新开启 Win7/8 支持时。 |
@@ -53,6 +54,7 @@
 | 员工电量奖励改动 | `CONTEXT.md`、`docs/dev-notes/employee-reward-module-2026-07-02.md` |
 | 发布、打包、tag 或 GitHub Release | `README.md`、`HANDOFF.md`、`docs/RELEASE_CHECKLIST.md` |
 | 文档质量或文档同步规则改动 | `docs/README.md`、`docs/dev-notes/documentation-sync-gate-2026-06-25.md`、`HANDOFF.md` |
+| 代码质量、多省命名或大类拆分 | `docs/architecture.md`、`docs/dev-notes/multi-province-readiness-2026-07-07.md`、`docs/dev-notes/multi-province-code-quality-2026-07-08.md` |
 | issue、PRD 或 triage 工作 | `docs/agents/domain.md`、`docs/agents/issue-tracker.md`、`docs/agents/triage-labels.md` |
 | 授权真实数据分析或 smoke | `HANDOFF.md` 的数据安全边界、对应任务 dev-note；没有当前明确授权时先问用户 |
 

@@ -175,12 +175,13 @@ Most recent documentation validation:
 - WPF package script passed on 2026-07-07 after those slices and created `HainanSettlementTool-Win10-11-Release-20260707-173137.zip`.
 - Chongqing Stage 2 WPF preflight entry / Win7-8 freeze update on 2026-07-07: WPF Debug build passed, Debug tests passed (Core 26, Excel 27), WPF Release build passed, docs guardrails passed, `git diff --check` passed, and WPF package script created `HainanSettlementTool-Win10-11-Release-20260707-175657.zip`. Real Chongqing 5月 Analyze-only preflight was run read-only against latest summary and 20260512 historical summary; both returned 0 payment-party issues.
 - Chongqing Stage 2 first workbook-generation slice on 2026-07-08: focused Excel tests passed, WPF Debug build passed, real 5月 local smoke generated outputs under `%TEMP%` with 0 warnings/audit issues, Core tests passed (26), Excel tests passed (27), WPF Release build passed, and WPF package script created `HainanSettlementTool-Win10-11-Release-20260708-101959.zip`.
+- Multi-province code-quality first slice on 2026-07-08: Hainan Stage 2 Excel generator was renamed/split into `HainanStage2...` components with external Analyze/Generate behavior unchanged; Core tests passed (26), Excel tests passed (27), and WPF Debug/Release builds passed.
 
 For new code changes, rerun focused tests and builds. For pure documentation changes, run at least `git diff --check` plus targeted stale-wording/link scans.
 
 ## Next Steps
 
 1. Have the user实机测试 `HainanSettlementTool-Win10-11-Release-20260708-101959.zip`.
-2. Compare generated重庆 5月分表、退补表、汇总表 against the人工 5月 result, especially payment-party sheets, summary month block, proxy少回收电能量电费, refund segmented-price formulas, and hidden columns.
-3. Tighten remaining重庆阶段二 risks: duplicate month sheet preflight, template-missing issue surfacing, generated summary fixed-field defaults for newly added summary subjects, and fuller real-result diff notes.
-4. Defer persistent customer alias tables, WinForms parity, and cross-province generic Stage 2 abstraction unless the user explicitly reprioritizes them.
+2. If user reports重庆阶段二实机问题, pause refactor work and triage the specific generated output or rule gap with fresh authorization for any real file reads.
+3. Continue the code-quality mainline tracked in `docs/dev-notes/multi-province-code-quality-2026-07-08.md`: next candidate is splitting `MainWindow.xaml.cs` workflow/input-state orchestration, unless重庆阶段二实机反馈 interrupts.
+4. Do not package or release this refactor slice unless the user asks for a new test package; current user-facing重庆阶段二 test package remains `HainanSettlementTool-Win10-11-Release-20260708-101959.zip`.
