@@ -28,7 +28,7 @@
 | 行数 | 文件 | 当前判断 |
 | ---: | --- | --- |
 | 1821 | `src/HainanSettlementTool.Excel/Stage2SettlementGenerator.cs` | 已处理第一批。重命名并拆为 `HainanStage2SettlementGenerator`、台账读取、模板索引、分表写入、汇总表写入、报告输出和工具组件。 |
-| 1519 | `src/HainanSettlementTool.Wpf/MainWindow.xaml.cs` | 第二/三批已部分处理。已拆日志、进度、结果、弹窗、路径选择、输入状态/options 构造和省份 UI 状态应用；后续继续拆 workflow 编排。 |
+| 1519 | `src/HainanSettlementTool.Wpf/MainWindow.xaml.cs` | 第二/三/四批已部分处理。已拆日志、进度、结果、弹窗、路径选择、输入状态/options 构造、省份 UI 状态应用和阶段二 workflow；后续视需要继续拆阶段一和员工奖励 workflow。 |
 | 1207 | `src/HainanSettlementTool.WinForms/MainForm.cs` | 冻结。只因共享层修复被动受益，不安排主动拆分。 |
 | 874 | `src/HainanSettlementTool.Excel/ChongqingPowerCleanGenerator.cs` | P2。重庆阶段一清洗稳定后可拆读取、校验、汇总、报告写入。 |
 | 804 | `tests/HainanSettlementTool.Excel.Tests/Stage2SettlementGeneratorTests.cs` | 已随第一批重命名为 `HainanStage2SettlementGeneratorTests.cs`；后续再按行为分组拆测试。 |
@@ -116,6 +116,23 @@
 - `dotnet msbuild src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Release /m` 通过。
 - 子代理只读 review 未发现初始化顺序、tab 切换、空引用或结果区刷新回归。
 
+## 第四批进展
+
+2026-07-08 已完成 WPF 主窗口阶段二 workflow 编排拆分：
+
+- 新增 `MainWindowStage2WorkflowController`，负责海南/重庆阶段二 options 创建后的 plan-confirm-complete 顺序、预检确认窗口、取消路径、进度、日志和结果摘要。
+- 新增 `SettlementWorkflowFactory`，集中 WPF 入口对 `ClosedXmlSettlementExcelGateway`、阶段服务和 `SettlementWorkflow` 的装配。
+- `MainWindow.xaml.cs` 的阶段二按钮事件现在只调用 controller；阶段一、清洗和员工奖励暂时只改用 workflow factory，未进一步改变运行流程。
+- `MainWindow.xaml.cs` 从 1306 行降到 1032 行。本轮不改变阶段二确认文案、日志文案、进度百分比、取消行为或结果摘要。
+
+本轮验证：
+
+- `dotnet msbuild src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Debug /m` 通过。
+- `dotnet test tests\HainanSettlementTool.Core.Tests\HainanSettlementTool.Core.Tests.csproj --no-restore` 通过，26 个测试。
+- `dotnet test tests\HainanSettlementTool.Excel.Tests\HainanSettlementTool.Excel.Tests.csproj --no-restore` 通过，27 个测试。
+- `dotnet msbuild src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Release /m` 通过。
+- 子代理只读 review 未发现 options 创建、保存/确认顺序、预检决策回写、取消路径、结果文案或 dispatcher 使用回归。
+
 ## 待办
 
 - [x] 建立本 current task note，并接入 `docs/README.md`。
@@ -123,5 +140,6 @@
 - [x] 视第一批拆分结果更新 `docs/architecture.md` 的 Excel 组件说明。
 - [x] 拆出 `MainWindow.xaml.cs` 的输入状态和 options 构造。
 - [x] 拆出 `MainWindow.xaml.cs` 的省份 UI 状态应用。
-- [ ] 继续拆 `MainWindow.xaml.cs` 的 workflow 编排，作为下一批代码质量目标。
+- [x] 拆出 `MainWindow.xaml.cs` 的阶段二 workflow 编排。
+- [ ] 视重庆实机核对反馈和当前风险，决定是否继续拆阶段一/员工奖励 workflow 编排。
 - [ ] 重庆阶段二实机测试如发现问题，暂停代码质量线并优先处理实测问题。

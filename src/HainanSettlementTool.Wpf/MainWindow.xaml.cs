@@ -12,7 +12,6 @@ using System.Windows.Input;
 using System.Windows.Media;
 using HainanSettlementTool.Core.Models;
 using HainanSettlementTool.Core.Services;
-using HainanSettlementTool.Excel;
 using Microsoft.Win32;
 
 namespace HainanSettlementTool.Wpf
@@ -26,6 +25,7 @@ namespace HainanSettlementTool.Wpf
         private readonly MainWindowLogController _logController;
         private readonly MainWindowInputController _inputController;
         private readonly MainWindowProvinceUiController _provinceUiController;
+        private readonly MainWindowStage2WorkflowController _stage2WorkflowController;
         private bool _isBusy;
         private bool _loadingInputs;
         private string _themeMode = ThemeService.SystemMode;
@@ -147,6 +147,16 @@ namespace HainanSettlementTool.Wpf
                 RunEmployeeRewardButton,
                 BrushOf);
             _logController = new MainWindowLogController(this, LogBox);
+            _stage2WorkflowController = new MainWindowStage2WorkflowController(
+                this,
+                Dispatcher,
+                _inputController,
+                _progressController,
+                _resultController,
+                _logController,
+                _dialogController,
+                SetBusy,
+                SaveInputs);
             ResetProgress("等待执行", "尚未开始");
             ResetResults();
             AddLog("工具已就绪，等待操作。", "信息");
@@ -398,7 +408,7 @@ namespace HainanSettlementTool.Wpf
                         SetProgress(28, "读取台账和电量文件");
                     });
 
-                    result = CreateWorkflow().RunStage1(options, LogThreadSafe);
+                    result = SettlementWorkflowFactory.Create().RunStage1(options, LogThreadSafe);
                 });
 
                 SetStepDone(1);
@@ -493,7 +503,7 @@ namespace HainanSettlementTool.Wpf
                         SetProgress(35, "读取原始零售侧明细");
                     });
 
-                    result = CreateWorkflow().CleanPowerData(rawDetailPath, outputPath, LogThreadSafe);
+                    result = SettlementWorkflowFactory.Create().CleanPowerData(rawDetailPath, outputPath, LogThreadSafe);
                 });
 
                 SetStepDone(1);
@@ -558,7 +568,7 @@ namespace HainanSettlementTool.Wpf
                         SetProgress(35, "读取交易中心电量确认结算单");
                     });
 
-                    result = CreateWorkflow().CleanProvinceStage1PowerData(options, LogThreadSafe);
+                    result = SettlementWorkflowFactory.Create().CleanProvinceStage1PowerData(options, LogThreadSafe);
                 });
 
                 SetStepDone(1);
@@ -607,7 +617,7 @@ namespace HainanSettlementTool.Wpf
 
             try
             {
-                var workflow = CreateWorkflow();
+                var workflow = SettlementWorkflowFactory.Create();
                 ProvinceStage1LedgerUpdatePlan plan = null;
                 await Task.Run(() =>
                 {
@@ -656,223 +666,7 @@ namespace HainanSettlementTool.Wpf
 
         private async void RunStage2_Click(object sender, RoutedEventArgs e)
         {
-            if (_inputController.SelectedProvinceOrNull() == ProvinceCode.Chongqing)
-            {
-                await RunChongqingStage2PreflightAsync();
-                return;
-            }
-
-            Stage2Options options;
-            try
-            {
-                options = _inputController.CreateStage2Options();
-                SaveInputs();
-                if (!ConfirmRun("阶段二：生成分表和汇总表", options.Month, options.OutputDirectory))
-                {
-                    return;
-                }
-            }
-            catch (Exception ex)
-            {
-                ShowError(ex);
-                return;
-            }
-
-            SetBusy(true);
-            ResetResults();
-            ResetProgress("正在执行阶段二...", "预检上月关键字段变化");
-            SetProgress(8, "检查输入文件");
-            SetStepRunning(0);
-            AddLog("开始执行阶段二。", "阶段二");
-
-            try
-            {
-                var workflow = CreateWorkflow();
-                Stage2WorkflowPlan plan = null;
-                await Task.Run(() =>
-                {
-                    Dispatcher.Invoke(() => SetProgress(16, "读取台账并比对上月模板"));
-                    plan = workflow.PlanStage2(options);
-                });
-
-                var preflight = plan.Preflight;
-                SetProgress(24, preflight.HasIssues ? "预检发现需要确认的变化" : "预检完成");
-                var confirmed = true;
-                if (plan.RequiresConfirmation)
-                {
-                    SetStatus("待确认", "WarningBrush", "StatusBusyBrush");
-                    SetStepNeedsConfirmation(0);
-                    AddLog("阶段二预检发现 " + preflight.Issues.Count + " 条需要确认的变化。", "阶段二");
-                    confirmed = ConfirmStage2Preflight(preflight, options);
-                    if (confirmed)
-                    {
-                        SetStatus("运行中", "WarningBrush", "StatusBusyBrush");
-                    }
-                }
-                else
-                {
-                    AddLog("阶段二预检通过，未发现需要确认的变化。", "阶段二");
-                }
-
-                if (!confirmed)
-                {
-                    var cancelled = workflow.CompleteStage2(plan, confirmed, LogThreadSafe);
-                    if (cancelled.WasCancelled)
-                    {
-                        AddLog("已取消阶段二生成。", "阶段二");
-                        ResetProgress("等待执行", "已取消阶段二");
-                        return;
-                    }
-                }
-
-                SetStepDone(0);
-                SetProgress(34, "读取人工整理后的台账");
-                Stage2WorkflowResult result = null;
-                await Task.Run(() =>
-                {
-                    result = workflow.CompleteStage2(plan, confirmed, LogThreadSafe);
-                });
-
-                if (result.WasCancelled)
-                {
-                    AddLog("已取消阶段二生成。", "阶段二");
-                    ResetProgress("等待执行", "已取消阶段二");
-                    return;
-                }
-
-                SetStepDone(1);
-                SetStepDone(2);
-                SetStepDone(3);
-                SetStepDone(4);
-                SetProgress(100, "阶段二执行完成");
-                LogSummary(result.SummaryLines);
-
-                SetStage2ResultSuccess(result.Report.ProxyGroups + " 个文件", result.Report.IntermediaryGroups + " 个文件", "1 个文件");
-                ShowCompletion("阶段二执行完成", "分表和汇总表已生成", options.OutputDirectory);
-            }
-            catch (Exception ex)
-            {
-                SetStepFailed();
-                SetProgress(100, "执行失败");
-                AddLog(ex.Message, "错误");
-                ShowError(ex);
-            }
-            finally
-            {
-                SetBusy(false);
-            }
-        }
-
-        private async Task RunChongqingStage2PreflightAsync()
-        {
-            ChongqingStage2Options options;
-            try
-            {
-                options = _inputController.CreateChongqingStage2Options();
-                SaveInputs();
-                var message = new StringBuilder();
-                message.AppendLine("结算月份：2026年" + options.Month + "月");
-                message.AppendLine("输出文件夹：");
-                message.AppendLine(options.OutputDirectory);
-                message.AppendLine();
-                message.AppendLine("将先读取重庆台账、代理/居间/退补模板和汇总表进行预检；确认后生成输出分表、退补表和汇总表副本。");
-                if (!ConfirmAction("确认重庆阶段二生成", "即将执行重庆阶段二生成", message.ToString(), "开始生成"))
-                {
-                    return;
-                }
-            }
-            catch (Exception ex)
-            {
-                ShowError(ex);
-                return;
-            }
-
-            SetBusy(true);
-            ResetResults();
-            ResetProgress("正在执行重庆阶段二...", "检查输入文件");
-            SetProgress(8, "检查输入文件");
-            SetStepRunning(0);
-            AddLog("开始执行重庆阶段二。", "重庆阶段二");
-
-            try
-            {
-                var workflow = CreateWorkflow();
-                ChongqingStage2WorkflowPlan plan = null;
-                await Task.Run(() =>
-                {
-                    Dispatcher.Invoke(() => SetProgress(16, "读取重庆台账和汇总表模板"));
-                    plan = workflow.PlanChongqingStage2(options);
-                });
-
-                var preflight = plan.Preflight;
-                SetProgress(60, preflight.HasIssues ? "预检发现需要确认的变化" : "预检完成");
-                var confirmed = true;
-                if (plan.RequiresConfirmation)
-                {
-                    SetStatus("待确认", "WarningBrush", "StatusBusyBrush");
-                    SetStepNeedsConfirmation(0);
-                    AddLog("重庆阶段二预检发现 " + preflight.Issues.Count + " 条需要确认的变化。", "重庆阶段二");
-                    confirmed = ConfirmChongqingStage2Preflight(preflight, options);
-                    if (confirmed)
-                    {
-                        SetStatus("运行中", "WarningBrush", "StatusBusyBrush");
-                    }
-                }
-                else
-                {
-                    AddLog("重庆阶段二预检通过，未发现需要确认的变化。", "重庆阶段二");
-                }
-
-                if (!confirmed)
-                {
-                    var cancelled = workflow.CompleteChongqingStage2(plan, confirmed, LogThreadSafe);
-                    if (cancelled.WasCancelled)
-                    {
-                        AddLog("已取消重庆阶段二生成。", "重庆阶段二");
-                        ResetProgress("等待执行", "已取消重庆阶段二");
-                        return;
-                    }
-                }
-
-                SetStepDone(0);
-                SetProgress(34, "生成重庆分表和汇总表");
-                ChongqingStage2WorkflowResult result = null;
-                await Task.Run(() =>
-                {
-                    result = workflow.CompleteChongqingStage2(plan, confirmed, LogThreadSafe);
-                });
-
-                if (result.WasCancelled)
-                {
-                    AddLog("已取消重庆阶段二生成。", "重庆阶段二");
-                    ResetProgress("等待执行", "已取消重庆阶段二");
-                    return;
-                }
-
-                SetStepDone(1);
-                SetStepDone(2);
-                SetStepDone(3);
-                SetStepDone(4);
-                SetProgress(100, "重庆阶段二执行完成");
-                LogSummary(result.Completed.SummaryLines);
-
-                SetStage2ResultSuccess(
-                    result.Report.ProxyGroups + " 个文件",
-                    "居间" + result.Report.IntermediaryGroups + "/退补" + result.Report.RefundGroups,
-                    "1 个文件");
-                ShowCompletion("重庆阶段二执行完成", "分表、退补表和汇总表已生成", options.OutputDirectory);
-            }
-            catch (Exception ex)
-            {
-                SetStepFailed();
-                SetProgress(100, "执行失败");
-                AddLog(ex.Message, "错误");
-                ShowError(ex);
-            }
-            finally
-            {
-                SetBusy(false);
-            }
+            await _stage2WorkflowController.RunAsync();
         }
 
         private async void RunEmployeeReward_Click(object sender, RoutedEventArgs e)
@@ -912,7 +706,7 @@ namespace HainanSettlementTool.Wpf
                         SetProgress(30, "读取售电结算台账");
                     });
 
-                    result = CreateWorkflow().RunEmployeeReward(options, LogThreadSafe);
+                    result = SettlementWorkflowFactory.Create().RunEmployeeReward(options, LogThreadSafe);
                 });
 
                 SetStepDone(1);
@@ -936,17 +730,6 @@ namespace HainanSettlementTool.Wpf
             {
                 SetBusy(false);
             }
-        }
-
-        private static SettlementWorkflow CreateWorkflow()
-        {
-            var gateway = new ClosedXmlSettlementExcelGateway();
-            return new SettlementWorkflow(
-                new HainanStage1Service(gateway),
-                new HainanStage2Service(gateway),
-                new EmployeeRewardService(gateway),
-                new ProvinceStage1Service(gateway),
-                new ChongqingStage2Service(gateway));
         }
 
         private void LogSummary(IEnumerable<string> summaryLines)
@@ -1018,38 +801,6 @@ namespace HainanSettlementTool.Wpf
             return ConfirmAction("确认生成员工电量奖励", "即将生成员工电量奖励", message, "开始生成");
         }
 
-        private bool ConfirmStage2Preflight(Stage2PreflightReport report, Stage2Options options)
-        {
-            var dialog = new Stage2PreflightWindow(report)
-            {
-                Owner = this
-            };
-            var confirmed = dialog.ShowDialog() == true;
-            if (confirmed)
-            {
-                options.SummarySubjectDecisions.Clear();
-                options.SummarySubjectDecisions.AddRange(dialog.SummarySubjectDecisions);
-            }
-
-            return confirmed;
-        }
-
-        private bool ConfirmChongqingStage2Preflight(ChongqingStage2PreflightReport report, ChongqingStage2Options options)
-        {
-            var dialog = new ChongqingStage2PreflightWindow(report)
-            {
-                Owner = this
-            };
-            var confirmed = dialog.ShowDialog() == true;
-            if (confirmed)
-            {
-                options.SummarySubjectDecisions.Clear();
-                options.SummarySubjectDecisions.AddRange(dialog.SummarySubjectDecisions);
-            }
-
-            return confirmed;
-        }
-
         private void SetBusy(bool busy)
         {
             _isBusy = busy;
@@ -1114,19 +865,9 @@ namespace HainanSettlementTool.Wpf
             _progressController.SetProgress(value, description);
         }
 
-        private void SetStepWaiting(int index)
-        {
-            _progressController.SetStepWaiting(index);
-        }
-
         private void SetStepRunning(int index)
         {
             _progressController.SetStepRunning(index);
-        }
-
-        private void SetStepNeedsConfirmation(int index)
-        {
-            _progressController.SetStepNeedsConfirmation(index);
         }
 
         private void SetStepDone(int index)
@@ -1144,11 +885,6 @@ namespace HainanSettlementTool.Wpf
             _resultController.UpdateResultVisibility(province);
         }
 
-        private void SetCompletionWaiting()
-        {
-            _resultController.ShowWaiting(_inputController.SelectedProvinceOrNull());
-        }
-
         private void ResetResults()
         {
             _resultController.Reset(_inputController.SelectedProvinceOrNull());
@@ -1162,16 +898,6 @@ namespace HainanSettlementTool.Wpf
         private void SetStage1ResultSuccess(string countText)
         {
             _resultController.SetStage1Success(countText);
-        }
-
-        private void SetStage2ResultSuccess(string proxyCountText, string intermediaryCountText, string summaryCountText)
-        {
-            _resultController.SetStage2Success(proxyCountText, intermediaryCountText, summaryCountText);
-        }
-
-        private void SetStage2PreflightSuccess()
-        {
-            _resultController.SetStage2PreflightSuccess();
         }
 
         private void SetEmployeeRewardResultSuccess(string personalCountText, string summaryCountText)

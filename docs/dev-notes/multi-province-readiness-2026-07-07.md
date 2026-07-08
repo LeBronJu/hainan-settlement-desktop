@@ -33,14 +33,14 @@
 - WPF `ProvinceUiProfile` 集中省份 UI 能力和文案。
 - Excel 内部 `IProvinceStage1Adapter` / `ChongqingProvinceStage1Adapter` seam。
 - `ProvinceStage1LedgerUpdateIssue.Kind` 稳定 issue code。
-- WPF 进度、结果、弹窗、路径选择、日志、输入状态和省份 UI 状态应用 controller 拆分。
+- WPF 进度、结果、弹窗、路径选择、日志、输入状态、省份 UI 状态应用和阶段二 workflow controller 拆分。
 - 省份显示名、Hainan Stage 1/2 服务名、组合型 ClosedXML gateway 等低风险命名中性化。
 - 重庆客户处理决定模型和 WPF 预检交互；海南阶段一保持原有自动新增流程。
 
 仍待处理：
 
 - `ProvinceStage1Service` 的“是否支持”和通用必填项仍偏重庆专用，第三个省接入前应继续收敛到省份能力 seam。
-- `MainWindow.xaml.cs` 仍保留 workflow 编排逻辑，后续可继续低风险拆分。
+- `MainWindow.xaml.cs` 仍保留阶段一和员工奖励 workflow 编排逻辑，后续可继续低风险拆分。
 - 项目名、命名空间、程序集名和发布包名暂不做一次性大迁移。
 - 完整 MVVM、持久化客户别名表、跨省通用阶段二抽象仍是 P2。
 
@@ -297,7 +297,8 @@ UI 约束：
 7. WPF 新增 `MainWindowLogController`，把运行日志追加、滚动、清空和保存文本文件行为从 `MainWindow.xaml.cs` 拆出。
 8. WPF 新增 `MainWindowInputController`，把路径载入/保存、阶段 options 构造、月份/省份选择读取和输入清空行为从 `MainWindow.xaml.cs` 拆出。
 9. WPF 新增 `MainWindowProvinceUiController`，把结算月份启停、省份 tab/panel 可见性、省份文案和省份按钮启停应用从 `MainWindow.xaml.cs` 拆出。
-10. Core/Excel/WPF 已实现重庆客户处理决定：`匹配已有台账客户`、`新增客户到台账`、`本月不写入`。海南阶段一保持原有稳定自动新增客户流程。
+10. WPF 新增 `MainWindowStage2WorkflowController` 和 `SettlementWorkflowFactory`，把海南/重庆阶段二 plan-confirm-complete 编排和 workflow 构造从 `MainWindow.xaml.cs` 拆出。
+11. Core/Excel/WPF 已实现重庆客户处理决定：`匹配已有台账客户`、`新增客户到台账`、`本月不写入`。海南阶段一保持原有稳定自动新增客户流程。
 
 未完成且仍建议后续处理：
 
@@ -311,7 +312,7 @@ UI 约束：
 1. 建立省份能力/界面 profile，先替换 WPF `UpdateProvinceUi` 里的省份文案和可见性判断。（已完成第一版）
 2. 建立 Excel 内部省份阶段一 adapter seam，把重庆 adapter 从 `ClosedXmlSettlementExcelGateway` 的 if 分支里独立出来。（已完成第一版）
 3. 给 `ProvinceStage1LedgerUpdateIssue` 增加稳定 code / kind，避免 UI 行为依赖中文分类。（已完成第一版）
-4. 继续按低风险边界拆 `MainWindow.xaml.cs`：进度/状态、结果摘要、确认/错误弹窗入口、文件/文件夹选择入口、日志控制、输入状态/options 构造和省份 UI 状态应用已拆出；后续应优先处理仍留在窗口里的 workflow 编排逻辑。
+4. 继续按低风险边界拆 `MainWindow.xaml.cs`：进度/状态、结果摘要、确认/错误弹窗入口、文件/文件夹选择入口、日志控制、输入状态/options 构造、省份 UI 状态应用和阶段二 workflow 已拆出；后续可处理仍留在窗口里的阶段一和员工奖励 workflow 编排逻辑。
 5. 继续海南命名中性化的低风险切片：先改内部多省份概念的类名/变量名/helper 名；保留已经准确表达海南专属规则的名称，不做根项目名、程序集名、命名空间和发布包名的大迁移。
 
 ### P1：第三个省接入时同步做

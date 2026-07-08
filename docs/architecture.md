@@ -32,6 +32,8 @@ WinForms 入口已冻结，不再承接新省份功能、体验优化、常规 b
 - 现代弹窗入口控制器
 - 文件/文件夹选择入口控制器
 - 输入状态、路径持久化和阶段 options 构造控制器
+- 阶段二 workflow 编排控制器
+- `SettlementWorkflow` 构造工厂
 - 现代 WPF 确认/错误弹窗和预检确认弹窗
 - 调用 `HainanStage1Service` / `HainanStage2Service` / `ProvinceStage1Service` / `ChongqingStage2Service`
 
