@@ -55,7 +55,7 @@ namespace HainanSettlementTool.Wpf
             TextBlock baseLedgerLabel,
             FrameworkElement baseLedgerRow,
             TextBlock powerLabel,
-            FrameworkElement powerRow,
+            FrameworkElement PowerInputRow,
             TextBlock rawDetailLabel,
             TextBlock referenceLedgerLabel,
             FrameworkElement referenceLedgerRow,
@@ -87,7 +87,7 @@ namespace HainanSettlementTool.Wpf
             _baseLedgerLabel = baseLedgerLabel;
             _baseLedgerRow = baseLedgerRow;
             _powerLabel = powerLabel;
-            _powerRow = powerRow;
+            _powerRow = PowerInputRow;
             _rawDetailLabel = rawDetailLabel;
             _referenceLedgerLabel = referenceLedgerLabel;
             _referenceLedgerRow = referenceLedgerRow;

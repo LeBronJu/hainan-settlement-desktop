@@ -8,11 +8,11 @@ namespace HainanSettlementTool.Excel
 {
     internal static class HainanStage2LedgerReader
     {
-        internal static void ReadLedgerRows(string ledgerPath, int month, List<DetailSettlementRow> proxyRows, List<DetailSettlementRow> interRows)
+        internal static void ReadLedgerRows(string ledgerPath, int month, List<HainanStage2DetailSettlementRow> proxyRows, List<HainanStage2DetailSettlementRow> interRows)
         {
             using (var workbook = new XLWorkbook(ledgerPath))
             {
-                var worksheet = ClosedXmlUtil.MainSheet(workbook);
+                var worksheet = HainanLedgerWorkbookUtil.MainSheet(workbook);
                 var start = FindMonthStartColumn(worksheet, month);
                 var lastRow = worksheet.LastRowUsed()?.RowNumber() ?? 1;
 
@@ -49,7 +49,7 @@ namespace HainanSettlementTool.Excel
             }
         }
 
-        private static DetailSettlementRow CreateDetailRow(
+        private static HainanStage2DetailSettlementRow CreateDetailRow(
             IXLWorksheet worksheet,
             int ledgerRow,
             int start,
@@ -69,7 +69,7 @@ namespace HainanSettlementTool.Excel
             var ledgerNet = HainanStage2ExcelUtil.GetNumeric(worksheet, ledgerRow, cachedNetColumn);
             var amounts = Stage2SettlementCalculator.CalculateAmounts(total, ratio, unitPrice, taxRate);
 
-            return new DetailSettlementRow
+            return new HainanStage2DetailSettlementRow
             {
                 LedgerRow = ledgerRow,
                 Customer = customer,
@@ -96,7 +96,7 @@ namespace HainanSettlementTool.Excel
             };
         }
 
-        private static bool HasSettlementAmount(DetailSettlementRow row)
+        private static bool HasSettlementAmount(HainanStage2DetailSettlementRow row)
         {
             return Math.Abs(row.LedgerNet) > Stage2SettlementCalculator.AmountTolerance
                 || Math.Abs(row.CalculatedNet) > Stage2SettlementCalculator.AmountTolerance;

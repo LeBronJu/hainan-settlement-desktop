@@ -5,10 +5,10 @@ namespace HainanSettlementTool.Core.Services
 {
     public interface IHainanStage1ExcelGateway
     {
-        List<PowerRow> ReadPowerRows(string powerPath);
-        List<PowerRow> ReadRawPowerRows(string rawDetailPath);
+        List<HainanPowerRow> ReadPowerRows(string powerPath);
+        List<HainanPowerRow> ReadRawPowerRows(string rawDetailPath);
         Dictionary<string, string> ReadCustomerCodes(string rawDetailPath);
-        void WritePowerWorkbook(IEnumerable<PowerRow> rows, string outputPath);
-        Stage1Report UpdateLedger(Stage1Options options);
+        void WritePowerWorkbook(IEnumerable<HainanPowerRow> rows, string outputPath);
+        HainanStage1Report UpdateLedger(HainanStage1Options options);
     }
 }

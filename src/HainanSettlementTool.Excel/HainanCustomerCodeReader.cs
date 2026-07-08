@@ -4,9 +4,9 @@ using System.Linq;
 
 namespace HainanSettlementTool.Excel
 {
-    internal sealed class CustomerCodeReader
+    internal sealed class HainanCustomerCodeReader
     {
-        private readonly RawDetailRowReader _rowReader = new RawDetailRowReader();
+        private readonly HainanRawDetailRowReader _rowReader = new HainanRawDetailRowReader();
 
         public Dictionary<string, string> Read(string rawDetailPath)
         {
@@ -16,12 +16,12 @@ namespace HainanSettlementTool.Excel
                 return result;
             }
 
-            if (!RawDetailRowReader.IsSupported(rawDetailPath))
+            if (!HainanRawDetailRowReader.IsSupported(rawDetailPath))
             {
                 return result;
             }
 
-            foreach (var group in _rowReader.Read(rawDetailPath, RawDetailSheetSelection.CustomerCodeSheets)
+            foreach (var group in _rowReader.Read(rawDetailPath, HainanRawDetailSheetSelection.CustomerCodeSheets)
                 .Where(row => row.Key.Length > 0 && row.CustomerCode.Length > 0)
                 .GroupBy(row => row.Key))
             {

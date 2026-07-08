@@ -131,7 +131,7 @@ namespace HainanSettlementTool.Wpf
                 BaseLedgerLabel,
                 BaseLedgerRow,
                 PowerLabel,
-                PowerRow,
+                PowerInputRow,
                 RawDetailLabel,
                 ReferenceLedgerLabel,
                 ReferenceLedgerRow,
@@ -387,7 +387,7 @@ namespace HainanSettlementTool.Wpf
                     await _hainanStage1WorkflowController.RunLedgerUpdateAsync();
                     return;
                 case ProvinceCode.Chongqing:
-                    await RunProvinceStage1LedgerUpdateAsync();
+                    await RunChongqingStage1LedgerUpdateAsync();
                     return;
                 default:
                     ShowErrorMessage(profile.DisplayName + "暂未接入阶段一台账更新。");
@@ -417,7 +417,7 @@ namespace HainanSettlementTool.Wpf
                     await _hainanStage1WorkflowController.CleanPowerAsync();
                     return;
                 case ProvinceCode.Chongqing:
-                    await RunProvinceStage1CleanPowerAsync();
+                    await RunChongqingStage1CleanPowerAsync();
                     return;
                 default:
                     ShowErrorMessage(profile.DisplayName + "暂未接入只清洗电量数据。");
@@ -426,7 +426,7 @@ namespace HainanSettlementTool.Wpf
 
         }
 
-        private async Task RunProvinceStage1CleanPowerAsync()
+        private async Task RunChongqingStage1CleanPowerAsync()
         {
             ProvinceStage1CleanOptions options;
             try
@@ -491,7 +491,7 @@ namespace HainanSettlementTool.Wpf
             }
         }
 
-        private async Task RunProvinceStage1LedgerUpdateAsync()
+        private async Task RunChongqingStage1LedgerUpdateAsync()
         {
             ProvinceStage1LedgerUpdateOptions options;
             try
@@ -523,7 +523,7 @@ namespace HainanSettlementTool.Wpf
                 });
 
                 SetProgress(30, plan.RequiresConfirmation ? "预检发现需要确认的项目" : "预检完成");
-                if (!ConfirmProvinceStage1LedgerUpdate(options, plan))
+                if (!ConfirmChongqingStage1LedgerUpdate(options, plan))
                 {
                     AddLog("已取消重庆阶段一台账更新。", "重庆");
                     ResetProgress("等待执行", "已取消重庆台账更新");
@@ -774,7 +774,7 @@ namespace HainanSettlementTool.Wpf
             return _dialogController.ConfirmAction(title, heading, message, primaryButtonText);
         }
 
-        private bool ConfirmProvinceStage1LedgerUpdate(ProvinceStage1LedgerUpdateOptions options, ProvinceStage1LedgerUpdatePlan plan)
+        private bool ConfirmChongqingStage1LedgerUpdate(ProvinceStage1LedgerUpdateOptions options, ProvinceStage1LedgerUpdatePlan plan)
         {
             var message = new StringBuilder();
             message.AppendLine("结算月份：2026年" + options.Month + "月");

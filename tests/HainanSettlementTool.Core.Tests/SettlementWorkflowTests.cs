@@ -19,17 +19,17 @@ namespace HainanSettlementTool.Core.Tests
             {
                 var gateway = new FakeGateway();
                 var workflow = CreateWorkflow(gateway);
-                var options = CreateStage1Options(root);
+                var options = CreateHainanStage1Options(root);
 
-                var result = workflow.RunStage1(options, null);
+                var result = workflow.RunHainanStage1(options, null);
 
-                Assert.AreSame(gateway.Stage1Report, result.Report);
+                Assert.AreSame(gateway.HainanStage1Report, result.Report);
                 CollectionAssert.AreEqual(
                     new[]
                     {
                         "阶段1完成。",
-                        "输出台账：" + gateway.Stage1Report.Output,
-                        "报告：" + gateway.Stage1Report.ReportPath
+                        "输出台账：" + gateway.HainanStage1Report.Output,
+                        "报告：" + gateway.HainanStage1Report.ReportPath
                     },
                     result.SummaryLines.ToArray());
             }
@@ -50,7 +50,7 @@ namespace HainanSettlementTool.Core.Tests
                 var rawDetailPath = CreateFile(root, "raw.csv");
                 var outputPath = Path.Combine(root, "out", "clean.xlsx");
 
-                var result = workflow.CleanPowerData(rawDetailPath, outputPath, null);
+                var result = workflow.CleanHainanPowerData(rawDetailPath, outputPath, null);
 
                 Assert.AreEqual(outputPath, result.Report.OutputPath);
                 CollectionAssert.AreEqual(
@@ -385,9 +385,9 @@ namespace HainanSettlementTool.Core.Tests
                 new ChongqingStage2Service(gateway));
         }
 
-        private static Stage1Options CreateStage1Options(string root)
+        private static HainanStage1Options CreateHainanStage1Options(string root)
         {
-            return new Stage1Options
+            return new HainanStage1Options
             {
                 Month = 4,
                 BaseLedgerPath = CreateFile(root, "base.xlsx"),
@@ -475,7 +475,7 @@ namespace HainanSettlementTool.Core.Tests
 
             public int GenerateChongqingSettlementCalls { get; private set; }
 
-            public readonly Stage1Report Stage1Report = new Stage1Report
+            public readonly HainanStage1Report HainanStage1Report = new HainanStage1Report
             {
                 Output = "out-ledger.xlsx",
                 ReportPath = "stage1-report.json"
@@ -543,17 +543,17 @@ namespace HainanSettlementTool.Core.Tests
                 TotalPower = 12.3456
             };
 
-            public List<PowerRow> ReadPowerRows(string powerPath)
+            public List<HainanPowerRow> ReadPowerRows(string powerPath)
             {
-                return new List<PowerRow>();
+                return new List<HainanPowerRow>();
             }
 
-            public List<PowerRow> ReadRawPowerRows(string rawDetailPath)
+            public List<HainanPowerRow> ReadRawPowerRows(string rawDetailPath)
             {
-                return new List<PowerRow>
+                return new List<HainanPowerRow>
                 {
-                    new PowerRow { Name = "A", Key = "A", Total = 10 },
-                    new PowerRow { Name = "B", Key = "B", Total = 2.3456 }
+                    new HainanPowerRow { Name = "A", Key = "A", Total = 10 },
+                    new HainanPowerRow { Name = "B", Key = "B", Total = 2.3456 }
                 };
             }
 
@@ -562,13 +562,13 @@ namespace HainanSettlementTool.Core.Tests
                 return new Dictionary<string, string>();
             }
 
-            public void WritePowerWorkbook(IEnumerable<PowerRow> rows, string outputPath)
+            public void WritePowerWorkbook(IEnumerable<HainanPowerRow> rows, string outputPath)
             {
             }
 
-            public Stage1Report UpdateLedger(Stage1Options options)
+            public HainanStage1Report UpdateLedger(HainanStage1Options options)
             {
-                return Stage1Report;
+                return HainanStage1Report;
             }
 
             public ProvinceStage1CleanResult CleanPowerData(ProvinceStage1CleanOptions options)

@@ -1,6 +1,6 @@
 namespace HainanSettlementTool.Core.Models
 {
-    public sealed class PowerRow
+    public sealed class HainanPowerRow
     {
         public int SourceRow { get; set; }
         public string Name { get; set; }

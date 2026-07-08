@@ -11,8 +11,8 @@ namespace HainanSettlementTool.Excel
     {
         internal static HainanStage2Report CreateReport(
             HainanStage2Options options,
-            IList<DetailSettlementRow> proxyRows,
-            IList<DetailSettlementRow> interRows,
+            IList<HainanStage2DetailSettlementRow> proxyRows,
+            IList<HainanStage2DetailSettlementRow> interRows,
             IList<GroupSettlementTotal> totals,
             string summaryPath,
             IList<string> warnings,

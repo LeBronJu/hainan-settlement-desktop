@@ -1,6 +1,6 @@
 namespace HainanSettlementTool.Core.Models
 {
-    public sealed class RowMatchReport
+    public sealed class HainanStage1RowMatchReport
     {
         public string Name { get; set; }
         public int TargetRow { get; set; }

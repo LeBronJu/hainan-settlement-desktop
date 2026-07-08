@@ -7,15 +7,15 @@ using HainanSettlementTool.Core.Services;
 
 namespace HainanSettlementTool.Excel
 {
-    internal sealed class PowerWorkbookReader
+    internal sealed class HainanPowerWorkbookReader
     {
-        public List<PowerRow> Read(string powerPath)
+        public List<HainanPowerRow> Read(string powerPath)
         {
             using (var workbook = new XLWorkbook(powerPath))
             {
                 var worksheet = workbook.Worksheets.First();
                 var lastRow = worksheet.LastRowUsed()?.RowNumber() ?? 1;
-                var rows = new List<PowerRow>();
+                var rows = new List<HainanPowerRow>();
 
                 for (var row = 2; row <= lastRow; row++)
                 {
@@ -25,7 +25,7 @@ namespace HainanSettlementTool.Excel
                         continue;
                     }
 
-                    rows.Add(new PowerRow
+                    rows.Add(new HainanPowerRow
                     {
                         SourceRow = row,
                         Name = name,
@@ -42,14 +42,14 @@ namespace HainanSettlementTool.Excel
             }
         }
 
-        public void Write(IEnumerable<PowerRow> rows, string outputPath)
+        public void Write(IEnumerable<HainanPowerRow> rows, string outputPath)
         {
             FileAccessGuard.RequireWritableWorkbook(outputPath, "电量处理表输出文件");
 
             var grouped = rows
                 .Where(row => !string.IsNullOrWhiteSpace(row.Key))
                 .GroupBy(row => row.Key)
-                .Select(group => new PowerRow
+                .Select(group => new HainanPowerRow
                 {
                     Name = group.First().Name,
                     Key = group.Key,

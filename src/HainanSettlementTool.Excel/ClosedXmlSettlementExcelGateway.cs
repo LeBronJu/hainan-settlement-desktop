@@ -7,10 +7,10 @@ namespace HainanSettlementTool.Excel
 {
     public sealed class ClosedXmlSettlementExcelGateway : IHainanStage1ExcelGateway, IHainanStage2ExcelGateway, IHainanEmployeePowerRewardExcelGateway, IProvinceStage1ExcelGateway, IChongqingStage2ExcelGateway
     {
-        private readonly PowerWorkbookReader _powerWorkbookReader = new PowerWorkbookReader();
-        private readonly RawDetailReader _rawDetailReader = new RawDetailReader();
-        private readonly CustomerCodeReader _customerCodeReader = new CustomerCodeReader();
-        private readonly LedgerStage1Updater _ledgerUpdater = new LedgerStage1Updater();
+        private readonly HainanPowerWorkbookReader _hainanPowerWorkbookReader = new HainanPowerWorkbookReader();
+        private readonly HainanRawDetailReader _hainanRawDetailReader = new HainanRawDetailReader();
+        private readonly HainanCustomerCodeReader _hainanCustomerCodeReader = new HainanCustomerCodeReader();
+        private readonly HainanStage1LedgerUpdater _hainanStage1LedgerUpdater = new HainanStage1LedgerUpdater();
         private readonly HainanStage2SettlementGenerator _hainanStage2Generator = new HainanStage2SettlementGenerator();
         private readonly ChongqingStage2SettlementGenerator _chongqingStage2Generator = new ChongqingStage2SettlementGenerator();
         private readonly HainanEmployeePowerRewardGenerator _hainanEmployeePowerRewardGenerator = new HainanEmployeePowerRewardGenerator();
@@ -24,29 +24,29 @@ namespace HainanSettlementTool.Excel
             }.ToDictionary(adapter => adapter.Province);
         }
 
-        public List<PowerRow> ReadPowerRows(string powerPath)
+        public List<HainanPowerRow> ReadPowerRows(string powerPath)
         {
-            return _powerWorkbookReader.Read(powerPath);
+            return _hainanPowerWorkbookReader.Read(powerPath);
         }
 
-        public List<PowerRow> ReadRawPowerRows(string rawDetailPath)
+        public List<HainanPowerRow> ReadRawPowerRows(string rawDetailPath)
         {
-            return _rawDetailReader.Read(rawDetailPath);
+            return _hainanRawDetailReader.Read(rawDetailPath);
         }
 
         public Dictionary<string, string> ReadCustomerCodes(string rawDetailPath)
         {
-            return _customerCodeReader.Read(rawDetailPath);
+            return _hainanCustomerCodeReader.Read(rawDetailPath);
         }
 
-        public void WritePowerWorkbook(IEnumerable<PowerRow> rows, string outputPath)
+        public void WritePowerWorkbook(IEnumerable<HainanPowerRow> rows, string outputPath)
         {
-            _powerWorkbookReader.Write(rows, outputPath);
+            _hainanPowerWorkbookReader.Write(rows, outputPath);
         }
 
-        public Stage1Report UpdateLedger(Stage1Options options)
+        public HainanStage1Report UpdateLedger(HainanStage1Options options)
         {
-            return _ledgerUpdater.Update(options, this);
+            return _hainanStage1LedgerUpdater.Update(options, this);
         }
 
         public ProvinceStage1CleanResult CleanPowerData(ProvinceStage1CleanOptions options)

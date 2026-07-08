@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace HainanSettlementTool.Core.Models
 {
-    public sealed class Stage1Report
+    public sealed class HainanStage1Report
     {
         public int Month { get; set; }
         public string SourceLedger { get; set; }
@@ -19,10 +19,10 @@ namespace HainanSettlementTool.Core.Models
         public int RawDetailCodeRows { get; set; }
         public double MonthTotal { get; set; }
 
-        public List<RowMatchReport> NewCustomers { get; } = new List<RowMatchReport>();
-        public List<RowMatchReport> MatchedCustomers { get; } = new List<RowMatchReport>();
-        public List<RowMatchReport> CopiedFromReference { get; } = new List<RowMatchReport>();
-        public List<RowMatchReport> CodeFilledFromRaw { get; } = new List<RowMatchReport>();
+        public List<HainanStage1RowMatchReport> NewCustomers { get; } = new List<HainanStage1RowMatchReport>();
+        public List<HainanStage1RowMatchReport> MatchedCustomers { get; } = new List<HainanStage1RowMatchReport>();
+        public List<HainanStage1RowMatchReport> CopiedFromReference { get; } = new List<HainanStage1RowMatchReport>();
+        public List<HainanStage1RowMatchReport> CodeFilledFromRaw { get; } = new List<HainanStage1RowMatchReport>();
         public List<string> MissingReference { get; } = new List<string>();
         public List<string> MissingCodes { get; } = new List<string>();
         public List<string> MissingManualInfo { get; } = new List<string>();

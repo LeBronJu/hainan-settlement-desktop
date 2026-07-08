@@ -691,10 +691,10 @@ namespace HainanSettlementTool.WinForms
 
         private async Task RunStage1Async()
         {
-            Stage1Options options;
+            HainanStage1Options options;
             try
             {
-                options = CreateOptions();
+                options = CreateHainanStage1Options();
                 if (!ConfirmRun("阶段一", options.Month, options.OutputDirectory))
                 {
                     return;
@@ -716,7 +716,7 @@ namespace HainanSettlementTool.WinForms
                 Log("开始阶段1，请不要关闭应用窗口。");
                 await Task.Run(() =>
                 {
-                    var result = CreateWorkflow().RunStage1(options, LogThreadSafe);
+                    var result = CreateWorkflow().RunHainanStage1(options, LogThreadSafe);
                     LogSummary(result.SummaryLines);
                 });
             }
@@ -767,7 +767,7 @@ namespace HainanSettlementTool.WinForms
                 Log("开始清洗电量数据。");
                 await Task.Run(() =>
                 {
-                    var result = CreateWorkflow().CleanPowerData(rawDetailPath, outputPath, LogThreadSafe);
+                    var result = CreateWorkflow().CleanHainanPowerData(rawDetailPath, outputPath, LogThreadSafe);
                     LogSummary(result.SummaryLines);
                 });
             }
@@ -837,7 +837,7 @@ namespace HainanSettlementTool.WinForms
             }
         }
 
-        private Stage1Options CreateOptions()
+        private HainanStage1Options CreateHainanStage1Options()
         {
             var powerPath = _power.Text.Trim();
             var rawDetailPath = _rawDetail.Text.Trim();
@@ -847,7 +847,7 @@ namespace HainanSettlementTool.WinForms
                 _power.Text = powerPath;
             }
 
-            return new Stage1Options
+            return new HainanStage1Options
             {
                 Month = SelectedMonth(),
                 BaseLedgerPath = _baseLedger.Text.Trim(),

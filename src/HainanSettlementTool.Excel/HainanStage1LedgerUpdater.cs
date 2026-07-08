@@ -8,15 +8,15 @@ using Newtonsoft.Json;
 
 namespace HainanSettlementTool.Excel
 {
-    internal sealed class LedgerStage1Updater
+    internal sealed class HainanStage1LedgerUpdater
     {
-        public Stage1Report Update(Stage1Options options, IHainanStage1ExcelGateway gateway)
+        public HainanStage1Report Update(HainanStage1Options options, IHainanStage1ExcelGateway gateway)
         {
             Directory.CreateDirectory(options.OutputDirectory);
             var outputPath = Path.Combine(
                 options.OutputDirectory,
                 string.IsNullOrWhiteSpace(options.OutputLedgerName)
-                    ? ClosedXmlUtil.DefaultLedgerOutputName(options.BaseLedgerPath, options.Month)
+                    ? HainanLedgerWorkbookUtil.DefaultStage1OutputLedgerName(options.BaseLedgerPath, options.Month)
                     : options.OutputLedgerName);
             FileAccessGuard.RequireWritableWorkbook(outputPath, "输出台账");
             File.Copy(options.BaseLedgerPath, outputPath, true);
@@ -27,7 +27,7 @@ namespace HainanSettlementTool.Excel
 
             using (var workbook = new XLWorkbook(outputPath))
             {
-                var worksheet = ClosedXmlUtil.MainSheet(workbook);
+                var worksheet = HainanLedgerWorkbookUtil.MainSheet(workbook);
                 var ledgerMap = LedgerRowMap(worksheet);
                 var refWorkbook = !string.IsNullOrWhiteSpace(options.ReferenceLedgerPath) && File.Exists(options.ReferenceLedgerPath)
                     ? new XLWorkbook(options.ReferenceLedgerPath)
@@ -35,12 +35,12 @@ namespace HainanSettlementTool.Excel
 
                 try
                 {
-                    var refSheet = refWorkbook == null ? null : ClosedXmlUtil.MainSheet(refWorkbook);
+                    var refSheet = refWorkbook == null ? null : HainanLedgerWorkbookUtil.MainSheet(refWorkbook);
                     var refMap = refSheet == null ? new Dictionary<string, int>() : LedgerRowMap(refSheet);
                     var lastDataRow = ledgerMap.Values.Max();
                     var nextRow = lastDataRow + 1;
                     var nextSeq = ledgerMap.Values.Select(row => (int)TextUtil.N(worksheet.Cell(row, 1).Value)).DefaultIfEmpty(0).Max() + 1;
-                    var targetStart = LedgerLayout.MonthStartColumn(options.Month);
+                    var targetStart = HainanLedgerLayout.MonthStartColumn(options.Month);
                     var targetMonthAlreadyPresent = TextUtil.S(worksheet.Cell(1, targetStart).GetFormattedString()) == options.Month + "月";
 
                     if (!targetMonthAlreadyPresent)
@@ -57,7 +57,7 @@ namespace HainanSettlementTool.Excel
                         if (foundExisting)
                         {
                             targetRow = ledgerMap[item.Key];
-                            report.MatchedCustomers.Add(new RowMatchReport { Name = item.Name, TargetRow = targetRow, Total = item.Total });
+                            report.MatchedCustomers.Add(new HainanStage1RowMatchReport { Name = item.Name, TargetRow = targetRow, Total = item.Total });
                         }
                         else
                         {
@@ -71,7 +71,7 @@ namespace HainanSettlementTool.Excel
                             worksheet.Cell(targetRow, 1).Value = nextSeq++;
                             worksheet.Cell(targetRow, 3).Value = item.Name;
                             ledgerMap[item.Key] = targetRow;
-                            report.NewCustomers.Add(new RowMatchReport { Name = item.Name, TargetRow = targetRow, Total = item.Total });
+                            report.NewCustomers.Add(new HainanStage1RowMatchReport { Name = item.Name, TargetRow = targetRow, Total = item.Total });
                         }
 
                         CopyReferenceIfNeeded(options, worksheet, refSheet, refMap, item, foundExisting, targetRow, report);
@@ -92,16 +92,16 @@ namespace HainanSettlementTool.Excel
             }
         }
 
-        private static Stage1Report CreateReport(
-            Stage1Options options,
+        private static HainanStage1Report CreateReport(
+            HainanStage1Options options,
             string outputPath,
             string reportPath,
             int targetStart,
             bool targetMonthAlreadyPresent,
-            IList<PowerRow> powerRows,
+            IList<HainanPowerRow> powerRows,
             IDictionary<string, string> rawCodeMap)
         {
-            return new Stage1Report
+            return new HainanStage1Report
             {
                 Month = options.Month,
                 SourceLedger = options.BaseLedgerPath,
@@ -110,7 +110,7 @@ namespace HainanSettlementTool.Excel
                 ReferenceLedger = options.ReferenceLedgerPath,
                 Output = outputPath,
                 ReportPath = reportPath,
-                TargetBlock = ClosedXmlUtil.ColumnLetter(targetStart) + ":" + ClosedXmlUtil.ColumnLetter(targetStart + LedgerLayout.MonthBlockWidth - 1),
+                TargetBlock = ClosedXmlUtil.ColumnLetter(targetStart) + ":" + ClosedXmlUtil.ColumnLetter(targetStart + HainanLedgerLayout.MonthBlockWidth - 1),
                 TargetMonthAlreadyPresent = targetMonthAlreadyPresent,
                 PowerRows = powerRows.Count,
                 RawDetailCodeRows = rawCodeMap.Count,
@@ -119,14 +119,14 @@ namespace HainanSettlementTool.Excel
         }
 
         private static void CopyReferenceIfNeeded(
-            Stage1Options options,
+            HainanStage1Options options,
             IXLWorksheet output,
             IXLWorksheet reference,
             IDictionary<string, int> referenceMap,
-            PowerRow item,
+            HainanPowerRow item,
             bool foundExisting,
             int targetRow,
-            Stage1Report report)
+            HainanStage1Report report)
         {
             if (reference == null)
             {
@@ -143,7 +143,7 @@ namespace HainanSettlementTool.Excel
                     output.Cell(targetRow, 1).Value = targetRow - 3;
                 }
                 output.Cell(targetRow, 3).Value = item.Name;
-                report.CopiedFromReference.Add(new RowMatchReport { Name = item.Name, TargetRow = targetRow, ReferenceRow = refRow });
+                report.CopiedFromReference.Add(new HainanStage1RowMatchReport { Name = item.Name, TargetRow = targetRow, ReferenceRow = refRow });
             }
             else if (!foundExisting)
             {
@@ -154,9 +154,9 @@ namespace HainanSettlementTool.Excel
         private static void FillCodeIfMissing(
             IXLWorksheet worksheet,
             IDictionary<string, string> rawCodeMap,
-            PowerRow item,
+            HainanPowerRow item,
             int targetRow,
-            Stage1Report report)
+            HainanStage1Report report)
         {
             if (!string.IsNullOrWhiteSpace(TextUtil.S(worksheet.Cell(targetRow, 2).GetFormattedString())))
             {
@@ -167,7 +167,7 @@ namespace HainanSettlementTool.Excel
             if (rawCodeMap.TryGetValue(item.Key, out code))
             {
                 worksheet.Cell(targetRow, 2).Value = code;
-                report.CodeFilledFromRaw.Add(new RowMatchReport { Name = item.Name, TargetRow = targetRow, Code = code });
+                report.CodeFilledFromRaw.Add(new HainanStage1RowMatchReport { Name = item.Name, TargetRow = targetRow, Code = code });
             }
             else
             {
@@ -175,7 +175,7 @@ namespace HainanSettlementTool.Excel
             }
         }
 
-        private static void WriteMonthPower(IXLWorksheet worksheet, int targetStart, int targetRow, PowerRow item)
+        private static void WriteMonthPower(IXLWorksheet worksheet, int targetStart, int targetRow, HainanPowerRow item)
         {
             worksheet.Cell(targetRow, targetStart + 0).Value = item.Total;
             worksheet.Cell(targetRow, targetStart + 1).Value = item.Sharp;
@@ -187,8 +187,8 @@ namespace HainanSettlementTool.Excel
         private static void FillPostWriteChecks(
             IXLWorksheet worksheet,
             IDictionary<string, int> ledgerMap,
-            IList<PowerRow> powerRows,
-            Stage1Report report)
+            IList<HainanPowerRow> powerRows,
+            HainanStage1Report report)
         {
             foreach (var group in powerRows.GroupBy(row => row.Key).Where(group => group.Count() > 1))
             {
@@ -226,14 +226,14 @@ namespace HainanSettlementTool.Excel
 
         private static void CopyMonthBlock(IXLWorksheet worksheet, int sourceMonth, int targetMonth)
         {
-            var sourceStart = LedgerLayout.MonthStartColumn(sourceMonth);
-            var targetStart = LedgerLayout.MonthStartColumn(targetMonth);
+            var sourceStart = HainanLedgerLayout.MonthStartColumn(sourceMonth);
+            var targetStart = HainanLedgerLayout.MonthStartColumn(targetMonth);
             var lastRow = worksheet.LastRowUsed()?.RowNumber() ?? 1;
-            var sourceRange = worksheet.Range(1, sourceStart, lastRow, sourceStart + LedgerLayout.MonthBlockWidth - 1);
+            var sourceRange = worksheet.Range(1, sourceStart, lastRow, sourceStart + HainanLedgerLayout.MonthBlockWidth - 1);
             sourceRange.CopyTo(worksheet.Cell(1, targetStart));
             worksheet.Cell(1, targetStart).Value = targetMonth + "月";
 
-            for (var offset = 0; offset < LedgerLayout.MonthBlockWidth; offset++)
+            for (var offset = 0; offset < HainanLedgerLayout.MonthBlockWidth; offset++)
             {
                 worksheet.Column(targetStart + offset).Width = worksheet.Column(sourceStart + offset).Width;
                 if (worksheet.Column(sourceStart + offset).IsHidden)
@@ -249,11 +249,11 @@ namespace HainanSettlementTool.Excel
 
         private static void CopyRowTemplate(IXLWorksheet worksheet, int styleTemplateRow, int targetRow, int month)
         {
-            var maxCol = LedgerLayout.MonthStartColumn(month) + LedgerLayout.MonthBlockWidth - 1;
+            var maxCol = HainanLedgerLayout.MonthStartColumn(month) + HainanLedgerLayout.MonthBlockWidth - 1;
             worksheet.Row(styleTemplateRow).CopyTo(worksheet.Row(targetRow));
             for (var col = 1; col <= maxCol; col++)
             {
-                if (col == 23 || col == 24 || col == 25 || col == 27 || col >= LedgerLayout.MonthStartColumn(month) + 5)
+                if (col == 23 || col == 24 || col == 25 || col == 27 || col >= HainanLedgerLayout.MonthStartColumn(month) + 5)
                 {
                     continue;
                 }
@@ -263,7 +263,7 @@ namespace HainanSettlementTool.Excel
 
         private static void CopyBaseInfoFromReference(IXLWorksheet output, IXLWorksheet reference, int outputRow, int referenceRow)
         {
-            for (var col = LedgerLayout.BaseStartColumn; col <= LedgerLayout.BaseEndColumn; col++)
+            for (var col = HainanLedgerLayout.BaseStartColumn; col <= HainanLedgerLayout.BaseEndColumn; col++)
             {
                 reference.Cell(referenceRow, col).CopyTo(output.Cell(outputRow, col));
             }

@@ -120,7 +120,7 @@ namespace HainanSettlementTool.Wpf
                 || !string.IsNullOrWhiteSpace(snapshot.RewardLedgerPath);
         }
 
-        public Stage1Options CreateStage1Options()
+        public HainanStage1Options CreateHainanStage1Options()
         {
             var powerPath = _powerBox.Text.Trim();
             var rawDetailPath = _rawDetailBox.Text.Trim();
@@ -130,7 +130,7 @@ namespace HainanSettlementTool.Wpf
                 _powerBox.Text = powerPath;
             }
 
-            return new Stage1Options
+            return new HainanStage1Options
             {
                 Month = SelectedMonth(),
                 BaseLedgerPath = _baseLedgerBox.Text.Trim(),

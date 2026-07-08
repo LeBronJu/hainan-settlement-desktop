@@ -1,6 +1,6 @@
 namespace HainanSettlementTool.Core.Models
 {
-    public sealed class PowerCleanReport
+    public sealed class HainanPowerCleanReport
     {
         public string RawDetailPath { get; set; }
         public string OutputPath { get; set; }

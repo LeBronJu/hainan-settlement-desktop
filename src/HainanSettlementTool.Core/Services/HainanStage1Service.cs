@@ -15,7 +15,7 @@ namespace HainanSettlementTool.Core.Services
             _excel = excel;
         }
 
-        public Stage1Report Run(Stage1Options options, Action<string> log)
+        public HainanStage1Report Run(HainanStage1Options options, Action<string> log)
         {
             Validate(options);
             Directory.CreateDirectory(options.OutputDirectory);
@@ -23,7 +23,7 @@ namespace HainanSettlementTool.Core.Services
             if (!string.IsNullOrWhiteSpace(options.RawDetailPath))
             {
                 log?.Invoke("正在清洗原始零售侧明细，生成电量处理表。");
-                CleanPowerData(options.RawDetailPath, options.PowerPath, log);
+                CleanHainanPowerData(options.RawDetailPath, options.PowerPath, log);
             }
             else if (!File.Exists(options.PowerPath))
             {
@@ -34,7 +34,7 @@ namespace HainanSettlementTool.Core.Services
             return _excel.UpdateLedger(options);
         }
 
-        public PowerCleanReport CleanPowerData(string rawDetailPath, string outputPath, Action<string> log)
+        public HainanPowerCleanReport CleanHainanPowerData(string rawDetailPath, string outputPath, Action<string> log)
         {
             ValidateCleanPower(rawDetailPath, outputPath);
             var outputDirectory = Path.GetDirectoryName(outputPath);
@@ -56,7 +56,7 @@ namespace HainanSettlementTool.Core.Services
                 })
                 .ToList();
 
-            return new PowerCleanReport
+            return new HainanPowerCleanReport
             {
                 RawDetailPath = rawDetailPath,
                 OutputPath = outputPath,
@@ -66,7 +66,7 @@ namespace HainanSettlementTool.Core.Services
             };
         }
 
-        private static void Validate(Stage1Options options)
+        private static void Validate(HainanStage1Options options)
         {
             if (options == null)
             {

@@ -1,6 +1,6 @@
 namespace HainanSettlementTool.Excel
 {
-    internal sealed class RawDetailRow
+    internal sealed class HainanRawDetailRow
     {
         public int SourceRow { get; set; }
         public string CustomerCode { get; set; }

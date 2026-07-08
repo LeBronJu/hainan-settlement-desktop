@@ -13,8 +13,8 @@ namespace HainanSettlementTool.Excel
         public HainanStage2Report Generate(HainanStage2Options options)
         {
             Directory.CreateDirectory(options.OutputDirectory);
-            var proxyRows = new List<DetailSettlementRow>();
-            var interRows = new List<DetailSettlementRow>();
+            var proxyRows = new List<HainanStage2DetailSettlementRow>();
+            var interRows = new List<HainanStage2DetailSettlementRow>();
             HainanStage2LedgerReader.ReadLedgerRows(options.LedgerPath, options.Month, proxyRows, interRows);
 
             var missingOwners = proxyRows
@@ -42,8 +42,8 @@ namespace HainanSettlementTool.Excel
 
         public HainanStage2PreflightReport Analyze(HainanStage2Options options)
         {
-            var proxyRows = new List<DetailSettlementRow>();
-            var interRows = new List<DetailSettlementRow>();
+            var proxyRows = new List<HainanStage2DetailSettlementRow>();
+            var interRows = new List<HainanStage2DetailSettlementRow>();
             HainanStage2LedgerReader.ReadLedgerRows(options.LedgerPath, options.Month, proxyRows, interRows);
 
             var report = new HainanStage2PreflightReport
@@ -54,7 +54,7 @@ namespace HainanSettlementTool.Excel
             return report;
         }
 
-        private static List<HainanStage2CheckIssue> BuildPreflightIssues(HainanStage2Options options, IList<DetailSettlementRow> proxyRows, IList<DetailSettlementRow> interRows)
+        private static List<HainanStage2CheckIssue> BuildPreflightIssues(HainanStage2Options options, IList<HainanStage2DetailSettlementRow> proxyRows, IList<HainanStage2DetailSettlementRow> interRows)
         {
             var issues = new List<HainanStage2CheckIssue>();
             var templateMap = HainanStage2TemplateIndex.Build(options.ProxyTemplateDirectory, options.IntermediaryTemplateDirectory);
@@ -97,8 +97,8 @@ namespace HainanSettlementTool.Excel
 
         private static void AddSummarySubjectPaymentIssues(
             HainanStage2Options options,
-            IList<DetailSettlementRow> proxyRows,
-            IList<DetailSettlementRow> interRows,
+            IList<HainanStage2DetailSettlementRow> proxyRows,
+            IList<HainanStage2DetailSettlementRow> interRows,
             IList<HainanStage2CheckIssue> issues)
         {
             var subjects = BuildExpectedSummarySubjects(proxyRows, interRows);
@@ -147,8 +147,8 @@ namespace HainanSettlementTool.Excel
         }
 
         private static List<SummarySubject> BuildExpectedSummarySubjects(
-            IList<DetailSettlementRow> proxyRows,
-            IList<DetailSettlementRow> interRows)
+            IList<HainanStage2DetailSettlementRow> proxyRows,
+            IList<HainanStage2DetailSettlementRow> interRows)
         {
             return proxyRows
                 .Select(row => new SummarySubject { Kind = "代理费", Owner = row.Owner, Entity = row.Entity })
@@ -188,7 +188,7 @@ namespace HainanSettlementTool.Excel
             string owner,
             string entity,
             string templatePath,
-            IList<DetailSettlementRow> currentRows,
+            IList<HainanStage2DetailSettlementRow> currentRows,
             IList<HainanStage2CheckIssue> issues)
         {
             try
@@ -298,7 +298,7 @@ namespace HainanSettlementTool.Excel
             string kind,
             string owner,
             string entity,
-            DetailSettlementRow current,
+            HainanStage2DetailSettlementRow current,
             PreviousDetailRow previous,
             string templatePath,
             string fieldName,

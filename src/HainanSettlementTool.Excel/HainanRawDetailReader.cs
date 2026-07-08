@@ -4,16 +4,16 @@ using HainanSettlementTool.Core.Models;
 
 namespace HainanSettlementTool.Excel
 {
-    internal sealed class RawDetailReader
+    internal sealed class HainanRawDetailReader
     {
-        private readonly RawDetailRowReader _rowReader = new RawDetailRowReader();
+        private readonly HainanRawDetailRowReader _rowReader = new HainanRawDetailRowReader();
 
-        public List<PowerRow> Read(string rawDetailPath)
+        public List<HainanPowerRow> Read(string rawDetailPath)
         {
             return _rowReader
-                .Read(rawDetailPath, RawDetailSheetSelection.FirstSheet)
+                .Read(rawDetailPath, HainanRawDetailSheetSelection.FirstSheet)
                 .Where(row => row.HasPowerColumns)
-                .Select(row => new PowerRow
+                .Select(row => new HainanPowerRow
                 {
                     SourceRow = row.SourceRow,
                     Name = row.Name,

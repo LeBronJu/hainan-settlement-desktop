@@ -1,6 +1,6 @@
 namespace HainanSettlementTool.Core.Models
 {
-    public sealed class Stage1Options
+    public sealed class HainanStage1Options
     {
         public int Month { get; set; }
         public string BaseLedgerPath { get; set; }

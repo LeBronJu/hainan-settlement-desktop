@@ -1,6 +1,6 @@
 namespace HainanSettlementTool.Core.Services
 {
-    public static class LedgerLayout
+    public static class HainanLedgerLayout
     {
         public const string MainSheetName = "海南2026年售电结算台账";
         public const int FirstMonthStartColumn = 32; // AF

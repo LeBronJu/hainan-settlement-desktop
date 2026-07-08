@@ -6,7 +6,7 @@ namespace HainanSettlementTool.Core.Services
     public static class HainanStage2AuditIssueFactory
     {
         public static HainanStage2CheckIssue CreateLedgerDifferenceIssue(
-            DetailSettlementRow row,
+            HainanStage2DetailSettlementRow row,
             string kind,
             string outputPath,
             string sheetName)
@@ -43,7 +43,7 @@ namespace HainanSettlementTool.Core.Services
             };
         }
 
-        private static bool HasLedgerDifference(DetailSettlementRow row)
+        private static bool HasLedgerDifference(HainanStage2DetailSettlementRow row)
         {
             if (row == null)
             {

@@ -1,6 +1,6 @@
 namespace HainanSettlementTool.Core.Models
 {
-    public sealed class DetailSettlementRow
+    public sealed class HainanStage2DetailSettlementRow
     {
         public int LedgerRow { get; set; }
         public string Customer { get; set; }

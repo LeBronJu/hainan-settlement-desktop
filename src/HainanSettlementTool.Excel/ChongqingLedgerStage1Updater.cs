@@ -45,17 +45,17 @@ namespace HainanSettlementTool.Excel
                 var updatedRows = 0;
                 foreach (var ledgerRow in context.LedgerRows)
                 {
-                    ChongqingPowerCleanGenerator.ChongqingPowerAggregateRow powerRow;
-                    if (!context.PowerRowsByLedgerKey.TryGetValue(ledgerRow.Key, out powerRow))
+                    ChongqingPowerCleanGenerator.ChongqingPowerAggregateRow powerAggregate;
+                    if (!context.PowerRowsByLedgerKey.TryGetValue(ledgerRow.Key, out powerAggregate))
                     {
                         continue;
                     }
 
-                    context.Worksheet.Cell(ledgerRow.RowNumber, context.Map.TotalColumn).Value = powerRow.Total;
-                    context.Worksheet.Cell(ledgerRow.RowNumber, context.Map.SharpColumn).Value = powerRow.Sharp;
-                    context.Worksheet.Cell(ledgerRow.RowNumber, context.Map.PeakColumn).Value = powerRow.Peak;
-                    context.Worksheet.Cell(ledgerRow.RowNumber, context.Map.FlatColumn).Value = powerRow.Flat;
-                    context.Worksheet.Cell(ledgerRow.RowNumber, context.Map.ValleyColumn).Value = powerRow.Valley;
+                    context.Worksheet.Cell(ledgerRow.RowNumber, context.Map.TotalColumn).Value = powerAggregate.Total;
+                    context.Worksheet.Cell(ledgerRow.RowNumber, context.Map.SharpColumn).Value = powerAggregate.Sharp;
+                    context.Worksheet.Cell(ledgerRow.RowNumber, context.Map.PeakColumn).Value = powerAggregate.Peak;
+                    context.Worksheet.Cell(ledgerRow.RowNumber, context.Map.FlatColumn).Value = powerAggregate.Flat;
+                    context.Worksheet.Cell(ledgerRow.RowNumber, context.Map.ValleyColumn).Value = powerAggregate.Valley;
                     updatedRows++;
                 }
 
@@ -136,7 +136,7 @@ namespace HainanSettlementTool.Excel
                 .Select(decision => new NewCustomerPowerRow
                 {
                     CustomerName = decision.SourceCustomerName,
-                    PowerRow = powerRowsByKey[TextUtil.CustomerKey(decision.SourceCustomerName)]
+                    PowerAggregate = powerRowsByKey[TextUtil.CustomerKey(decision.SourceCustomerName)]
                 })
                 .ToList();
             var powerRowsByLedgerKey = new Dictionary<string, ChongqingPowerCleanGenerator.ChongqingPowerAggregateRow>();
@@ -229,7 +229,7 @@ namespace HainanSettlementTool.Excel
             foreach (var key in matchedKeys)
             {
                 var ledgerRow = ledgerRowsByKey[key];
-                var powerRow = powerRowsByLedgerKey[key];
+                var powerAggregate = powerRowsByLedgerKey[key];
                 var powerKey = powerKeyByLedgerKey[key];
                 var accounts = accountNumbersByKey.ContainsKey(powerKey) ? accountNumbersByKey[powerKey] : new List<string>();
                 if (accounts.Count > 1)
@@ -240,10 +240,10 @@ namespace HainanSettlementTool.Excel
 
                 if (powerKey != key)
                 {
-                    AddIssue(plan, ProvinceStage1LedgerUpdateIssueKinds.ManualMatchedCustomer, "人工匹配客户", "警告", ledgerRow.CustomerName, "电量客户“" + powerRow.CustomerName + "”将按本次人工确认写入该台账客户。");
+                    AddIssue(plan, ProvinceStage1LedgerUpdateIssueKinds.ManualMatchedCustomer, "人工匹配客户", "警告", ledgerRow.CustomerName, "电量客户“" + powerAggregate.CustomerName + "”将按本次人工确认写入该台账客户。");
                 }
 
-                if (!IsBlankPower(worksheet, ledgerRow.RowNumber, map) && !SamePowerVector(worksheet, ledgerRow.RowNumber, map, powerRow))
+                if (!IsBlankPower(worksheet, ledgerRow.RowNumber, map) && !SamePowerVector(worksheet, ledgerRow.RowNumber, map, powerAggregate))
                 {
                     plan.ExistingDifferentPowerRows++;
                     AddIssue(plan, ProvinceStage1LedgerUpdateIssueKinds.ExistingPowerDifference, "已有电量差异", "警告", ledgerRow.CustomerName, "台账目标月份已有电量，且与清洗结果不一致；继续后会按清洗结果写入副本。");
@@ -252,14 +252,14 @@ namespace HainanSettlementTool.Excel
 
             foreach (var decision in customerDecisions.Where(item => item.DecisionKind == ProvinceStage1CustomerDecisionKind.CreateNew))
             {
-                var powerRow = powerRowsByKey[TextUtil.CustomerKey(decision.SourceCustomerName)];
-                AddIssue(plan, ProvinceStage1LedgerUpdateIssueKinds.CreatedCustomer, "新增客户到台账", "提示", powerRow.CustomerName, "该电量客户将新增到本次生成的台账副本，仅写入客户名称和目标月份电量。");
+                var powerAggregate = powerRowsByKey[TextUtil.CustomerKey(decision.SourceCustomerName)];
+                AddIssue(plan, ProvinceStage1LedgerUpdateIssueKinds.CreatedCustomer, "新增客户到台账", "提示", powerAggregate.CustomerName, "该电量客户将新增到本次生成的台账副本，仅写入客户名称和目标月份电量。");
             }
 
             foreach (var decision in customerDecisions.Where(item => item.DecisionKind == ProvinceStage1CustomerDecisionKind.SkipWrite))
             {
-                var powerRow = powerRowsByKey[TextUtil.CustomerKey(decision.SourceCustomerName)];
-                AddIssue(plan, ProvinceStage1LedgerUpdateIssueKinds.SkippedPowerCustomer, "本月不写入", "提示", powerRow.CustomerName, "该电量客户已按本次选择跳过，不会写入台账副本。");
+                var powerAggregate = powerRowsByKey[TextUtil.CustomerKey(decision.SourceCustomerName)];
+                AddIssue(plan, ProvinceStage1LedgerUpdateIssueKinds.SkippedPowerCustomer, "本月不写入", "提示", powerAggregate.CustomerName, "该电量客户已按本次选择跳过，不会写入台账副本。");
             }
 
             var missingInLedger = powerRowsByKey.Keys.Except(matchedPowerKeys).ToList();
@@ -280,13 +280,13 @@ namespace HainanSettlementTool.Excel
 
             foreach (var powerKey in missingInLedger)
             {
-                var powerRow = powerRowsByKey[powerKey];
+                var powerAggregate = powerRowsByKey[powerKey];
                 foreach (var ledgerKey in missingInPower)
                 {
-                    if (SamePowerVector(worksheet, ledgerRowsByKey[ledgerKey].RowNumber, map, powerRow))
+                    if (SamePowerVector(worksheet, ledgerRowsByKey[ledgerKey].RowNumber, map, powerAggregate))
                     {
                         plan.AliasCandidateRows++;
-                        AddIssue(plan, ProvinceStage1LedgerUpdateIssueKinds.PossibleAlias, "疑似名称差异", "警告", powerRow.CustomerName, "该电量客户与某个台账客户目标月份电量完全一致，可能是名称别名；请人工确认。");
+                        AddIssue(plan, ProvinceStage1LedgerUpdateIssueKinds.PossibleAlias, "疑似名称差异", "警告", powerAggregate.CustomerName, "该电量客户与某个台账客户目标月份电量完全一致，可能是名称别名；请人工确认。");
                         break;
                     }
                 }
@@ -439,7 +439,7 @@ namespace HainanSettlementTool.Excel
             }
 
             worksheet.Cell(newRowNumber, map.CustomerNameColumn).Value = newCustomer.CustomerName;
-            WritePower(worksheet, newRowNumber, map, newCustomer.PowerRow);
+            WritePower(worksheet, newRowNumber, map, newCustomer.PowerAggregate);
 
             ledgerRows.Add(new LedgerCustomerRow
             {
@@ -453,13 +453,13 @@ namespace HainanSettlementTool.Excel
             IXLWorksheet worksheet,
             int row,
             LedgerMap map,
-            ChongqingPowerCleanGenerator.ChongqingPowerAggregateRow powerRow)
+            ChongqingPowerCleanGenerator.ChongqingPowerAggregateRow powerAggregate)
         {
-            worksheet.Cell(row, map.TotalColumn).Value = powerRow.Total;
-            worksheet.Cell(row, map.SharpColumn).Value = powerRow.Sharp;
-            worksheet.Cell(row, map.PeakColumn).Value = powerRow.Peak;
-            worksheet.Cell(row, map.FlatColumn).Value = powerRow.Flat;
-            worksheet.Cell(row, map.ValleyColumn).Value = powerRow.Valley;
+            worksheet.Cell(row, map.TotalColumn).Value = powerAggregate.Total;
+            worksheet.Cell(row, map.SharpColumn).Value = powerAggregate.Sharp;
+            worksheet.Cell(row, map.PeakColumn).Value = powerAggregate.Peak;
+            worksheet.Cell(row, map.FlatColumn).Value = powerAggregate.Flat;
+            worksheet.Cell(row, map.ValleyColumn).Value = powerAggregate.Valley;
         }
 
         private static IXLWorksheet FindLedgerWorksheet(XLWorkbook workbook)
@@ -633,7 +633,7 @@ namespace HainanSettlementTool.Excel
             IXLWorksheet worksheet,
             int row,
             LedgerMap map,
-            ChongqingPowerCleanGenerator.ChongqingPowerAggregateRow powerRow)
+            ChongqingPowerCleanGenerator.ChongqingPowerAggregateRow powerAggregate)
         {
             double total;
             double sharp;
@@ -645,11 +645,11 @@ namespace HainanSettlementTool.Excel
                 && TryCellNumber(worksheet.Cell(row, map.PeakColumn), out peak)
                 && TryCellNumber(worksheet.Cell(row, map.FlatColumn), out flat)
                 && TryCellNumber(worksheet.Cell(row, map.ValleyColumn), out valley)
-                && SameNumber(total, powerRow.Total)
-                && SameNumber(sharp, powerRow.Sharp)
-                && SameNumber(peak, powerRow.Peak)
-                && SameNumber(flat, powerRow.Flat)
-                && SameNumber(valley, powerRow.Valley);
+                && SameNumber(total, powerAggregate.Total)
+                && SameNumber(sharp, powerAggregate.Sharp)
+                && SameNumber(peak, powerAggregate.Peak)
+                && SameNumber(flat, powerAggregate.Flat)
+                && SameNumber(valley, powerAggregate.Valley);
         }
 
         private static bool IsBlankPower(IXLWorksheet worksheet, int row, LedgerMap map)
@@ -797,7 +797,7 @@ namespace HainanSettlementTool.Excel
         private sealed class NewCustomerPowerRow
         {
             public string CustomerName { get; set; }
-            public ChongqingPowerCleanGenerator.ChongqingPowerAggregateRow PowerRow { get; set; }
+            public ChongqingPowerCleanGenerator.ChongqingPowerAggregateRow PowerAggregate { get; set; }
         }
     }
 }

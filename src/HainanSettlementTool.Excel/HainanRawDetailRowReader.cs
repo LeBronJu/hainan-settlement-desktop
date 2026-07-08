@@ -10,17 +10,17 @@ using HainanSettlementTool.Core.Services;
 
 namespace HainanSettlementTool.Excel
 {
-    internal enum RawDetailSheetSelection
+    internal enum HainanRawDetailSheetSelection
     {
         FirstSheet,
         CustomerCodeSheets
     }
 
-    internal sealed class RawDetailRowReader
+    internal sealed class HainanRawDetailRowReader
     {
         private static readonly string[] CustomerCodeSheetNames = { "零售主体电量", "零售户号电量" };
 
-        public List<RawDetailRow> Read(string rawDetailPath, RawDetailSheetSelection sheetSelection)
+        public List<HainanRawDetailRow> Read(string rawDetailPath, HainanRawDetailSheetSelection sheetSelection)
         {
             var extension = Path.GetExtension(rawDetailPath).ToLowerInvariant();
             if (extension == ".xlsx")
@@ -49,7 +49,7 @@ namespace HainanSettlementTool.Excel
                 || string.Equals(extension, ".csv", StringComparison.OrdinalIgnoreCase);
         }
 
-        private static List<RawDetailRow> ReadXlsx(string path, RawDetailSheetSelection sheetSelection)
+        private static List<HainanRawDetailRow> ReadXlsx(string path, HainanRawDetailSheetSelection sheetSelection)
         {
             using (var workbook = new XLWorkbook(path))
             {
@@ -59,9 +59,9 @@ namespace HainanSettlementTool.Excel
             }
         }
 
-        private static IEnumerable<IXLWorksheet> SelectWorksheets(XLWorkbook workbook, RawDetailSheetSelection sheetSelection)
+        private static IEnumerable<IXLWorksheet> SelectWorksheets(XLWorkbook workbook, HainanRawDetailSheetSelection sheetSelection)
         {
-            if (sheetSelection == RawDetailSheetSelection.FirstSheet)
+            if (sheetSelection == HainanRawDetailSheetSelection.FirstSheet)
             {
                 yield return workbook.Worksheets.First();
                 yield break;
@@ -83,7 +83,7 @@ namespace HainanSettlementTool.Excel
             }
         }
 
-        private static IEnumerable<RawDetailRow> ReadXlsxSheet(IXLWorksheet worksheet)
+        private static IEnumerable<HainanRawDetailRow> ReadXlsxSheet(IXLWorksheet worksheet)
         {
             var lastRow = worksheet.LastRowUsed()?.RowNumber() ?? 1;
             for (var row = 4; row <= lastRow; row++)
@@ -94,7 +94,7 @@ namespace HainanSettlementTool.Excel
                     continue;
                 }
 
-                yield return new RawDetailRow
+                yield return new HainanRawDetailRow
                 {
                     SourceRow = row,
                     CustomerCode = TextUtil.S(worksheet.Cell(row, 3).GetFormattedString()),
@@ -110,18 +110,18 @@ namespace HainanSettlementTool.Excel
             }
         }
 
-        private static List<RawDetailRow> ReadXls(string path, RawDetailSheetSelection sheetSelection)
+        private static List<HainanRawDetailRow> ReadXls(string path, HainanRawDetailSheetSelection sheetSelection)
         {
             using (var stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             using (var reader = ExcelReaderFactory.CreateReader(stream))
             {
-                if (sheetSelection == RawDetailSheetSelection.FirstSheet)
+                if (sheetSelection == HainanRawDetailSheetSelection.FirstSheet)
                 {
                     return ReadXlsSheet(reader);
                 }
 
-                var namedSheetRows = new List<RawDetailRow>();
-                var firstSheetRows = new List<RawDetailRow>();
+                var namedSheetRows = new List<HainanRawDetailRow>();
+                var firstSheetRows = new List<HainanRawDetailRow>();
                 var foundNamedSheet = false;
                 var isFirstSheet = true;
 
@@ -150,9 +150,9 @@ namespace HainanSettlementTool.Excel
             }
         }
 
-        private static List<RawDetailRow> ReadXlsSheet(IExcelDataReader reader)
+        private static List<HainanRawDetailRow> ReadXlsSheet(IExcelDataReader reader)
         {
-            var rows = new List<RawDetailRow>();
+            var rows = new List<HainanRawDetailRow>();
             var row = 0;
             while (reader.Read())
             {
@@ -168,7 +168,7 @@ namespace HainanSettlementTool.Excel
                     continue;
                 }
 
-                rows.Add(new RawDetailRow
+                rows.Add(new HainanRawDetailRow
                 {
                     SourceRow = row,
                     CustomerCode = ReaderString(reader, 2),
@@ -193,9 +193,9 @@ namespace HainanSettlementTool.Excel
             }
         }
 
-        private static List<RawDetailRow> ReadCsv(string path)
+        private static List<HainanRawDetailRow> ReadCsv(string path)
         {
-            var rows = new List<RawDetailRow>();
+            var rows = new List<HainanRawDetailRow>();
             var lines = File.ReadAllLines(path, DetectCsvEncoding(path));
             for (var index = 3; index < lines.Length; index++)
             {
@@ -206,7 +206,7 @@ namespace HainanSettlementTool.Excel
                 }
 
                 var name = TextUtil.S(cols[3]);
-                rows.Add(new RawDetailRow
+                rows.Add(new HainanRawDetailRow
                 {
                     SourceRow = index + 1,
                     CustomerCode = ColumnString(cols, 2),

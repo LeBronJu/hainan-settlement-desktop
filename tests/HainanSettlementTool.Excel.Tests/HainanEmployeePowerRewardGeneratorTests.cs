@@ -135,7 +135,7 @@ namespace HainanSettlementTool.Excel.Tests
             using (var workbook = new XLWorkbook())
             {
                 workbook.AddWorksheet("废弃").Cell("A1").Value = "不是正式台账";
-                var worksheet = workbook.AddWorksheet(LedgerLayout.MainSheetName);
+                var worksheet = workbook.AddWorksheet(HainanLedgerLayout.MainSheetName);
                 worksheet.Cell(1, 1).Value = "海南售电结算台账";
                 worksheet.Cell(2, 2).Value = "用电企业编号";
                 worksheet.Cell(2, 3).Value = "用电企业名称";
@@ -151,8 +151,8 @@ namespace HainanSettlementTool.Excel.Tests
                 WriteLedgerRow(worksheet, 5, 2, "002", "客户B", "202602", "代理B", "代理", "员工A", 0, 30);
                 WriteLedgerRow(worksheet, 6, 3, "003", "客户C", "202603", "自营", "自营", "员工B", 5, 0);
 
-                var jan = LedgerLayout.MonthStartColumn(1);
-                var feb = LedgerLayout.MonthStartColumn(2);
+                var jan = HainanLedgerLayout.MonthStartColumn(1);
+                var feb = HainanLedgerLayout.MonthStartColumn(2);
                 worksheet.Cell(7, jan).Value = 15.1234;
                 worksheet.Cell(7, feb).Value = 50.5;
                 worksheet.Column(jan).Hide();
@@ -165,7 +165,7 @@ namespace HainanSettlementTool.Excel.Tests
 
         private static void WriteMonthHeader(IXLWorksheet worksheet, int month)
         {
-            var column = LedgerLayout.MonthStartColumn(month);
+            var column = HainanLedgerLayout.MonthStartColumn(month);
             worksheet.Cell(1, column).Value = month + "月";
             worksheet.Cell(2, column).Value = "总实际电量（万千瓦时）";
         }
@@ -190,8 +190,8 @@ namespace HainanSettlementTool.Excel.Tests
             worksheet.Cell(row, 8).Value = projectDeveloper;
             worksheet.Cell(row, 9).Value = agentType;
             worksheet.Cell(row, 10).Value = responsiblePerson;
-            worksheet.Cell(row, LedgerLayout.MonthStartColumn(1)).Value = janPower;
-            worksheet.Cell(row, LedgerLayout.MonthStartColumn(2)).Value = febPower;
+            worksheet.Cell(row, HainanLedgerLayout.MonthStartColumn(1)).Value = janPower;
+            worksheet.Cell(row, HainanLedgerLayout.MonthStartColumn(2)).Value = febPower;
         }
 
         private static void AssertRangeHasBorders(IXLWorksheet worksheet, int firstRow, int firstColumn, int lastRow, int lastColumn)

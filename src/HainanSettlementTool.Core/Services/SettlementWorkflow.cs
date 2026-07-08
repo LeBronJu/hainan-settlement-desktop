@@ -54,10 +54,10 @@ namespace HainanSettlementTool.Core.Services
             _chongqingStage2Service = chongqingStage2Service;
         }
 
-        public StageWorkflowResult<Stage1Report> RunStage1(Stage1Options options, Action<string> log)
+        public StageWorkflowResult<HainanStage1Report> RunHainanStage1(HainanStage1Options options, Action<string> log)
         {
             var report = _stage1Service.Run(options, log);
-            return new StageWorkflowResult<Stage1Report>(
+            return new StageWorkflowResult<HainanStage1Report>(
                 report,
                 new[]
                 {
@@ -67,10 +67,10 @@ namespace HainanSettlementTool.Core.Services
                 });
         }
 
-        public StageWorkflowResult<PowerCleanReport> CleanPowerData(string rawDetailPath, string outputPath, Action<string> log)
+        public StageWorkflowResult<HainanPowerCleanReport> CleanHainanPowerData(string rawDetailPath, string outputPath, Action<string> log)
         {
-            var report = _stage1Service.CleanPowerData(rawDetailPath, outputPath, log);
-            return new StageWorkflowResult<PowerCleanReport>(
+            var report = _stage1Service.CleanHainanPowerData(rawDetailPath, outputPath, log);
+            return new StageWorkflowResult<HainanPowerCleanReport>(
                 report,
                 new[]
                 {

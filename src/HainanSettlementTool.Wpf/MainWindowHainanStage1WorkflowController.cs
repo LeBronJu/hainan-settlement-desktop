@@ -40,10 +40,10 @@ namespace HainanSettlementTool.Wpf
 
         public async Task RunLedgerUpdateAsync()
         {
-            Stage1Options options;
+            HainanStage1Options options;
             try
             {
-                options = _inputController.CreateStage1Options();
+                options = _inputController.CreateHainanStage1Options();
                 _saveInputs();
                 if (!_dialogController.ConfirmRun("阶段一：写入电量到台账", options.Month, options.OutputDirectory))
                 {
@@ -65,7 +65,7 @@ namespace HainanSettlementTool.Wpf
 
             try
             {
-                StageWorkflowResult<Stage1Report> result = null;
+                StageWorkflowResult<HainanStage1Report> result = null;
                 await Task.Run(() =>
                 {
                     _dispatcher.Invoke(() =>
@@ -75,7 +75,7 @@ namespace HainanSettlementTool.Wpf
                         _progressController.SetProgress(28, "读取台账和电量文件");
                     });
 
-                    result = SettlementWorkflowFactory.Create().RunStage1(options, LogThreadSafe);
+                    result = SettlementWorkflowFactory.Create().RunHainanStage1(options, LogThreadSafe);
                 });
 
                 _progressController.SetStepDone(1);
@@ -130,7 +130,7 @@ namespace HainanSettlementTool.Wpf
 
             try
             {
-                StageWorkflowResult<PowerCleanReport> result = null;
+                StageWorkflowResult<HainanPowerCleanReport> result = null;
                 await Task.Run(() =>
                 {
                     _dispatcher.Invoke(() =>
@@ -140,7 +140,7 @@ namespace HainanSettlementTool.Wpf
                         _progressController.SetProgress(35, "读取原始零售侧明细");
                     });
 
-                    result = SettlementWorkflowFactory.Create().CleanPowerData(input.RawDetailPath, input.OutputPath, LogThreadSafe);
+                    result = SettlementWorkflowFactory.Create().CleanHainanPowerData(input.RawDetailPath, input.OutputPath, LogThreadSafe);
                 });
 
                 _progressController.SetStepDone(1);

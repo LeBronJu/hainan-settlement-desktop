@@ -6,6 +6,7 @@
 
 ## 2026-07-08
 
+- 多省份代码质量第八批：完成全项目命名治理收口，海南阶段一 Core/Excel 合同、海南台账布局、海南原始明细读取器和海南阶段二明细行全部显式命名；`ClosedXmlUtil` 只保留跨省共享 helper，重庆阶段一 WPF 私有方法也改为重庆显式命名。
 - 多省份代码质量第七批：海南阶段二 Core/WPF 合同显式改为 `HainanStage2...`，workflow 方法改为 `Analyze/Plan/Complete/RunHainanStage2`，并把海南台账/分表差异问题构建从共享 `Stage2SettlementCalculator` 移到 `HainanStage2AuditIssueFactory`。
 - 多省份代码质量第六批：员工电量奖励 Core/Excel/WPF workflow 类型显式改为 `HainanEmployeePowerReward...`，模型字段收敛到 `ResponsiblePerson` / `ProjectDeveloper` / `MonthlyPowers`，并把模块 dev note 改为海南专属入口，为未来重庆电量奖预留并列实现空间。
 - 多省份代码质量第五批：WPF `MainWindow.xaml.cs` 抽出 `MainWindowHainanStage1WorkflowController` 和 `MainWindowHainanEmployeePowerRewardWorkflowController`，集中海南阶段一写台账/清洗电量和员工奖励生成编排；重庆阶段一暂留主窗口等待实测反馈稳定。

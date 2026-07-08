@@ -505,8 +505,8 @@ namespace HainanSettlementTool.Excel.Tests
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             using (var workbook = new XLWorkbook())
             {
-                var worksheet = workbook.AddWorksheet(LedgerLayout.MainSheetName);
-                var start = LedgerLayout.MonthStartColumn(4);
+                var worksheet = workbook.AddWorksheet(HainanLedgerLayout.MainSheetName);
+                var start = HainanLedgerLayout.MonthStartColumn(4);
                 worksheet.Cell(1, start).Value = "4月";
                 WriteLedgerRow(worksheet, 4, start, owner, proxyEntity, existingCustomer, 100);
                 WriteLedgerRow(worksheet, 5, start, owner, proxyEntity, newCustomer, 200);
@@ -524,8 +524,8 @@ namespace HainanSettlementTool.Excel.Tests
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             using (var workbook = new XLWorkbook())
             {
-                var worksheet = workbook.AddWorksheet(LedgerLayout.MainSheetName);
-                var start = LedgerLayout.MonthStartColumn(month);
+                var worksheet = workbook.AddWorksheet(HainanLedgerLayout.MainSheetName);
+                var start = HainanLedgerLayout.MonthStartColumn(month);
                 worksheet.Cell(1, start).Value = month + "月";
                 WriteLedgerRow(worksheet, 4, start, owner, proxyEntity, customer, 100);
                 workbook.SaveAs(path);
@@ -541,8 +541,8 @@ namespace HainanSettlementTool.Excel.Tests
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             using (var workbook = new XLWorkbook())
             {
-                var worksheet = workbook.AddWorksheet(LedgerLayout.MainSheetName);
-                var start = LedgerLayout.MonthStartColumn(4);
+                var worksheet = workbook.AddWorksheet(HainanLedgerLayout.MainSheetName);
+                var start = HainanLedgerLayout.MonthStartColumn(4);
                 worksheet.Cell(1, start).Value = "4月";
                 WriteLedgerRow(worksheet, 4, start, owner, existingEntity, "存量客户", 100);
                 WriteLedgerRow(worksheet, 5, start, owner, newEntity, "新增主体客户", 200);

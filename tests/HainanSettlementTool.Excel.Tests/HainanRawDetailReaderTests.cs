@@ -10,10 +10,10 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace HainanSettlementTool.Excel.Tests
 {
     [TestClass]
-    public sealed class RawDetailReaderTests
+    public sealed class HainanRawDetailReaderTests
     {
         [TestMethod]
-        public void RawCsvDetailProvidesPowerRowsAndCustomerCodes()
+        public void HainanRawCsvDetailProvidesPowerRowsAndCustomerCodes()
         {
             var root = Path.Combine(Path.GetTempPath(), "HainanSettlementToolTests", Guid.NewGuid().ToString("N"));
             var path = Path.Combine(root, "raw.csv");
@@ -23,7 +23,7 @@ namespace HainanSettlementTool.Excel.Tests
                 Directory.CreateDirectory(root);
                 File.WriteAllLines(
                     path,
-                    new[] { "header1", "header2", "header3", RawDetailLine("户号001", "测试客户", 1.1, 2.2, 3.3, 4.4, 5.5) },
+                    new[] { "header1", "header2", "header3", HainanRawDetailLine("户号001", "测试客户", 1.1, 2.2, 3.3, 4.4, 5.5) },
                     Encoding.GetEncoding("GB18030"));
 
                 var gateway = new ClosedXmlSettlementExcelGateway();
@@ -50,7 +50,7 @@ namespace HainanSettlementTool.Excel.Tests
         }
 
         [TestMethod]
-        public void RawCsvDetailDoesNotChooseBetweenConflictingCustomerCodes()
+        public void HainanRawCsvDetailDoesNotChooseBetweenConflictingCustomerCodes()
         {
             var root = Path.Combine(Path.GetTempPath(), "HainanSettlementToolTests", Guid.NewGuid().ToString("N"));
             var path = Path.Combine(root, "raw.csv");
@@ -65,10 +65,10 @@ namespace HainanSettlementTool.Excel.Tests
                         "header1",
                         "header2",
                         "header3",
-                        RawDetailLine("户号001", "测试客户", 1, 2, 3, 4, 5),
-                        RawDetailLine("户号002", "测试客户", 6, 7, 8, 9, 10),
-                        RawDetailLine("稳定户号", "稳定客户", 11, 12, 13, 14, 15),
-                        RawDetailLine("稳定户号", "稳定客户", 16, 17, 18, 19, 20)
+                        HainanRawDetailLine("户号001", "测试客户", 1, 2, 3, 4, 5),
+                        HainanRawDetailLine("户号002", "测试客户", 6, 7, 8, 9, 10),
+                        HainanRawDetailLine("稳定户号", "稳定客户", 11, 12, 13, 14, 15),
+                        HainanRawDetailLine("稳定户号", "稳定客户", 16, 17, 18, 19, 20)
                     },
                     Encoding.GetEncoding("GB18030"));
 
@@ -87,7 +87,7 @@ namespace HainanSettlementTool.Excel.Tests
         }
 
         [TestMethod]
-        public void RawXlsxDetailKeepsPowerRowsOnFirstSheetAndCustomerCodesOnNamedSheets()
+        public void HainanRawXlsxDetailKeepsPowerRowsOnFirstSheetAndCustomerCodesOnNamedSheets()
         {
             var root = Path.Combine(Path.GetTempPath(), "HainanSettlementToolTests", Guid.NewGuid().ToString("N"));
             var path = Path.Combine(root, "raw.xlsx");
@@ -97,9 +97,9 @@ namespace HainanSettlementTool.Excel.Tests
                 Directory.CreateDirectory(root);
                 using (var workbook = new XLWorkbook())
                 {
-                    WriteRawDetailRow(workbook.AddWorksheet("其它明细"), 4, "忽略户号", "第一张表客户", 10, 11, 12, 13, 14);
-                    WriteRawDetailRow(workbook.AddWorksheet("零售主体电量"), 4, "主体户号", "主体客户", 20, 21, 22, 23, 24);
-                    WriteRawDetailRow(workbook.AddWorksheet("零售户号电量"), 4, "户号表户号", "户号表客户", 30, 31, 32, 33, 34);
+                    WriteHainanRawDetailRow(workbook.AddWorksheet("其它明细"), 4, "忽略户号", "第一张表客户", 10, 11, 12, 13, 14);
+                    WriteHainanRawDetailRow(workbook.AddWorksheet("零售主体电量"), 4, "主体户号", "主体客户", 20, 21, 22, 23, 24);
+                    WriteHainanRawDetailRow(workbook.AddWorksheet("零售户号电量"), 4, "户号表户号", "户号表客户", 30, 31, 32, 33, 34);
                     workbook.SaveAs(path);
                 }
 
@@ -123,7 +123,7 @@ namespace HainanSettlementTool.Excel.Tests
             }
         }
 
-        private static string RawDetailLine(
+        private static string HainanRawDetailLine(
             string code,
             string name,
             double total,
@@ -143,7 +143,7 @@ namespace HainanSettlementTool.Excel.Tests
             return string.Join(",", columns);
         }
 
-        private static void WriteRawDetailRow(
+        private static void WriteHainanRawDetailRow(
             IXLWorksheet worksheet,
             int row,
             string code,

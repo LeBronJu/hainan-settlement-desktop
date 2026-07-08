@@ -159,7 +159,7 @@
                                     </Grid>
 
                                     <TextBlock x:Name="PowerLabel" Text="电量处理表" Style="{StaticResource FieldLabel}" />
-                                    <Grid x:Name="PowerRow">
+                                    <Grid x:Name="PowerInputRow">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="82" />

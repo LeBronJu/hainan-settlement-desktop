@@ -10,7 +10,7 @@ namespace HainanSettlementTool.Core.Tests
         [TestMethod]
         public void CreateLedgerDifferenceIssueReturnsNullWithinTolerance()
         {
-            var row = new DetailSettlementRow
+            var row = new HainanStage2DetailSettlementRow
             {
                 Customer = "测试客户",
                 Owner = "负责人",
@@ -27,7 +27,7 @@ namespace HainanSettlementTool.Core.Tests
         [TestMethod]
         public void CreateLedgerDifferenceIssueDescribesLedgerAndCalculatedDifference()
         {
-            var row = new DetailSettlementRow
+            var row = new HainanStage2DetailSettlementRow
             {
                 LedgerRow = 12,
                 Customer = "测试客户",

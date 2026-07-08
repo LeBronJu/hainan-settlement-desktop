@@ -183,6 +183,7 @@ Most recent documentation validation:
 - Multi-province code-quality fifth slice on 2026-07-08: WPF `MainWindowHainanStage1WorkflowController` and `MainWindowHainanEmployeePowerRewardWorkflowController` now own Hainan Stage 1 / clean-power and employee reward orchestration; Core tests passed (26), Excel tests passed (27), and WPF Debug/Release builds passed.
 - Multi-province code-quality sixth slice on 2026-07-08: employee reward Core/Excel/WPF workflow names now explicitly use `HainanEmployeePowerReward...`; model fields use `ResponsiblePerson`, `ProjectDeveloper`, and `MonthlyPowers`; Core tests passed (26), Excel tests passed (27), and WPF Debug/Release builds passed.
 - Multi-province code-quality seventh slice on 2026-07-08: Hainan Stage 2 Core/WPF contracts now explicitly use `HainanStage2...`; workflow entry points use `Analyze/Plan/Complete/RunHainanStage2`; Hainan audit issue construction moved to `HainanStage2AuditIssueFactory` while `Stage2SettlementCalculator` remains shared amount calculation/formatting; Core tests passed (26), Excel tests passed (27), and WPF Debug/Release builds passed.
+- Multi-province code-quality eighth slice on 2026-07-08: project-wide naming cleanup reached the current low-risk endpoint; Hainan Stage 1 Core/Excel contracts, Hainan ledger layout, Hainan raw-detail readers, Hainan Stage 2 detail rows, and Chongqing Stage 1 WPF private workflow methods now use explicit province names; Core tests passed (26), Excel tests passed (27), and WPF Debug/Release builds passed.
 
 For new code changes, rerun focused tests and builds. For pure documentation changes, run at least `git diff --check` plus targeted stale-wording/link scans.
 
@@ -190,5 +191,5 @@ For new code changes, rerun focused tests and builds. For pure documentation cha
 
 1. Have the user实机测试 `HainanSettlementTool-Win10-11-Release-20260708-101959.zip`.
 2. If user reports重庆阶段二实机问题, pause refactor work and triage the specific generated output or rule gap with fresh authorization for any real file reads.
-3. Continue the project-wide naming cleanup tracked in `docs/dev-notes/multi-province-code-quality-2026-07-08.md`: next naming candidates are `LedgerLayout`, Hainan Stage 1 Core contracts, and `LedgerStage1Updater`, unless重庆阶段二实机反馈 interrupts.
+3. Continue the code-quality mainline tracked in `docs/dev-notes/multi-province-code-quality-2026-07-08.md`: next structural candidate is extracting the remaining Chongqing Stage 1 workflow orchestration from `MainWindow.xaml.cs`, unless重庆阶段二实机反馈 interrupts.
 4. Do not package or release this refactor slice unless the user asks for a new test package; current user-facing重庆阶段二 test package remains `HainanSettlementTool-Win10-11-Release-20260708-101959.zip`.

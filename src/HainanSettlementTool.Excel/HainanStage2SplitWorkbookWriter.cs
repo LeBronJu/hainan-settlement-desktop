@@ -13,8 +13,8 @@ namespace HainanSettlementTool.Excel
     {
         internal static List<GroupSettlementTotal> BuildSplitFiles(
             HainanStage2Options options,
-            IList<DetailSettlementRow> proxyRows,
-            IList<DetailSettlementRow> interRows,
+            IList<HainanStage2DetailSettlementRow> proxyRows,
+            IList<HainanStage2DetailSettlementRow> interRows,
             IList<HainanStage2CheckIssue> auditIssues)
         {
             var templateMap = HainanStage2TemplateIndex.Build(options.ProxyTemplateDirectory, options.IntermediaryTemplateDirectory);
@@ -179,7 +179,7 @@ namespace HainanSettlementTool.Excel
             string kind,
             string entity,
             int month,
-            IList<DetailSettlementRow> rows,
+            IList<HainanStage2DetailSettlementRow> rows,
             string displayEntity,
             string outputPath,
             IList<HainanStage2CheckIssue> auditIssues)
@@ -383,7 +383,7 @@ namespace HainanSettlementTool.Excel
         }
 
         private static void AddLedgerDifferenceIssue(
-            DetailSettlementRow row,
+            HainanStage2DetailSettlementRow row,
             string kind,
             string outputPath,
             string sheetName,
