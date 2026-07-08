@@ -24,6 +24,7 @@ namespace HainanSettlementTool.Wpf
         private readonly MainWindowDialogController _dialogController;
         private readonly MainWindowPathPickerController _pathPickerController;
         private readonly MainWindowLogController _logController;
+        private readonly MainWindowInputController _inputController;
         private bool _isBusy;
         private bool _loadingInputs;
         private string _themeMode = ThemeService.SystemMode;
@@ -38,6 +39,24 @@ namespace HainanSettlementTool.Wpf
 
             _dialogController = new MainWindowDialogController(this);
             _pathPickerController = new MainWindowPathPickerController(this);
+            _inputController = new MainWindowInputController(
+                MonthCombo,
+                RewardStartMonthCombo,
+                RewardEndMonthCombo,
+                ProvinceCombo,
+                OutputDirBox,
+                BaseLedgerBox,
+                PowerBox,
+                RawDetailBox,
+                ReferenceLedgerBox,
+                CompletedLedgerBox,
+                ProxyTemplateDirBox,
+                IntermediaryTemplateDirBox,
+                RefundTemplateDirBox,
+                SummaryTemplateBox,
+                RewardLedgerBox,
+                CopyReferenceExistingCheckBox,
+                AllowMissingOwnerCheckBox);
             InitializeThemeCombo(_themeMode);
             InitializeProvinceCombo();
 
@@ -100,6 +119,7 @@ namespace HainanSettlementTool.Wpf
             AddLog("工具已就绪，等待操作。", "信息");
             LoadSavedInputs(snapshot);
             UpdateSharedSettingsState();
+            ResetResults();
             SystemEvents.UserPreferenceChanged += SystemEvents_UserPreferenceChanged;
         }
 
@@ -202,7 +222,7 @@ namespace HainanSettlementTool.Wpf
 
         private void BrowseBaseLedger_Click(object sender, RoutedEventArgs e)
         {
-            var profile = SelectedProfileOrNull();
+            var profile = _inputController.SelectedProfileOrNull();
             var title = profile?.BaseLedgerDialogTitle ?? "选择基础台账";
             BrowseExcel(BaseLedgerBox, title);
         }
@@ -214,7 +234,7 @@ namespace HainanSettlementTool.Wpf
 
         private void BrowseRawDetail_Click(object sender, RoutedEventArgs e)
         {
-            var profile = SelectedProfileOrNull();
+            var profile = _inputController.SelectedProfileOrNull();
             if (profile == null)
             {
                 ShowErrorMessage("请选择结算省份后再选择电量文件。");
@@ -285,7 +305,7 @@ namespace HainanSettlementTool.Wpf
 
         private async void RunStage1_Click(object sender, RoutedEventArgs e)
         {
-            var profile = SelectedProfileOrNull();
+            var profile = _inputController.SelectedProfileOrNull();
             if (profile == null)
             {
                 ShowErrorMessage("请选择结算省份后再执行阶段一。");
@@ -313,7 +333,7 @@ namespace HainanSettlementTool.Wpf
             Stage1Options options;
             try
             {
-                options = CreateStage1Options();
+                options = _inputController.CreateStage1Options();
                 SaveInputs();
                 if (!ConfirmRun("阶段一：写入电量到台账", options.Month, options.OutputDirectory))
                 {
@@ -373,7 +393,7 @@ namespace HainanSettlementTool.Wpf
 
         private async void CleanPower_Click(object sender, RoutedEventArgs e)
         {
-            var profile = SelectedProfileOrNull();
+            var profile = _inputController.SelectedProfileOrNull();
             if (profile == null)
             {
                 ShowErrorMessage("请选择结算省份后再清洗电量数据。");
@@ -404,7 +424,7 @@ namespace HainanSettlementTool.Wpf
             try
             {
                 rawDetailPath = RawDetailBox.Text.Trim();
-                outputPath = ResolvePowerOutputPath(rawDetailPath);
+                outputPath = _inputController.ResolvePowerOutputPath(rawDetailPath);
                 outputDirectory = OutputDirBox.Text.Trim();
                 PowerBox.Text = outputPath;
                 SaveInputs();
@@ -471,7 +491,7 @@ namespace HainanSettlementTool.Wpf
             ProvinceStage1CleanOptions options;
             try
             {
-                options = CreateProvinceStage1CleanOptions();
+                options = _inputController.CreateProvinceStage1CleanOptions();
                 SaveInputs();
 
                 var message = "即将清洗重庆交易中心电量确认结算单。\n\n输出内容：用户电量汇总、户号明细、JSON校验报告\n输出文件夹：\n" + options.OutputDirectory;
@@ -536,7 +556,7 @@ namespace HainanSettlementTool.Wpf
             ProvinceStage1LedgerUpdateOptions options;
             try
             {
-                options = CreateProvinceStage1LedgerUpdateOptions();
+                options = _inputController.CreateProvinceStage1LedgerUpdateOptions();
                 SaveInputs();
             }
             catch (Exception ex)
@@ -603,7 +623,7 @@ namespace HainanSettlementTool.Wpf
 
         private async void RunStage2_Click(object sender, RoutedEventArgs e)
         {
-            if (SelectedProvinceOrNull() == ProvinceCode.Chongqing)
+            if (_inputController.SelectedProvinceOrNull() == ProvinceCode.Chongqing)
             {
                 await RunChongqingStage2PreflightAsync();
                 return;
@@ -612,7 +632,7 @@ namespace HainanSettlementTool.Wpf
             Stage2Options options;
             try
             {
-                options = CreateStage2Options();
+                options = _inputController.CreateStage2Options();
                 SaveInputs();
                 if (!ConfirmRun("阶段二：生成分表和汇总表", options.Month, options.OutputDirectory))
                 {
@@ -715,7 +735,7 @@ namespace HainanSettlementTool.Wpf
             ChongqingStage2Options options;
             try
             {
-                options = CreateChongqingStage2Options();
+                options = _inputController.CreateChongqingStage2Options();
                 SaveInputs();
                 var message = new StringBuilder();
                 message.AppendLine("结算月份：2026年" + options.Month + "月");
@@ -827,7 +847,7 @@ namespace HainanSettlementTool.Wpf
             EmployeeRewardOptions options;
             try
             {
-                options = CreateEmployeeRewardOptions();
+                options = _inputController.CreateEmployeeRewardOptions();
                 SaveInputs();
                 if (!ConfirmEmployeeRewardRun(options))
                 {
@@ -885,114 +905,6 @@ namespace HainanSettlementTool.Wpf
             }
         }
 
-        private Stage1Options CreateStage1Options()
-        {
-            var powerPath = PowerBox.Text.Trim();
-            var rawDetailPath = RawDetailBox.Text.Trim();
-            if (!string.IsNullOrWhiteSpace(rawDetailPath))
-            {
-                powerPath = ResolvePowerOutputPath(rawDetailPath);
-                PowerBox.Text = powerPath;
-            }
-
-            return new Stage1Options
-            {
-                Month = SelectedMonth(),
-                BaseLedgerPath = BaseLedgerBox.Text.Trim(),
-                PowerPath = powerPath,
-                RawDetailPath = rawDetailPath,
-                ReferenceLedgerPath = ReferenceLedgerBox.Text.Trim(),
-                OutputDirectory = OutputDirBox.Text.Trim(),
-                CopyReferenceExisting = CopyReferenceExistingCheckBox.IsChecked == true
-            };
-        }
-
-        private string ResolvePowerOutputPath(string rawDetailPath)
-        {
-            if (string.IsNullOrWhiteSpace(rawDetailPath))
-            {
-                throw new InvalidOperationException("请选择原始零售侧明细。");
-            }
-
-            var outputDirectory = OutputDirBox.Text.Trim();
-            if (string.IsNullOrWhiteSpace(outputDirectory))
-            {
-                throw new InvalidOperationException("请选择结果输出文件夹。");
-            }
-
-            return Path.Combine(outputDirectory, "零售侧用户电量数据处理表.xlsx");
-        }
-
-        private Stage2Options CreateStage2Options()
-        {
-            return new Stage2Options
-            {
-                Month = SelectedMonth(),
-                LedgerPath = CompletedLedgerBox.Text.Trim(),
-                ProxyTemplateDirectory = ProxyTemplateDirBox.Text.Trim(),
-                IntermediaryTemplateDirectory = IntermediaryTemplateDirBox.Text.Trim(),
-                SummaryTemplatePath = SummaryTemplateBox.Text.Trim(),
-                OutputDirectory = OutputDirBox.Text.Trim(),
-                AllowMissingOwner = AllowMissingOwnerCheckBox.IsChecked == true
-            };
-        }
-
-        private ChongqingStage2Options CreateChongqingStage2Options()
-        {
-            return new ChongqingStage2Options
-            {
-                Month = SelectedMonth(),
-                LedgerPath = CompletedLedgerBox.Text.Trim(),
-                ProxyTemplateDirectory = ProxyTemplateDirBox.Text.Trim(),
-                IntermediaryTemplateDirectory = IntermediaryTemplateDirBox.Text.Trim(),
-                RefundTemplateDirectory = RefundTemplateDirBox.Text.Trim(),
-                SummaryTemplatePath = SummaryTemplateBox.Text.Trim(),
-                OutputDirectory = OutputDirBox.Text.Trim()
-            };
-        }
-
-        private EmployeeRewardOptions CreateEmployeeRewardOptions()
-        {
-            var startMonth = SelectedRewardStartMonth();
-            var endMonth = SelectedRewardEndMonth();
-            if (startMonth > endMonth)
-            {
-                throw new InvalidOperationException("员工电量奖励开始月份不能晚于结束月份。");
-            }
-
-            return new EmployeeRewardOptions
-            {
-                Year = 2026,
-                StartMonth = startMonth,
-                EndMonth = endMonth,
-                LedgerPath = RewardLedgerBox.Text.Trim(),
-                OutputDirectory = OutputDirBox.Text.Trim()
-            };
-        }
-
-        private ProvinceStage1CleanOptions CreateProvinceStage1CleanOptions()
-        {
-            return new ProvinceStage1CleanOptions
-            {
-                Province = SelectedProvince(),
-                Month = SelectedMonthOrZero(),
-                RawDetailPath = RawDetailBox.Text.Trim(),
-                OutputDirectory = OutputDirBox.Text.Trim()
-            };
-        }
-
-        private ProvinceStage1LedgerUpdateOptions CreateProvinceStage1LedgerUpdateOptions()
-        {
-            return new ProvinceStage1LedgerUpdateOptions
-            {
-                Province = SelectedProvince(),
-                Month = SelectedMonth(),
-                LedgerPath = BaseLedgerBox.Text.Trim(),
-                RawDetailPath = RawDetailBox.Text.Trim(),
-                OutputDirectory = OutputDirBox.Text.Trim()
-            };
-        }
-
         private static SettlementWorkflow CreateWorkflow()
         {
             var gateway = new ClosedXmlSettlementExcelGateway();
@@ -1012,41 +924,6 @@ namespace HainanSettlementTool.Wpf
                 AddLog(line, first ? "成功" : "信息");
                 first = false;
             }
-        }
-
-        private int SelectedMonth()
-        {
-            if (MonthCombo.SelectedIndex < 0)
-            {
-                throw new InvalidOperationException("请选择结算月份。");
-            }
-
-            return MonthCombo.SelectedIndex + 2;
-        }
-
-        private int SelectedMonthOrZero()
-        {
-            return MonthCombo.SelectedIndex < 0 ? 0 : MonthCombo.SelectedIndex + 2;
-        }
-
-        private int SelectedRewardStartMonth()
-        {
-            if (RewardStartMonthCombo.SelectedIndex < 0)
-            {
-                throw new InvalidOperationException("请选择员工电量奖励开始月份。");
-            }
-
-            return RewardStartMonthCombo.SelectedIndex + 1;
-        }
-
-        private int SelectedRewardEndMonth()
-        {
-            if (RewardEndMonthCombo.SelectedIndex < 0)
-            {
-                throw new InvalidOperationException("请选择员工电量奖励结束月份。");
-            }
-
-            return RewardEndMonthCombo.SelectedIndex + 1;
         }
 
         private void InitializeThemeCombo(string mode)
@@ -1092,27 +969,6 @@ namespace HainanSettlementTool.Wpf
                 default:
                     return ThemeService.SystemMode;
             }
-        }
-
-        private ProvinceCode SelectedProvince()
-        {
-            var province = SelectedProvinceOrNull();
-            if (!province.HasValue)
-            {
-                throw new InvalidOperationException("请选择结算省份。");
-            }
-
-            return province.Value;
-        }
-
-        private ProvinceCode? SelectedProvinceOrNull()
-        {
-            return SelectedProfileOrNull()?.Province;
-        }
-
-        private ProvinceUiProfile SelectedProfileOrNull()
-        {
-            return ProvinceCombo.SelectedItem as ProvinceUiProfile;
         }
 
         private bool ConfirmRun(string stageName, int month, string outputDirectory)
@@ -1194,14 +1050,14 @@ namespace HainanSettlementTool.Wpf
 
         private void UpdateProvinceUi()
         {
-            if (ProvinceCombo == null || StageOnePanel == null)
+            if (_inputController == null || ProvinceCombo == null || StageOnePanel == null)
             {
                 return;
             }
 
-            var province = SelectedProvinceOrNull();
+            var province = _inputController.SelectedProvinceOrNull();
             var hasProvince = province.HasValue;
-            var profile = SelectedProfileOrNull();
+            var profile = _inputController.SelectedProfileOrNull();
             var isChongqing = province == ProvinceCode.Chongqing;
             if (hasProvince && !profile.SupportsEmployeeReward && MainTabControl.SelectedItem == EmployeeRewardTab)
             {
@@ -1310,12 +1166,12 @@ namespace HainanSettlementTool.Wpf
 
         private void SetCompletionWaiting()
         {
-            _resultController.ShowWaiting(SelectedProvinceOrNull());
+            _resultController.ShowWaiting(_inputController.SelectedProvinceOrNull());
         }
 
         private void ResetResults()
         {
-            _resultController.Reset(SelectedProvinceOrNull());
+            _resultController.Reset(_inputController.SelectedProvinceOrNull());
         }
 
         private void ShowCompletion(string title, string detail, string outputDirectory)
@@ -1345,19 +1201,11 @@ namespace HainanSettlementTool.Wpf
 
         private void LoadSavedInputs(UserInputSnapshot snapshot)
         {
-            OutputDirBox.Text = snapshot.OutputDirectory ?? string.Empty;
-            BaseLedgerBox.Text = snapshot.BaseLedgerPath ?? string.Empty;
-            PowerBox.Text = snapshot.PowerPath ?? string.Empty;
-            RawDetailBox.Text = snapshot.RawDetailPath ?? string.Empty;
-            ReferenceLedgerBox.Text = snapshot.ReferenceLedgerPath ?? string.Empty;
-            CompletedLedgerBox.Text = snapshot.CompletedLedgerPath ?? string.Empty;
-            ProxyTemplateDirBox.Text = snapshot.ProxyTemplateDirectory ?? string.Empty;
-            IntermediaryTemplateDirBox.Text = snapshot.IntermediaryTemplateDirectory ?? string.Empty;
-            RefundTemplateDirBox.Text = snapshot.RefundTemplateDirectory ?? string.Empty;
-            SummaryTemplateBox.Text = snapshot.SummaryTemplatePath ?? string.Empty;
-            RewardLedgerBox.Text = snapshot.RewardLedgerPath ?? string.Empty;
+            _loadingInputs = true;
+            _inputController.LoadSavedInputs(snapshot);
+            _loadingInputs = false;
 
-            if (HasSavedInputs(snapshot))
+            if (_inputController.HasSavedInputs(snapshot))
             {
                 AddLog("已载入上次选择的文件路径；结算月份仍需手动选择。", "信息");
             }
@@ -1367,42 +1215,12 @@ namespace HainanSettlementTool.Wpf
         {
             try
             {
-                UserInputStore.Save(new UserInputSnapshot
-                {
-                    OutputDirectory = OutputDirBox.Text.Trim(),
-                    BaseLedgerPath = BaseLedgerBox.Text.Trim(),
-                    PowerPath = PowerBox.Text.Trim(),
-                    RawDetailPath = RawDetailBox.Text.Trim(),
-                    ReferenceLedgerPath = ReferenceLedgerBox.Text.Trim(),
-                    CompletedLedgerPath = CompletedLedgerBox.Text.Trim(),
-                    ProxyTemplateDirectory = ProxyTemplateDirBox.Text.Trim(),
-                    IntermediaryTemplateDirectory = IntermediaryTemplateDirBox.Text.Trim(),
-                    RefundTemplateDirectory = RefundTemplateDirBox.Text.Trim(),
-                    SummaryTemplatePath = SummaryTemplateBox.Text.Trim(),
-                    RewardLedgerPath = RewardLedgerBox.Text.Trim(),
-                    ProvinceCode = SelectedProvinceOrNull()?.ToString() ?? string.Empty,
-                    ThemeMode = _themeMode
-                });
+                _inputController.SaveInputs(_themeMode);
             }
             catch (Exception ex)
             {
                 AddLog("保存上次路径失败：" + ex.Message, "提示");
             }
-        }
-
-        private static bool HasSavedInputs(UserInputSnapshot snapshot)
-        {
-            return !string.IsNullOrWhiteSpace(snapshot.OutputDirectory)
-                || !string.IsNullOrWhiteSpace(snapshot.BaseLedgerPath)
-                || !string.IsNullOrWhiteSpace(snapshot.PowerPath)
-                || !string.IsNullOrWhiteSpace(snapshot.RawDetailPath)
-                || !string.IsNullOrWhiteSpace(snapshot.ReferenceLedgerPath)
-                || !string.IsNullOrWhiteSpace(snapshot.CompletedLedgerPath)
-                || !string.IsNullOrWhiteSpace(snapshot.ProxyTemplateDirectory)
-                || !string.IsNullOrWhiteSpace(snapshot.IntermediaryTemplateDirectory)
-                || !string.IsNullOrWhiteSpace(snapshot.RefundTemplateDirectory)
-                || !string.IsNullOrWhiteSpace(snapshot.SummaryTemplatePath)
-                || !string.IsNullOrWhiteSpace(snapshot.RewardLedgerPath);
         }
 
         private void LogThreadSafe(string message)
@@ -1463,30 +1281,19 @@ namespace HainanSettlementTool.Wpf
 
         private void ClearStage1_Click(object sender, RoutedEventArgs e)
         {
-            BaseLedgerBox.Clear();
-            PowerBox.Clear();
-            RawDetailBox.Clear();
-            ReferenceLedgerBox.Clear();
-            CopyReferenceExistingCheckBox.IsChecked = false;
+            _inputController.ClearStage1();
             SaveInputs();
         }
 
         private void ClearStage2_Click(object sender, RoutedEventArgs e)
         {
-            CompletedLedgerBox.Clear();
-            ProxyTemplateDirBox.Clear();
-            IntermediaryTemplateDirBox.Clear();
-            RefundTemplateDirBox.Clear();
-            SummaryTemplateBox.Clear();
-            AllowMissingOwnerCheckBox.IsChecked = false;
+            _inputController.ClearStage2();
             SaveInputs();
         }
 
         private void ClearEmployeeReward_Click(object sender, RoutedEventArgs e)
         {
-            RewardLedgerBox.Clear();
-            RewardStartMonthCombo.SelectedIndex = 0;
-            RewardEndMonthCombo.SelectedIndex = -1;
+            _inputController.ClearEmployeeReward();
             SaveInputs();
         }
 
