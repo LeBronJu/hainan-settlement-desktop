@@ -12,10 +12,10 @@ namespace HainanSettlementTool.Excel
     internal static class HainanStage2SplitWorkbookWriter
     {
         internal static List<GroupSettlementTotal> BuildSplitFiles(
-            Stage2Options options,
+            HainanStage2Options options,
             IList<DetailSettlementRow> proxyRows,
             IList<DetailSettlementRow> interRows,
-            IList<Stage2CheckIssue> auditIssues)
+            IList<HainanStage2CheckIssue> auditIssues)
         {
             var templateMap = HainanStage2TemplateIndex.Build(options.ProxyTemplateDirectory, options.IntermediaryTemplateDirectory);
             var grouped = proxyRows
@@ -66,7 +66,7 @@ namespace HainanSettlementTool.Excel
 
         private static string EnsureOutputWorkbook(
             IDictionary<string, string> templateMap,
-            Stage2Options options,
+            HainanStage2Options options,
             string kind,
             string owner,
             string entity,
@@ -182,7 +182,7 @@ namespace HainanSettlementTool.Excel
             IList<DetailSettlementRow> rows,
             string displayEntity,
             string outputPath,
-            IList<Stage2CheckIssue> auditIssues)
+            IList<HainanStage2CheckIssue> auditIssues)
         {
             SetTopTitles(worksheet, kind, entity, month, displayEntity);
             var totalRow = AdjustDetailRows(worksheet, rows.Count);
@@ -387,9 +387,9 @@ namespace HainanSettlementTool.Excel
             string kind,
             string outputPath,
             string sheetName,
-            IList<Stage2CheckIssue> auditIssues)
+            IList<HainanStage2CheckIssue> auditIssues)
         {
-            var issue = Stage2SettlementCalculator.CreateLedgerDifferenceIssue(row, kind, outputPath, sheetName);
+            var issue = HainanStage2AuditIssueFactory.CreateLedgerDifferenceIssue(row, kind, outputPath, sheetName);
             if (issue == null)
             {
                 return;

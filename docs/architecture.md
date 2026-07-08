@@ -53,17 +53,19 @@ WPF 入口是后续新省份功能和体验优化的默认 UI 目标。
 - `PowerRow`
 - `HainanStage1Service`
 - `IHainanStage1ExcelGateway`
-- `Stage2Options`
-- `Stage2SummarySubjectDecision`
-- `Stage2PaymentParties`
-- `Stage2Report`
-- `Stage2PreflightReport`
+- `HainanStage2Options`
+- `HainanStage2SummarySubjectDecision`
+- `HainanStage2PaymentParties`
+- `HainanStage2Report`
+- `HainanStage2PreflightReport`
+- `HainanStage2CheckIssue`
 - `HainanStage2Service`
 - `IHainanStage2ExcelGateway`
 - `Stage2SettlementCalculator`
+- `HainanStage2AuditIssueFactory`
 - `SettlementWorkflow`
-- `Stage2WorkflowPlan`
-- `Stage2WorkflowResult`
+- `HainanStage2WorkflowPlan`
+- `HainanStage2WorkflowResult`
 - `HainanEmployeePowerRewardOptions`
 - `HainanEmployeePowerRewardService`
 - `IHainanEmployeePowerRewardExcelGateway`
@@ -87,7 +89,7 @@ WPF 入口是后续新省份功能和体验优化的默认 UI 目标。
 - `ChongqingStage2Service`
 - `IChongqingStage2ExcelGateway`
 
-Core 层只表达“要做什么”，不关心 Excel 文件具体怎么读写。`SettlementWorkflow` 负责海南阶段一、海南只清洗、海南阶段二、海南员工电量奖励、多省份阶段一清洗/台账更新，以及重庆阶段二 Core 合同的 workflow 状态和共享结果摘要。UI 仍负责确认弹窗、预检决策、进度展示、日志展示和错误弹窗。
+Core 层只表达“要做什么”，不关心 Excel 文件具体怎么读写。`Stage2SettlementCalculator` 保留为跨海南/重庆可复用的阶段二金额计算、容差和金额格式化 Module；海南阶段二预检问题构建放在 `HainanStage2AuditIssueFactory`，避免共享计算器泄漏海南专属报告模型。`SettlementWorkflow` 负责海南阶段一、海南只清洗、海南阶段二、海南员工电量奖励、多省份阶段一清洗/台账更新，以及重庆阶段二 Core 合同的 workflow 状态和共享结果摘要。UI 仍负责确认弹窗、预检决策、进度展示、日志展示和错误弹窗。
 
 多省份客户处理应逐步收敛到通用业务语言：`匹配已有台账客户`、`新增客户到台账`、`本月不写入`。该能力可以先作为 Core 模型和 WPF 预检交互的共享 seam，但省份是否启用、默认行为如何执行由省份模块决定。海南阶段一当前保持成熟自动新增客户流程；重庆阶段一优先使用显式客户处理决定，以支持改名客户和新增客户混合出现的场景。
 

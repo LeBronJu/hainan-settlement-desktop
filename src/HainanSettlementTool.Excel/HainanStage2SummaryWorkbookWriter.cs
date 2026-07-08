@@ -11,7 +11,7 @@ namespace HainanSettlementTool.Excel
 {
     internal static class HainanStage2SummaryWorkbookWriter
     {
-        internal static string BuildSummary(Stage2Options options, IList<GroupSettlementTotal> totals, IList<string> warnings)
+        internal static string BuildSummary(HainanStage2Options options, IList<GroupSettlementTotal> totals, IList<string> warnings)
         {
             var outputName = string.IsNullOrWhiteSpace(options.OutputSummaryName)
                 ? "【2026年海南省代理费汇总表-" + options.Month + "月自动化】.xlsx"
@@ -32,8 +32,8 @@ namespace HainanSettlementTool.Excel
 
                 if (!string.IsNullOrWhiteSpace(qingnengSheetName))
                 {
-                    var qnTotals = totals.Where(total => PartyForSummaryTotal(total, partyByKey) == Stage2PaymentParties.Qingneng).ToList();
-                    var allowed = new HashSet<string>(partyByKey.Where(item => item.Value == Stage2PaymentParties.Qingneng).Select(item => item.Key));
+                    var qnTotals = totals.Where(total => PartyForSummaryTotal(total, partyByKey) == HainanStage2PaymentParties.Qingneng).ToList();
+                    var allowed = new HashSet<string>(partyByKey.Where(item => item.Value == HainanStage2PaymentParties.Qingneng).Select(item => item.Key));
                     foreach (var total in qnTotals)
                     {
                         allowed.Add(HainanStage2ExcelUtil.SummaryKey(total.Entity, total.Kind));
@@ -43,8 +43,8 @@ namespace HainanSettlementTool.Excel
 
                 if (!string.IsNullOrWhiteSpace(qinghuiSheetName))
                 {
-                    var qhTotals = totals.Where(total => PartyForSummaryTotal(total, partyByKey) == Stage2PaymentParties.Qinghui).ToList();
-                    var allowed = new HashSet<string>(partyByKey.Where(item => item.Value == Stage2PaymentParties.Qinghui).Select(item => item.Key));
+                    var qhTotals = totals.Where(total => PartyForSummaryTotal(total, partyByKey) == HainanStage2PaymentParties.Qinghui).ToList();
+                    var allowed = new HashSet<string>(partyByKey.Where(item => item.Value == HainanStage2PaymentParties.Qinghui).Select(item => item.Key));
                     foreach (var total in qhTotals)
                     {
                         allowed.Add(HainanStage2ExcelUtil.SummaryKey(total.Entity, total.Kind));
@@ -151,7 +151,7 @@ namespace HainanSettlementTool.Excel
             var currentParty = TextUtil.S(worksheet.Cell(row, cumulativeColumn + 8).GetFormattedString());
             worksheet.Cell(row, cumulativeColumn + 8).Value = isNewRow
                 ? PaymentPartyFromIndex(paymentPartyByKey, entity, kind)
-                : PaymentPartyFor(entity, kind, month, string.IsNullOrWhiteSpace(currentParty) ? Stage2PaymentParties.Qinghui : currentParty);
+                : PaymentPartyFor(entity, kind, month, string.IsNullOrWhiteSpace(currentParty) ? HainanStage2PaymentParties.Qinghui : currentParty);
         }
 
         private static int InsertMonthBlock(IXLWorksheet worksheet, int month)
@@ -464,13 +464,13 @@ namespace HainanSettlementTool.Excel
         }
 
         private static Dictionary<string, string> BuildPaymentPartyIndex(
-            Stage2Options options,
+            HainanStage2Options options,
             IList<GroupSettlementTotal> totals,
             IList<HainanStage2SummaryMetaRow> mainMeta)
         {
             var partyByKey = mainMeta.ToDictionary(
                 item => HainanStage2ExcelUtil.SummaryKey(item.Entity, item.Kind),
-                item => PaymentPartyFor(item.Entity, item.Kind, options.Month, string.IsNullOrWhiteSpace(item.PaymentParty) ? Stage2PaymentParties.Qinghui : item.PaymentParty));
+                item => PaymentPartyFor(item.Entity, item.Kind, options.Month, string.IsNullOrWhiteSpace(item.PaymentParty) ? HainanStage2PaymentParties.Qinghui : item.PaymentParty));
 
             foreach (var total in totals)
             {
@@ -512,7 +512,7 @@ namespace HainanSettlementTool.Excel
                 return overrideParty;
             }
 
-            return string.IsNullOrWhiteSpace(defaultParty) ? Stage2PaymentParties.Qinghui : defaultParty;
+            return string.IsNullOrWhiteSpace(defaultParty) ? HainanStage2PaymentParties.Qinghui : defaultParty;
         }
 
         private static string PaymentPartyFromIndex(IDictionary<string, string> paymentPartyByKey, string entity, string kind)

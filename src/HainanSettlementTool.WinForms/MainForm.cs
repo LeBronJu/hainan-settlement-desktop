@@ -787,16 +787,16 @@ namespace HainanSettlementTool.WinForms
 
         private async Task RunStage2Async()
         {
-            Stage2Options options;
+            HainanStage2Options options;
             try
             {
-                options = CreateStage2Options();
+                options = CreateHainanStage2Options();
                 if (!ConfirmRun("阶段二", options.Month, options.OutputDirectory))
                 {
                     return;
                 }
 
-                var preflight = CreateWorkflow().AnalyzeStage2(options);
+                var preflight = CreateWorkflow().AnalyzeHainanStage2(options);
                 if (preflight.HasIssues && !ConfirmStage2Preflight(preflight, options))
                 {
                     Log("已取消阶段2生成。");
@@ -819,7 +819,7 @@ namespace HainanSettlementTool.WinForms
                 Log("开始阶段2，请确认台账和模板文件没有在 Excel 中打开。");
                 await Task.Run(() =>
                 {
-                    var result = CreateWorkflow().RunStage2(options, LogThreadSafe);
+                    var result = CreateWorkflow().RunHainanStage2(options, LogThreadSafe);
                     LogSummary(result.SummaryLines);
                 });
             }
@@ -891,9 +891,9 @@ namespace HainanSettlementTool.WinForms
             }
         }
 
-        private Stage2Options CreateStage2Options()
+        private HainanStage2Options CreateHainanStage2Options()
         {
-            return new Stage2Options
+            return new HainanStage2Options
             {
                 Month = SelectedMonth(),
                 LedgerPath = _completedLedger.Text.Trim(),
@@ -923,12 +923,12 @@ namespace HainanSettlementTool.WinForms
             return MessageBox.Show(this, message, "确认运行", MessageBoxButtons.OKCancel, MessageBoxIcon.Question) == DialogResult.OK;
         }
 
-        private bool ConfirmStage2Preflight(Stage2PreflightReport report, Stage2Options options)
+        private bool ConfirmStage2Preflight(HainanStage2PreflightReport report, HainanStage2Options options)
         {
             var paymentIssues = report.Issues
                 .Where(issue => issue.RequiresPaymentPartySelection)
                 .ToList();
-            var decisionRows = new List<Stage2PaymentDecisionRow>();
+            var decisionRows = new List<HainanStage2PaymentDecisionRow>();
             var hasPaymentDecisions = paymentIssues.Count > 0;
 
             using (var dialog = new Form())
@@ -1044,14 +1044,14 @@ namespace HainanSettlementTool.WinForms
                         };
                         IEnumerable<string> parties = issue.AvailablePaymentParties.Count > 0
                             ? issue.AvailablePaymentParties.AsEnumerable()
-                            : Stage2PaymentParties.Supported.AsEnumerable();
+                            : HainanStage2PaymentParties.Supported.AsEnumerable();
                         foreach (var party in parties)
                         {
                             combo.Items.Add(party);
                         }
 
                         decisionPanel.Controls.Add(combo, 1, row);
-                        decisionRows.Add(new Stage2PaymentDecisionRow { Issue = issue, ComboBox = combo });
+                        decisionRows.Add(new HainanStage2PaymentDecisionRow { Issue = issue, ComboBox = combo });
                     }
 
                     layout.Controls.Add(decisionPanel, 0, 3);
@@ -1087,7 +1087,7 @@ namespace HainanSettlementTool.WinForms
                     options.SummarySubjectDecisions.Clear();
                     foreach (var row in decisionRows)
                     {
-                        options.SummarySubjectDecisions.Add(new Stage2SummarySubjectDecision
+                        options.SummarySubjectDecisions.Add(new HainanStage2SummarySubjectDecision
                         {
                             SettlementKind = row.Issue.Kind,
                             Entity = row.Issue.Entity,
@@ -1108,7 +1108,7 @@ namespace HainanSettlementTool.WinForms
             }
         }
 
-        private static string BuildPreflightText(Stage2PreflightReport report)
+        private static string BuildPreflightText(HainanStage2PreflightReport report)
         {
             var builder = new StringBuilder();
             var grouped = report.Issues
@@ -1150,7 +1150,7 @@ namespace HainanSettlementTool.WinForms
                     {
                         IEnumerable<string> parties = issue.AvailablePaymentParties.Count > 0
                             ? issue.AvailablePaymentParties.AsEnumerable()
-                            : Stage2PaymentParties.Supported.AsEnumerable();
+                            : HainanStage2PaymentParties.Supported.AsEnumerable();
                         builder.AppendLine("   需选择支付方：" + string.Join("、", parties));
                     }
                     if (!string.IsNullOrWhiteSpace(issue.TemplateFile))
@@ -1176,9 +1176,9 @@ namespace HainanSettlementTool.WinForms
             return string.Join("、", names) + suffix;
         }
 
-        private sealed class Stage2PaymentDecisionRow
+        private sealed class HainanStage2PaymentDecisionRow
         {
-            public Stage2CheckIssue Issue { get; set; }
+            public HainanStage2CheckIssue Issue { get; set; }
             public ComboBox ComboBox { get; set; }
         }
 

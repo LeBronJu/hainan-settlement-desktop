@@ -3,10 +3,10 @@ using System.Linq;
 
 namespace HainanSettlementTool.Core.Models
 {
-    public sealed class Stage2PreflightReport
+    public sealed class HainanStage2PreflightReport
     {
         public int Month { get; set; }
-        public List<Stage2CheckIssue> Issues { get; } = new List<Stage2CheckIssue>();
+        public List<HainanStage2CheckIssue> Issues { get; } = new List<HainanStage2CheckIssue>();
 
         public bool HasIssues
         {

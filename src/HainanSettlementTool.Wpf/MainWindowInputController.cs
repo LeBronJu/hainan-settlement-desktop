@@ -167,9 +167,9 @@ namespace HainanSettlementTool.Wpf
             return new HainanPowerCleanInput(rawDetailPath, outputPath, outputDirectory);
         }
 
-        public Stage2Options CreateStage2Options()
+        public HainanStage2Options CreateHainanStage2Options()
         {
-            return new Stage2Options
+            return new HainanStage2Options
             {
                 Month = SelectedMonth(),
                 LedgerPath = _completedLedgerBox.Text.Trim(),

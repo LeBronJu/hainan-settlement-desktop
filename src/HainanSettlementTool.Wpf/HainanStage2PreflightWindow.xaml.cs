@@ -6,11 +6,11 @@ using HainanSettlementTool.Core.Models;
 
 namespace HainanSettlementTool.Wpf
 {
-    public partial class Stage2PreflightWindow : Window
+    public partial class HainanStage2PreflightWindow : Window
     {
         private readonly List<PreflightIssueItemViewModel> _issueRows;
 
-        public Stage2PreflightWindow(Stage2PreflightReport report)
+        public HainanStage2PreflightWindow(HainanStage2PreflightReport report)
         {
             InitializeComponent();
             SummaryText.Text = "结算月份：2026年" + report.Month + "月；共发现 " + report.Issues.Count + " 条需要确认的变化。";
@@ -19,10 +19,10 @@ namespace HainanSettlementTool.Wpf
             IssueGroupsList.ItemsSource = issueGroups;
         }
 
-        public List<Stage2SummarySubjectDecision> SummarySubjectDecisions { get; private set; } =
-            new List<Stage2SummarySubjectDecision>();
+        public List<HainanStage2SummarySubjectDecision> SummarySubjectDecisions { get; private set; } =
+            new List<HainanStage2SummarySubjectDecision>();
 
-        private static List<PreflightIssueGroupViewModel> BuildIssueGroups(Stage2PreflightReport report)
+        private static List<PreflightIssueGroupViewModel> BuildIssueGroups(HainanStage2PreflightReport report)
         {
             return report.Issues
                 .GroupBy(issue => issue.Category)
@@ -40,11 +40,11 @@ namespace HainanSettlementTool.Wpf
                 .ToList();
         }
 
-        private static PreflightIssueItemViewModel BuildIssueItem(Stage2CheckIssue issue)
+        private static PreflightIssueItemViewModel BuildIssueItem(HainanStage2CheckIssue issue)
         {
             IEnumerable<string> paymentParties = issue.AvailablePaymentParties.Count > 0
                 ? issue.AvailablePaymentParties.AsEnumerable()
-                : Stage2PaymentParties.Supported.AsEnumerable();
+                : HainanStage2PaymentParties.Supported.AsEnumerable();
             return new PreflightIssueItemViewModel
             {
                 PrimaryText = "[" + issue.Severity + "] " + issue.Message,
@@ -61,7 +61,7 @@ namespace HainanSettlementTool.Wpf
             };
         }
 
-        private static string BuildFileText(Stage2CheckIssue issue)
+        private static string BuildFileText(HainanStage2CheckIssue issue)
         {
             if (issue.RequiresPaymentPartySelection)
             {
@@ -78,7 +78,7 @@ namespace HainanSettlementTool.Wpf
             return "分表文件：" + Path.GetFileName(issue.TemplateFile);
         }
 
-        private static string BuildHandlingText(Stage2CheckIssue issue)
+        private static string BuildHandlingText(HainanStage2CheckIssue issue)
         {
             if (string.IsNullOrWhiteSpace(issue.Suggestion))
             {
@@ -88,7 +88,7 @@ namespace HainanSettlementTool.Wpf
             return "处理方式：" + issue.Suggestion;
         }
 
-        private static string BuildContextText(Stage2CheckIssue issue)
+        private static string BuildContextText(HainanStage2CheckIssue issue)
         {
             var parts = new List<string>();
             if (!string.IsNullOrWhiteSpace(issue.Kind))
@@ -176,7 +176,7 @@ namespace HainanSettlementTool.Wpf
 
             SummarySubjectDecisions = _issueRows
                 .Where(row => row.RequiresPaymentPartySelection)
-                .Select(row => new Stage2SummarySubjectDecision
+                .Select(row => new HainanStage2SummarySubjectDecision
                 {
                     SettlementKind = row.Kind,
                     Entity = row.Entity,

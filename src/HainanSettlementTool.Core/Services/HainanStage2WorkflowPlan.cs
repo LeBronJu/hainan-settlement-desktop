@@ -3,9 +3,9 @@ using HainanSettlementTool.Core.Models;
 
 namespace HainanSettlementTool.Core.Services
 {
-    public sealed class Stage2WorkflowPlan
+    public sealed class HainanStage2WorkflowPlan
     {
-        public Stage2WorkflowPlan(Stage2Options options, Stage2PreflightReport preflight)
+        public HainanStage2WorkflowPlan(HainanStage2Options options, HainanStage2PreflightReport preflight)
         {
             if (options == null)
             {
@@ -21,9 +21,9 @@ namespace HainanSettlementTool.Core.Services
             Preflight = preflight;
         }
 
-        public Stage2Options Options { get; }
+        public HainanStage2Options Options { get; }
 
-        public Stage2PreflightReport Preflight { get; }
+        public HainanStage2PreflightReport Preflight { get; }
 
         public bool RequiresConfirmation
         {

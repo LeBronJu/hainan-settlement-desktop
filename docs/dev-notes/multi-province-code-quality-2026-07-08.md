@@ -31,7 +31,7 @@
 | 1519 | `src/HainanSettlementTool.Wpf/MainWindow.xaml.cs` | 第二至六批已部分处理。已拆日志、进度、结果、弹窗、路径选择、输入状态/options 构造、省份 UI 状态应用、海南阶段一、阶段二和海南员工奖励 workflow；重庆阶段一 workflow 暂留主窗口等待实测反馈稳定。 |
 | 1207 | `src/HainanSettlementTool.WinForms/MainForm.cs` | 冻结。只因共享层修复被动受益，不安排主动拆分。 |
 | 874 | `src/HainanSettlementTool.Excel/ChongqingPowerCleanGenerator.cs` | P2。重庆阶段一清洗稳定后可拆读取、校验、汇总、报告写入。 |
-| 804 | `tests/HainanSettlementTool.Excel.Tests/Stage2SettlementGeneratorTests.cs` | 已随第一批重命名为 `HainanStage2SettlementGeneratorTests.cs`；后续再按行为分组拆测试。 |
+| 804 | `tests/HainanSettlementTool.Excel.Tests/HainanStage2SettlementGeneratorTests.cs` | 已随第一批重命名为 `HainanStage2SettlementGeneratorTests.cs`；后续再按行为分组拆测试。 |
 | 803 | `src/HainanSettlementTool.Excel/ChongqingLedgerStage1Updater.cs` | P2。可按预检、客户决定应用、月份块写入、报告输出拆分。 |
 | 721 | `tests/HainanSettlementTool.Excel.Tests/ChongqingPowerCleanGeneratorTests.cs` | 跟随重庆清洗拆分后再整理。 |
 | 682 | `src/HainanSettlementTool.Excel/HainanEmployeePowerRewardGenerator.cs` | P2。命名已明确为海南专属；后续可按台账读取、汇总计算、workbook 输出拆分。 |
@@ -45,6 +45,28 @@
 - 不做项目名、解决方案名、程序集名、根命名空间和发布包名的一次性大迁移。
 - 优先改最误导维护者的内部类名、变量名和 helper 名，例如实际只处理海南阶段二的通用名。
 - 每个命名切片必须配套 focused 测试或构建验证，避免 XAML、脚本路径、反射字符串或项目引用被纯重命名破坏。
+
+最终目标是全项目命名规范化：省份专属 Module 必须显式带省份名，真实跨省共享 Module 才允许使用通用名。重庆是新接入模块，当前命名基本已规避这个问题；剩余主要集中在海南历史通用名和少量共享工具混入海南语义。项目名、解决方案名、程序集名、根命名空间和发布包名暂不纳入当前批次，因为这属于高风险迁移。
+
+## 剩余命名治理排队
+
+P0：下一批优先处理。
+
+- `LedgerLayout` 实际描述海南台账结构，应改为 `HainanLedgerLayout`，并同步海南阶段一、海南阶段二、海南员工电量奖励和测试引用。
+- 海南阶段一 Core 合同仍是通用名：`Stage1Options`、`Stage1Report`、`PowerCleanReport`、`PowerRow` 应评估改为 `HainanStage1...` / `HainanPower...`。
+- 海南阶段一 Excel 写入 Module `LedgerStage1Updater` 应改为 `HainanStage1LedgerUpdater`，测试文件同步显式化。
+
+P1：P0 稳定后处理。
+
+- 海南原始明细和电量处理表读取器仍是通用名：`PowerWorkbookReader`、`RawDetailReader`、`RawDetailRowReader`、`CustomerCodeReader`，当前按海南列位和 sheet 名读取，应加 `Hainan` 前缀或拆出共享行读取与海南投影。
+- `ClosedXmlUtil` 混入海南专属 helper，`MainSheet` / `DefaultLedgerOutputName` 应迁出到海南台账或海南阶段一 Excel 工具；`CellNumber` / `ColumnLetter` 可继续共享。
+- WPF `MainWindow.xaml.cs` 仍保留重庆阶段一 workflow 编排；等重庆实机反馈稳定后再抽 `MainWindowChongqingStage1WorkflowController` 或至少把方法名显式化。
+
+P2：暂缓。
+
+- `DetailSettlementRow` 当前主要是海南阶段二明细模型，重庆已有 `ChongqingSettlementDetail`；后续可改为 `HainanStage2DetailSettlementRow`。
+- `Stage2SettlementAmounts` 和 `Stage2SettlementCalculator` 目前确实被海南/重庆共同使用，继续保持共享名；只有发现规则分叉时再拆省份专属 Module。
+- 根项目名、命名空间、发布包名和用户路径不做一次性大迁移。
 
 ## 第一批目标
 
@@ -170,6 +192,25 @@
 - `dotnet test tests\HainanSettlementTool.Core.Tests\HainanSettlementTool.Core.Tests.csproj --no-restore` 通过，26 个测试。
 - `dotnet test tests\HainanSettlementTool.Excel.Tests\HainanSettlementTool.Excel.Tests.csproj --no-restore` 通过，27 个测试。
 
+## 第七批进展
+
+2026-07-08 已完成海南阶段二 Core/WPF 命名治理：
+
+- 海南阶段二 Core 合同从通用 `Stage2Options`、`Stage2Report`、`Stage2PreflightReport`、`Stage2CheckIssue`、`Stage2PaymentParties`、`Stage2SummarySubjectDecision`、`Stage2WorkflowPlan`、`Stage2WorkflowResult` 改为 `HainanStage2...`。
+- WPF 海南阶段二预检窗口从 `Stage2PreflightWindow` 改为 `HainanStage2PreflightWindow`。
+- `SettlementWorkflow` 的海南阶段二入口改为 `AnalyzeHainanStage2`、`PlanHainanStage2`、`CompleteHainanStage2`、`RunHainanStage2`，避免未来重庆/其它省份误用。
+- `Stage2SettlementCalculator` 保留共享金额计算、容差和格式化；海南台账/分表差异问题构建移到 `HainanStage2AuditIssueFactory`。
+- 组合 gateway 内部字段改为 `_hainanStage2Generator`，WinForms 冻结入口只做编译跟随改名，不增加新功能。
+
+本轮不改变海南阶段二输出文件名、sheet 名、公式、支付方预检规则、预检文案或生成流程。
+
+本轮验证：
+
+- `dotnet test tests\HainanSettlementTool.Core.Tests\HainanSettlementTool.Core.Tests.csproj --no-restore` 通过，26 个测试。
+- `dotnet test tests\HainanSettlementTool.Excel.Tests\HainanSettlementTool.Excel.Tests.csproj --no-restore` 通过，27 个测试。
+- `dotnet msbuild src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Debug /m` 通过。
+- `dotnet msbuild src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Release /m` 通过。
+
 ## 待办
 
 - [x] 建立本 current task note，并接入 `docs/README.md`。
@@ -180,5 +221,7 @@
 - [x] 拆出 `MainWindow.xaml.cs` 的阶段二 workflow 编排。
 - [x] 拆出 `MainWindow.xaml.cs` 的海南阶段一和员工奖励 workflow 编排。
 - [x] 将员工电量奖励 Core/Excel/WPF workflow 命名明确为海南专属，为未来重庆电量奖预留并列实现空间。
+- [x] 将海南阶段二 Core/WPF 合同和 workflow 方法命名明确为海南专属，并把海南预检问题构建从共享阶段二金额计算器移出。
+- [ ] 继续全项目命名规范化：下一批优先处理 `LedgerLayout`、海南阶段一 Core 合同、`LedgerStage1Updater` 等海南历史通用名。
 - [ ] 视重庆实机核对反馈和当前风险，决定是否继续拆重庆阶段一 workflow 编排。
 - [ ] 重庆阶段二实机测试如发现问题，暂停代码质量线并优先处理实测问题。

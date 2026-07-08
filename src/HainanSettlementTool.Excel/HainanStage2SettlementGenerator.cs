@@ -10,7 +10,7 @@ namespace HainanSettlementTool.Excel
 {
     internal sealed class HainanStage2SettlementGenerator
     {
-        public Stage2Report Generate(Stage2Options options)
+        public HainanStage2Report Generate(HainanStage2Options options)
         {
             Directory.CreateDirectory(options.OutputDirectory);
             var proxyRows = new List<DetailSettlementRow>();
@@ -40,13 +40,13 @@ namespace HainanSettlementTool.Excel
             return report;
         }
 
-        public Stage2PreflightReport Analyze(Stage2Options options)
+        public HainanStage2PreflightReport Analyze(HainanStage2Options options)
         {
             var proxyRows = new List<DetailSettlementRow>();
             var interRows = new List<DetailSettlementRow>();
             HainanStage2LedgerReader.ReadLedgerRows(options.LedgerPath, options.Month, proxyRows, interRows);
 
-            var report = new Stage2PreflightReport
+            var report = new HainanStage2PreflightReport
             {
                 Month = options.Month
             };
@@ -54,9 +54,9 @@ namespace HainanSettlementTool.Excel
             return report;
         }
 
-        private static List<Stage2CheckIssue> BuildPreflightIssues(Stage2Options options, IList<DetailSettlementRow> proxyRows, IList<DetailSettlementRow> interRows)
+        private static List<HainanStage2CheckIssue> BuildPreflightIssues(HainanStage2Options options, IList<DetailSettlementRow> proxyRows, IList<DetailSettlementRow> interRows)
         {
-            var issues = new List<Stage2CheckIssue>();
+            var issues = new List<HainanStage2CheckIssue>();
             var templateMap = HainanStage2TemplateIndex.Build(options.ProxyTemplateDirectory, options.IntermediaryTemplateDirectory);
             var grouped = proxyRows
                 .Select(row => new { Key = Tuple.Create("代理", row.Owner, row.Entity), Row = row })
@@ -75,7 +75,7 @@ namespace HainanSettlementTool.Excel
                 string templatePath;
                 if (!templateMap.TryGetValue(templateKey, out templatePath))
                 {
-                    issues.Add(new Stage2CheckIssue
+                    issues.Add(new HainanStage2CheckIssue
                     {
                         Severity = "提示",
                         Category = "未匹配到上月分表模板",
@@ -96,10 +96,10 @@ namespace HainanSettlementTool.Excel
         }
 
         private static void AddSummarySubjectPaymentIssues(
-            Stage2Options options,
+            HainanStage2Options options,
             IList<DetailSettlementRow> proxyRows,
             IList<DetailSettlementRow> interRows,
-            IList<Stage2CheckIssue> issues)
+            IList<HainanStage2CheckIssue> issues)
         {
             var subjects = BuildExpectedSummarySubjects(proxyRows, interRows);
             if (subjects.Count == 0)
@@ -127,7 +127,7 @@ namespace HainanSettlementTool.Excel
                         continue;
                     }
 
-                    var issue = new Stage2CheckIssue
+                    var issue = new HainanStage2CheckIssue
                     {
                         Severity = "确认",
                         Category = "新增汇总主体支付方选择",
@@ -140,7 +140,7 @@ namespace HainanSettlementTool.Excel
                         Suggestion = "请选择本月生成时写入的支付方；本次选择只用于输出汇总表副本。",
                         RequiresPaymentPartySelection = true
                     };
-                    issue.AvailablePaymentParties.AddRange(Stage2PaymentParties.Supported);
+                    issue.AvailablePaymentParties.AddRange(HainanStage2PaymentParties.Supported);
                     issues.Add(issue);
                 }
             }
@@ -162,8 +162,8 @@ namespace HainanSettlementTool.Excel
         }
 
         private static void ValidateRequiredPaymentPartyDecisions(
-            Stage2Options options,
-            IList<Stage2CheckIssue> issues)
+            HainanStage2Options options,
+            IList<HainanStage2CheckIssue> issues)
         {
             var missing = issues
                 .Where(issue => issue.RequiresPaymentPartySelection)
@@ -189,7 +189,7 @@ namespace HainanSettlementTool.Excel
             string entity,
             string templatePath,
             IList<DetailSettlementRow> currentRows,
-            IList<Stage2CheckIssue> issues)
+            IList<HainanStage2CheckIssue> issues)
         {
             try
             {
@@ -203,7 +203,7 @@ namespace HainanSettlementTool.Excel
                         PreviousDetailRow previous;
                         if (!previousRows.TryGetValue(HainanStage2ExcelUtil.NormalizeName(row.Customer), out previous))
                         {
-                            issues.Add(new Stage2CheckIssue
+                            issues.Add(new HainanStage2CheckIssue
                             {
                                 Severity = "提示",
                                 Category = "客户本月新增到分表",
@@ -227,7 +227,7 @@ namespace HainanSettlementTool.Excel
 
                     foreach (var previous in previousRows.Values.Where(row => !currentCustomers.Contains(HainanStage2ExcelUtil.NormalizeName(row.Customer))))
                     {
-                        issues.Add(new Stage2CheckIssue
+                        issues.Add(new HainanStage2CheckIssue
                         {
                             Severity = "提示",
                             Category = "上月分表存在本月台账外明细行",
@@ -247,7 +247,7 @@ namespace HainanSettlementTool.Excel
             }
             catch (Exception ex)
             {
-                issues.Add(new Stage2CheckIssue
+                issues.Add(new HainanStage2CheckIssue
                 {
                     Severity = "提示",
                     Category = "上月分表预检失败",
@@ -294,7 +294,7 @@ namespace HainanSettlementTool.Excel
         }
 
         private static void AddValueChangeIssue(
-            IList<Stage2CheckIssue> issues,
+            IList<HainanStage2CheckIssue> issues,
             string kind,
             string owner,
             string entity,
@@ -310,7 +310,7 @@ namespace HainanSettlementTool.Excel
                 return;
             }
 
-            issues.Add(new Stage2CheckIssue
+            issues.Add(new HainanStage2CheckIssue
             {
                 Severity = "确认",
                 Category = "关键字段较上月变化",

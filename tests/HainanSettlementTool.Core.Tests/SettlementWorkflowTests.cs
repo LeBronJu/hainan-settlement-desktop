@@ -154,24 +154,24 @@ namespace HainanSettlementTool.Core.Tests
         }
 
         [TestMethod]
-        public void RunStage2ReturnsSharedSummaryLines()
+        public void RunHainanStage2ReturnsSharedSummaryLines()
         {
             var root = CreateTempRoot();
             try
             {
                 var gateway = new FakeGateway();
                 var workflow = CreateWorkflow(gateway);
-                var options = CreateStage2Options(root);
+                var options = CreateHainanStage2Options(root);
 
-                var result = workflow.RunStage2(options, null);
+                var result = workflow.RunHainanStage2(options, null);
 
-                Assert.AreSame(gateway.Stage2Report, result.Report);
+                Assert.AreSame(gateway.HainanStage2Report, result.Report);
                 CollectionAssert.AreEqual(
                     new[]
                     {
                         "阶段2完成。",
-                        "汇总表：" + gateway.Stage2Report.Summary,
-                        "报告：" + gateway.Stage2Report.ReportPath,
+                        "汇总表：" + gateway.HainanStage2Report.Summary,
+                        "报告：" + gateway.HainanStage2Report.ReportPath,
                         "代理费合计：123.4567",
                         "居间费合计：8.9"
                     },
@@ -296,21 +296,21 @@ namespace HainanSettlementTool.Core.Tests
         }
 
         [TestMethod]
-        public void CompleteStage2GeneratesWhenPreflightHasNoIssues()
+        public void CompleteHainanStage2GeneratesWhenPreflightHasNoIssues()
         {
             var root = CreateTempRoot();
             try
             {
                 var gateway = new FakeGateway();
                 var workflow = CreateWorkflow(gateway);
-                var options = CreateStage2Options(root);
+                var options = CreateHainanStage2Options(root);
 
-                var plan = workflow.PlanStage2(options);
-                var result = workflow.CompleteStage2(plan, confirmed: false, log: null);
+                var plan = workflow.PlanHainanStage2(options);
+                var result = workflow.CompleteHainanStage2(plan, confirmed: false, log: null);
 
                 Assert.IsFalse(plan.RequiresConfirmation);
                 Assert.IsFalse(result.WasCancelled);
-                Assert.AreSame(gateway.Stage2Report, result.Report);
+                Assert.AreSame(gateway.HainanStage2Report, result.Report);
                 Assert.AreEqual(1, gateway.GenerateSettlementCalls);
             }
             finally
@@ -320,21 +320,21 @@ namespace HainanSettlementTool.Core.Tests
         }
 
         [TestMethod]
-        public void CompleteStage2GeneratesWhenPreflightHasIssuesAndUserConfirms()
+        public void CompleteHainanStage2GeneratesWhenPreflightHasIssuesAndUserConfirms()
         {
             var root = CreateTempRoot();
             try
             {
                 var gateway = new FakeGateway { AddPreflightIssue = true };
                 var workflow = CreateWorkflow(gateway);
-                var options = CreateStage2Options(root);
+                var options = CreateHainanStage2Options(root);
 
-                var plan = workflow.PlanStage2(options);
-                var result = workflow.CompleteStage2(plan, confirmed: true, log: null);
+                var plan = workflow.PlanHainanStage2(options);
+                var result = workflow.CompleteHainanStage2(plan, confirmed: true, log: null);
 
                 Assert.IsTrue(plan.RequiresConfirmation);
                 Assert.IsFalse(result.WasCancelled);
-                Assert.AreSame(gateway.Stage2Report, result.Report);
+                Assert.AreSame(gateway.HainanStage2Report, result.Report);
                 Assert.AreEqual(1, gateway.GenerateSettlementCalls);
             }
             finally
@@ -344,17 +344,17 @@ namespace HainanSettlementTool.Core.Tests
         }
 
         [TestMethod]
-        public void CompleteStage2DoesNotGenerateWhenPreflightHasIssuesAndUserCancels()
+        public void CompleteHainanStage2DoesNotGenerateWhenPreflightHasIssuesAndUserCancels()
         {
             var root = CreateTempRoot();
             try
             {
                 var gateway = new FakeGateway { AddPreflightIssue = true };
                 var workflow = CreateWorkflow(gateway);
-                var options = CreateStage2Options(root);
+                var options = CreateHainanStage2Options(root);
 
-                var plan = workflow.PlanStage2(options);
-                var result = workflow.CompleteStage2(plan, confirmed: false, log: null);
+                var plan = workflow.PlanHainanStage2(options);
+                var result = workflow.CompleteHainanStage2(plan, confirmed: false, log: null);
 
                 Assert.IsTrue(plan.RequiresConfirmation);
                 Assert.IsTrue(result.WasCancelled);
@@ -396,14 +396,14 @@ namespace HainanSettlementTool.Core.Tests
             };
         }
 
-        private static Stage2Options CreateStage2Options(string root)
+        private static HainanStage2Options CreateHainanStage2Options(string root)
         {
             var proxyDir = Path.Combine(root, "proxy");
             var intermediaryDir = Path.Combine(root, "intermediary");
             Directory.CreateDirectory(proxyDir);
             Directory.CreateDirectory(intermediaryDir);
 
-            return new Stage2Options
+            return new HainanStage2Options
             {
                 Month = 4,
                 LedgerPath = CreateFile(root, "ledger.xlsx"),
@@ -481,7 +481,7 @@ namespace HainanSettlementTool.Core.Tests
                 ReportPath = "stage1-report.json"
             };
 
-            public readonly Stage2Report Stage2Report = new Stage2Report
+            public readonly HainanStage2Report HainanStage2Report = new HainanStage2Report
             {
                 Summary = "summary.xlsx",
                 ReportPath = "stage2-report.json",
@@ -586,12 +586,12 @@ namespace HainanSettlementTool.Core.Tests
                 return ProvinceStage1LedgerUpdateResult;
             }
 
-            public Stage2PreflightReport AnalyzeSettlement(Stage2Options options)
+            public HainanStage2PreflightReport AnalyzeSettlement(HainanStage2Options options)
             {
-                var report = new Stage2PreflightReport();
+                var report = new HainanStage2PreflightReport();
                 if (AddPreflightIssue)
                 {
-                    report.Issues.Add(new Stage2CheckIssue
+                    report.Issues.Add(new HainanStage2CheckIssue
                     {
                         Severity = "提示",
                         Category = "测试预检"
@@ -601,10 +601,10 @@ namespace HainanSettlementTool.Core.Tests
                 return report;
             }
 
-            public Stage2Report GenerateSettlement(Stage2Options options)
+            public HainanStage2Report GenerateSettlement(HainanStage2Options options)
             {
                 GenerateSettlementCalls++;
-                return Stage2Report;
+                return HainanStage2Report;
             }
 
             public ChongqingStage2PreflightReport AnalyzeSettlement(ChongqingStage2Options options)

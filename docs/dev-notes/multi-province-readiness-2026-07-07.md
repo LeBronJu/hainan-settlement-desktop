@@ -35,6 +35,7 @@
 - `ProvinceStage1LedgerUpdateIssue.Kind` 稳定 issue code。
 - WPF 进度、结果、弹窗、路径选择、日志、输入状态、省份 UI 状态应用、海南阶段一、阶段二和员工奖励 workflow controller 拆分。
 - 海南员工电量奖励 Core/Excel/WPF workflow 已显式命名为 `HainanEmployeePowerReward...`，避免未来重庆电量奖误用海南台账口径。
+- 海南阶段二 Core/WPF 合同已显式命名为 `HainanStage2...`；共享 `Stage2SettlementCalculator` 仅保留金额计算、容差和格式化，海南预检问题构建已移到 `HainanStage2AuditIssueFactory`。
 - 省份显示名、Hainan Stage 1/2 服务名、组合型 ClosedXML gateway 等低风险命名中性化。
 - 重庆客户处理决定模型和 WPF 预检交互；海南阶段一保持原有自动新增流程。
 
@@ -305,7 +306,7 @@ UI 约束：
 
 未完成且仍建议后续处理：
 
-- 海南命名逐步中性化已进入今日多省份技术债主线。已完成第一批低风险切片：海南专用阶段入口改为 `HainanStage1Service` / `HainanStage2Service` 和对应 gateway interface；组合型 ClosedXML gateway 改为 `ClosedXmlSettlementExcelGateway`；省份显示名抽到 `ProvinceDisplayNames`；WPF 窗口标题、日志文件名和输入持久化目录改为中性名称并保留旧目录读取 fallback。暂不做项目名/命名空间/发布包名的一次性大重命名。
+- 海南命名逐步中性化已进入今日多省份技术债主线。已完成低风险切片：海南专用阶段入口改为 `HainanStage1Service` / `HainanStage2Service` 和对应 gateway interface；海南阶段二 Core/WPF 合同改为 `HainanStage2...`；员工电量奖励改为 `HainanEmployeePowerReward...`；组合型 ClosedXML gateway 改为 `ClosedXmlSettlementExcelGateway`；省份显示名抽到 `ProvinceDisplayNames`；WPF 窗口标题、日志文件名和输入持久化目录改为中性名称并保留旧目录读取 fallback。剩余海南历史通用名由 `docs/dev-notes/multi-province-code-quality-2026-07-08.md` 跟踪，暂不做项目名/命名空间/发布包名的一次性大重命名。
 - 客户处理决定已作为多省份通用模型落地，并优先启用于重庆显式预检和台账写入。海南仍不启用手动匹配 UI，保持成熟自动新增客户流程；未来只有出现真实改名/跳过需求时再接入同一模型。
 - `ProvinceStage1Service` 仍有重庆专用支持校验；第三个省接入前应继续把“是否支持”和通用必填项收敛到更明确的省份能力 seam。
 - 完整 MVVM、持久化别名表和跨省通用阶段二抽象仍属于 P2，暂不展开。重庆阶段二本身已经是当前任务，应先做重庆专属实现和验证，不提前抽象成跨省通用阶段二。
@@ -316,7 +317,7 @@ UI 约束：
 2. 建立 Excel 内部省份阶段一 adapter seam，把重庆 adapter 从 `ClosedXmlSettlementExcelGateway` 的 if 分支里独立出来。（已完成第一版）
 3. 给 `ProvinceStage1LedgerUpdateIssue` 增加稳定 code / kind，避免 UI 行为依赖中文分类。（已完成第一版）
 4. 继续按低风险边界拆 `MainWindow.xaml.cs`：进度/状态、结果摘要、确认/错误弹窗入口、文件/文件夹选择入口、日志控制、输入状态/options 构造、省份 UI 状态应用、海南阶段一、阶段二和员工奖励 workflow 已拆出；后续可在重庆实机反馈稳定后处理仍留在窗口里的重庆阶段一 workflow 编排逻辑。
-5. 继续海南命名中性化的低风险切片：先改内部多省份概念的类名/变量名/helper 名；保留已经准确表达海南专属规则的名称，不做根项目名、程序集名、命名空间和发布包名的大迁移。
+5. 继续全项目命名规范化的低风险切片：优先清理海南历史通用名，例如 `LedgerLayout`、海南阶段一 Core 合同和海南阶段一 Excel updater；保留真实跨省共享名，不做根项目名、程序集名、命名空间和发布包名的大迁移。
 
 ### P1：第三个省接入时同步做
 

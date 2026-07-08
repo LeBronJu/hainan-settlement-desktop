@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace HainanSettlementTool.Core.Models
 {
-    public sealed class Stage2CheckIssue
+    public sealed class HainanStage2CheckIssue
     {
         public string Severity { get; set; }
         public string Category { get; set; }

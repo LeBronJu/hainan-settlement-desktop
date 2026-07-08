@@ -11,7 +11,7 @@ namespace HainanSettlementTool.Excel
         private readonly RawDetailReader _rawDetailReader = new RawDetailReader();
         private readonly CustomerCodeReader _customerCodeReader = new CustomerCodeReader();
         private readonly LedgerStage1Updater _ledgerUpdater = new LedgerStage1Updater();
-        private readonly HainanStage2SettlementGenerator _stage2Generator = new HainanStage2SettlementGenerator();
+        private readonly HainanStage2SettlementGenerator _hainanStage2Generator = new HainanStage2SettlementGenerator();
         private readonly ChongqingStage2SettlementGenerator _chongqingStage2Generator = new ChongqingStage2SettlementGenerator();
         private readonly HainanEmployeePowerRewardGenerator _hainanEmployeePowerRewardGenerator = new HainanEmployeePowerRewardGenerator();
         private readonly Dictionary<ProvinceCode, IProvinceStage1Adapter> _provinceStage1Adapters;
@@ -75,14 +75,14 @@ namespace HainanSettlementTool.Excel
             throw new System.NotSupportedException("当前省份暂未接入多省份阶段一" + actionName + "。");
         }
 
-        public Stage2Report GenerateSettlement(Stage2Options options)
+        public HainanStage2Report GenerateSettlement(HainanStage2Options options)
         {
-            return _stage2Generator.Generate(options);
+            return _hainanStage2Generator.Generate(options);
         }
 
-        public Stage2PreflightReport AnalyzeSettlement(Stage2Options options)
+        public HainanStage2PreflightReport AnalyzeSettlement(HainanStage2Options options)
         {
-            return _stage2Generator.Analyze(options);
+            return _hainanStage2Generator.Analyze(options);
         }
 
         public ChongqingStage2Report GenerateSettlement(ChongqingStage2Options options)

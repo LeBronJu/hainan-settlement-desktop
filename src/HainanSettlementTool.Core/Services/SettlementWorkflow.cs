@@ -6,7 +6,7 @@ namespace HainanSettlementTool.Core.Services
     public sealed class SettlementWorkflow
     {
         private readonly HainanStage1Service _stage1Service;
-        private readonly HainanStage2Service _stage2Service;
+        private readonly HainanStage2Service _hainanStage2Service;
         private readonly HainanEmployeePowerRewardService _hainanEmployeePowerRewardService;
         private readonly ProvinceStage1Service _provinceStage1Service;
         private readonly ChongqingStage2Service _chongqingStage2Service;
@@ -48,7 +48,7 @@ namespace HainanSettlementTool.Core.Services
             }
 
             _stage1Service = stage1Service;
-            _stage2Service = stage2Service;
+            _hainanStage2Service = stage2Service;
             _hainanEmployeePowerRewardService = hainanEmployeePowerRewardService;
             _provinceStage1Service = provinceStage1Service;
             _chongqingStage2Service = chongqingStage2Service;
@@ -138,17 +138,17 @@ namespace HainanSettlementTool.Core.Services
                 });
         }
 
-        public Stage2PreflightReport AnalyzeStage2(Stage2Options options)
+        public HainanStage2PreflightReport AnalyzeHainanStage2(HainanStage2Options options)
         {
-            return _stage2Service.Analyze(options);
+            return _hainanStage2Service.Analyze(options);
         }
 
-        public Stage2WorkflowPlan PlanStage2(Stage2Options options)
+        public HainanStage2WorkflowPlan PlanHainanStage2(HainanStage2Options options)
         {
-            return new Stage2WorkflowPlan(options, AnalyzeStage2(options));
+            return new HainanStage2WorkflowPlan(options, AnalyzeHainanStage2(options));
         }
 
-        public Stage2WorkflowResult CompleteStage2(Stage2WorkflowPlan plan, bool confirmed, Action<string> log)
+        public HainanStage2WorkflowResult CompleteHainanStage2(HainanStage2WorkflowPlan plan, bool confirmed, Action<string> log)
         {
             if (plan == null)
             {
@@ -157,16 +157,16 @@ namespace HainanSettlementTool.Core.Services
 
             if (plan.RequiresConfirmation && !confirmed)
             {
-                return Stage2WorkflowResult.Cancelled();
+                return HainanStage2WorkflowResult.Cancelled();
             }
 
-            return Stage2WorkflowResult.Complete(RunStage2(plan.Options, log));
+            return HainanStage2WorkflowResult.Complete(RunHainanStage2(plan.Options, log));
         }
 
-        public StageWorkflowResult<Stage2Report> RunStage2(Stage2Options options, Action<string> log)
+        public StageWorkflowResult<HainanStage2Report> RunHainanStage2(HainanStage2Options options, Action<string> log)
         {
-            var report = _stage2Service.Run(options, log);
-            return new StageWorkflowResult<Stage2Report>(
+            var report = _hainanStage2Service.Run(options, log);
+            return new StageWorkflowResult<HainanStage2Report>(
                 report,
                 new[]
                 {

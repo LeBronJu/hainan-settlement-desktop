@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace HainanSettlementTool.Core.Models
 {
-    public sealed class Stage2Report
+    public sealed class HainanStage2Report
     {
         public int Month { get; set; }
         public string Ledger { get; set; }
@@ -21,7 +21,7 @@ namespace HainanSettlementTool.Core.Models
 
         public List<string> MissingOwners { get; } = new List<string>();
         public List<string> Warnings { get; } = new List<string>();
-        public List<Stage2CheckIssue> AuditIssues { get; } = new List<Stage2CheckIssue>();
+        public List<HainanStage2CheckIssue> AuditIssues { get; } = new List<HainanStage2CheckIssue>();
         public List<GroupSettlementTotal> Groups { get; } = new List<GroupSettlementTotal>();
     }
 }

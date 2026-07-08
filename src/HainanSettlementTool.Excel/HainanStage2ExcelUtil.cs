@@ -16,7 +16,7 @@ namespace HainanSettlementTool.Excel
         private static readonly Dictionary<string, Tuple<int, string>> PaymentPartyOverrides =
             new Dictionary<string, Tuple<int, string>>
             {
-        { PaymentKey("海南精研科技有限公司", "代理费"), Tuple.Create(3, Stage2PaymentParties.Qingneng) }
+        { PaymentKey("海南精研科技有限公司", "代理费"), Tuple.Create(3, HainanStage2PaymentParties.Qingneng) }
             };
 
         internal static double GetNumeric(IXLWorksheet worksheet, int row, int column)
@@ -163,7 +163,7 @@ namespace HainanSettlementTool.Excel
             return false;
         }
 
-        internal static bool TryGetPaymentPartyDecision(Stage2Options options, string entity, string kind, out string paymentParty)
+        internal static bool TryGetPaymentPartyDecision(HainanStage2Options options, string entity, string kind, out string paymentParty)
         {
             paymentParty = null;
             if (options == null)

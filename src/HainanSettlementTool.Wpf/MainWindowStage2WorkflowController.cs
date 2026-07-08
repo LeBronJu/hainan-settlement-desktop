@@ -56,10 +56,10 @@ namespace HainanSettlementTool.Wpf
 
         private async Task RunHainanStage2Async()
         {
-            Stage2Options options;
+            HainanStage2Options options;
             try
             {
-                options = _inputController.CreateStage2Options();
+                options = _inputController.CreateHainanStage2Options();
                 _saveInputs();
                 if (!_dialogController.ConfirmRun("阶段二：生成分表和汇总表", options.Month, options.OutputDirectory))
                 {
@@ -82,11 +82,11 @@ namespace HainanSettlementTool.Wpf
             try
             {
                 var workflow = SettlementWorkflowFactory.Create();
-                Stage2WorkflowPlan plan = null;
+                HainanStage2WorkflowPlan plan = null;
                 await Task.Run(() =>
                 {
                     _dispatcher.Invoke(() => _progressController.SetProgress(16, "读取台账并比对上月模板"));
-                    plan = workflow.PlanStage2(options);
+                    plan = workflow.PlanHainanStage2(options);
                 });
 
                 var preflight = plan.Preflight;
@@ -110,7 +110,7 @@ namespace HainanSettlementTool.Wpf
 
                 if (!confirmed)
                 {
-                    var cancelled = workflow.CompleteStage2(plan, confirmed, LogThreadSafe);
+                    var cancelled = workflow.CompleteHainanStage2(plan, confirmed, LogThreadSafe);
                     if (cancelled.WasCancelled)
                     {
                         AddLog("已取消阶段二生成。", "阶段二");
@@ -121,10 +121,10 @@ namespace HainanSettlementTool.Wpf
 
                 _progressController.SetStepDone(0);
                 _progressController.SetProgress(34, "读取人工整理后的台账");
-                Stage2WorkflowResult result = null;
+                HainanStage2WorkflowResult result = null;
                 await Task.Run(() =>
                 {
-                    result = workflow.CompleteStage2(plan, confirmed, LogThreadSafe);
+                    result = workflow.CompleteHainanStage2(plan, confirmed, LogThreadSafe);
                 });
 
                 if (result.WasCancelled)
@@ -269,9 +269,9 @@ namespace HainanSettlementTool.Wpf
             }
         }
 
-        private bool ConfirmStage2Preflight(Stage2PreflightReport report, Stage2Options options)
+        private bool ConfirmStage2Preflight(HainanStage2PreflightReport report, HainanStage2Options options)
         {
-            var dialog = new Stage2PreflightWindow(report)
+            var dialog = new HainanStage2PreflightWindow(report)
             {
                 Owner = _owner
             };

@@ -31,7 +31,7 @@ namespace HainanSettlementTool.Excel.Tests
                 WriteProxyTemplate(proxyRoot, "测试负责人", "测试代理");
                 WriteSummaryTemplate(summaryPath, "测试代理", "代理费", "清辉");
 
-                var options = new Stage2Options
+                var options = new HainanStage2Options
                 {
                     Month = 4,
                     LedgerPath = ledgerPath,
@@ -87,7 +87,7 @@ namespace HainanSettlementTool.Excel.Tests
                 WriteProxyTemplateWithExcelDateSignature(proxyRoot, "测试负责人", "日期代理");
                 WriteSummaryTemplate(summaryPath, "日期代理", "代理费", "清辉");
 
-                var options = new Stage2Options
+                var options = new HainanStage2Options
                 {
                     Month = 4,
                     LedgerPath = ledgerPath,
@@ -140,7 +140,7 @@ namespace HainanSettlementTool.Excel.Tests
                 WriteProxyTemplate(proxyRoot, "测试负责人", "存量代理");
                 WriteSummaryTemplateWithFooterInDataColumns(summaryPath, "存量代理", "代理费", "清辉");
 
-                var options = new Stage2Options
+                var options = new HainanStage2Options
                 {
                     Month = 4,
                     LedgerPath = ledgerPath,
@@ -149,11 +149,11 @@ namespace HainanSettlementTool.Excel.Tests
                     SummaryTemplatePath = summaryPath,
                     OutputDirectory = outputRoot
                 };
-                options.SummarySubjectDecisions.Add(new Stage2SummarySubjectDecision
+                options.SummarySubjectDecisions.Add(new HainanStage2SummarySubjectDecision
                 {
                     SettlementKind = "代理费",
                     Entity = "新增代理",
-                    PaymentParty = Stage2PaymentParties.Qinghui
+                    PaymentParty = HainanStage2PaymentParties.Qinghui
                 });
 
                 new HainanStage2Service(new ClosedXmlSettlementExcelGateway()).Run(options, null);
@@ -202,7 +202,7 @@ namespace HainanSettlementTool.Excel.Tests
                 WriteProxyTemplate(proxyRoot, "测试负责人", "存量代理");
                 WriteSummaryTemplate(summaryPath, "存量代理", "代理费", "清辉");
 
-                var options = new Stage2Options
+                var options = new HainanStage2Options
                 {
                     Month = 4,
                     LedgerPath = ledgerPath,
@@ -220,8 +220,8 @@ namespace HainanSettlementTool.Excel.Tests
                     && issue.Category == "新增汇总主体支付方选择"
                     && issue.Kind == "代理费"
                     && issue.Entity == "新增代理"
-                    && issue.AvailablePaymentParties.Contains(Stage2PaymentParties.Qingneng)
-                    && issue.AvailablePaymentParties.Contains(Stage2PaymentParties.Qinghui)));
+                    && issue.AvailablePaymentParties.Contains(HainanStage2PaymentParties.Qingneng)
+                    && issue.AvailablePaymentParties.Contains(HainanStage2PaymentParties.Qinghui)));
             }
             finally
             {
@@ -252,7 +252,7 @@ namespace HainanSettlementTool.Excel.Tests
                 WriteProxyTemplate(proxyRoot, "测试负责人", "存量代理");
                 WriteSummaryTemplate(summaryPath, "存量代理", "代理费", "清辉");
 
-                var options = new Stage2Options
+                var options = new HainanStage2Options
                 {
                     Month = 4,
                     LedgerPath = ledgerPath,
@@ -296,7 +296,7 @@ namespace HainanSettlementTool.Excel.Tests
                 WriteProxyTemplate(proxyRoot, "测试负责人", "存量代理");
                 WriteSummaryTemplate(summaryPath, "存量代理", "代理费", "清辉");
 
-                var options = new Stage2Options
+                var options = new HainanStage2Options
                 {
                     Month = 4,
                     LedgerPath = ledgerPath,
@@ -305,11 +305,11 @@ namespace HainanSettlementTool.Excel.Tests
                     SummaryTemplatePath = summaryPath,
                     OutputDirectory = outputRoot
                 };
-                options.SummarySubjectDecisions.Add(new Stage2SummarySubjectDecision
+                options.SummarySubjectDecisions.Add(new HainanStage2SummarySubjectDecision
                 {
                     SettlementKind = "代理费",
                     Entity = "新增代理",
-                    PaymentParty = Stage2PaymentParties.Qingneng
+                    PaymentParty = HainanStage2PaymentParties.Qingneng
                 });
 
                 new HainanStage2Service(new ClosedXmlSettlementExcelGateway()).Run(options, null);
@@ -319,7 +319,7 @@ namespace HainanSettlementTool.Excel.Tests
                 {
                     var worksheet = workbook.Worksheet("汇总表");
                     Assert.AreEqual("新增代理", worksheet.Cell(5, 2).GetFormattedString());
-                    Assert.AreEqual(Stage2PaymentParties.Qingneng, worksheet.Cell(5, 36).GetFormattedString());
+                    Assert.AreEqual(HainanStage2PaymentParties.Qingneng, worksheet.Cell(5, 36).GetFormattedString());
                 }
             }
             finally
@@ -351,7 +351,7 @@ namespace HainanSettlementTool.Excel.Tests
                 WriteProxyTemplate(proxyRoot, "测试负责人", "模板代理");
                 WriteSummaryTemplate(summaryPath, "模板代理", "代理费", "清辉");
 
-                var options = new Stage2Options
+                var options = new HainanStage2Options
                 {
                     Month = 4,
                     LedgerPath = ledgerPath,
@@ -360,11 +360,11 @@ namespace HainanSettlementTool.Excel.Tests
                     SummaryTemplatePath = summaryPath,
                     OutputDirectory = outputRoot
                 };
-                options.SummarySubjectDecisions.Add(new Stage2SummarySubjectDecision
+                options.SummarySubjectDecisions.Add(new HainanStage2SummarySubjectDecision
                 {
                     SettlementKind = "代理费",
                     Entity = "新增代理",
-                    PaymentParty = Stage2PaymentParties.Qinghui
+                    PaymentParty = HainanStage2PaymentParties.Qinghui
                 });
 
                 new HainanStage2Service(new ClosedXmlSettlementExcelGateway()).Run(options, null);
@@ -410,7 +410,7 @@ namespace HainanSettlementTool.Excel.Tests
                 WriteProxyTemplateWithSpecialDetailRow(proxyRoot, "测试负责人", "特殊代理", "扣除三月少扣税费");
                 WriteSummaryTemplate(summaryPath, "特殊代理", "代理费", "清辉");
 
-                var options = new Stage2Options
+                var options = new HainanStage2Options
                 {
                     Month = 4,
                     LedgerPath = ledgerPath,
@@ -458,7 +458,7 @@ namespace HainanSettlementTool.Excel.Tests
                 WriteProxyTemplateWithSpecialDetailRow(proxyRoot, "测试负责人", "特殊代理", "扣除三月少扣税费");
                 WriteSummaryTemplate(summaryPath, "特殊代理", "代理费", "清辉");
 
-                var options = new Stage2Options
+                var options = new HainanStage2Options
                 {
                     Month = 4,
                     LedgerPath = ledgerPath,

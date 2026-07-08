@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace HainanSettlementTool.Core.Models
 {
-    public sealed class Stage2Options
+    public sealed class HainanStage2Options
     {
         public int Month { get; set; }
         public string LedgerPath { get; set; }
@@ -12,6 +12,6 @@ namespace HainanSettlementTool.Core.Models
         public string OutputDirectory { get; set; }
         public string OutputSummaryName { get; set; }
         public bool AllowMissingOwner { get; set; }
-        public List<Stage2SummarySubjectDecision> SummarySubjectDecisions { get; } = new List<Stage2SummarySubjectDecision>();
+        public List<HainanStage2SummarySubjectDecision> SummarySubjectDecisions { get; } = new List<HainanStage2SummarySubjectDecision>();
     }
 }

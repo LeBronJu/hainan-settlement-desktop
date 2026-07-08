@@ -14,7 +14,7 @@ namespace HainanSettlementTool.Core.Services
             _excel = excel;
         }
 
-        public Stage2Report Run(Stage2Options options, Action<string> log)
+        public HainanStage2Report Run(HainanStage2Options options, Action<string> log)
         {
             Validate(options);
             Directory.CreateDirectory(options.OutputDirectory);
@@ -23,13 +23,13 @@ namespace HainanSettlementTool.Core.Services
             return _excel.GenerateSettlement(options);
         }
 
-        public Stage2PreflightReport Analyze(Stage2Options options)
+        public HainanStage2PreflightReport Analyze(HainanStage2Options options)
         {
             Validate(options);
             return _excel.AnalyzeSettlement(options);
         }
 
-        private static void Validate(Stage2Options options)
+        private static void Validate(HainanStage2Options options)
         {
             if (options == null)
             {
@@ -54,7 +54,7 @@ namespace HainanSettlementTool.Core.Services
             ValidateSummarySubjectDecisions(options);
         }
 
-        private static void ValidateSummarySubjectDecisions(Stage2Options options)
+        private static void ValidateSummarySubjectDecisions(HainanStage2Options options)
         {
             foreach (var decision in options.SummarySubjectDecisions)
             {
@@ -73,7 +73,7 @@ namespace HainanSettlementTool.Core.Services
                     throw new ArgumentException("海南阶段二新增汇总主体决策缺少主体名称。");
                 }
 
-                if (!Stage2PaymentParties.Supported.Contains(decision.PaymentParty))
+                if (!HainanStage2PaymentParties.Supported.Contains(decision.PaymentParty))
                 {
                     throw new ArgumentException("海南阶段二新增汇总主体支付方只能选择清能或清辉。");
                 }

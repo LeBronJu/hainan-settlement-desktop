@@ -17,7 +17,7 @@ namespace HainanSettlementTool.Core.Tests
             {
                 var service = new HainanStage2Service(new FakeHainanStage2Gateway());
                 var options = CreateOptions(root);
-                options.SummarySubjectDecisions.Add(new Stage2SummarySubjectDecision
+                options.SummarySubjectDecisions.Add(new HainanStage2SummarySubjectDecision
                 {
                     SettlementKind = "代理费",
                     Entity = "新增代理主体",
@@ -42,11 +42,11 @@ namespace HainanSettlementTool.Core.Tests
                 var gateway = new FakeHainanStage2Gateway();
                 var service = new HainanStage2Service(gateway);
                 var options = CreateOptions(root);
-                options.SummarySubjectDecisions.Add(new Stage2SummarySubjectDecision
+                options.SummarySubjectDecisions.Add(new HainanStage2SummarySubjectDecision
                 {
                     SettlementKind = "居间费",
                     Entity = "新增居间主体",
-                    PaymentParty = Stage2PaymentParties.Qingneng
+                    PaymentParty = HainanStage2PaymentParties.Qingneng
                 });
 
                 var report = service.Run(options, null);
@@ -60,14 +60,14 @@ namespace HainanSettlementTool.Core.Tests
             }
         }
 
-        private static Stage2Options CreateOptions(string root)
+        private static HainanStage2Options CreateOptions(string root)
         {
             var proxyDir = Path.Combine(root, "proxy");
             var intermediaryDir = Path.Combine(root, "intermediary");
             Directory.CreateDirectory(proxyDir);
             Directory.CreateDirectory(intermediaryDir);
 
-            return new Stage2Options
+            return new HainanStage2Options
             {
                 Month = 5,
                 LedgerPath = CreateFile(root, "ledger.xlsx"),
@@ -103,18 +103,18 @@ namespace HainanSettlementTool.Core.Tests
         {
             public int GenerateCalls { get; private set; }
 
-            public readonly Stage2Report Report = new Stage2Report
+            public readonly HainanStage2Report Report = new HainanStage2Report
             {
                 Summary = "summary.xlsx",
                 ReportPath = "report.json"
             };
 
-            public Stage2PreflightReport AnalyzeSettlement(Stage2Options options)
+            public HainanStage2PreflightReport AnalyzeSettlement(HainanStage2Options options)
             {
-                return new Stage2PreflightReport { Month = options.Month };
+                return new HainanStage2PreflightReport { Month = options.Month };
             }
 
-            public Stage2Report GenerateSettlement(Stage2Options options)
+            public HainanStage2Report GenerateSettlement(HainanStage2Options options)
             {
                 GenerateCalls++;
                 return Report;

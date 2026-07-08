@@ -4,7 +4,7 @@ namespace HainanSettlementTool.Core.Services
 {
     public interface IHainanStage2ExcelGateway
     {
-        Stage2PreflightReport AnalyzeSettlement(Stage2Options options);
-        Stage2Report GenerateSettlement(Stage2Options options);
+        HainanStage2PreflightReport AnalyzeSettlement(HainanStage2Options options);
+        HainanStage2Report GenerateSettlement(HainanStage2Options options);
     }
 }

@@ -1,6 +1,6 @@
 namespace HainanSettlementTool.Core.Models
 {
-    public static class Stage2PaymentParties
+    public static class HainanStage2PaymentParties
     {
         public const string Qingneng = "清能";
         public const string Qinghui = "清辉";

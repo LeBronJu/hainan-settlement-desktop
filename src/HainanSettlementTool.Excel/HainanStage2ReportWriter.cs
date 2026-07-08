@@ -9,18 +9,18 @@ namespace HainanSettlementTool.Excel
 {
     internal static class HainanStage2ReportWriter
     {
-        internal static Stage2Report CreateReport(
-            Stage2Options options,
+        internal static HainanStage2Report CreateReport(
+            HainanStage2Options options,
             IList<DetailSettlementRow> proxyRows,
             IList<DetailSettlementRow> interRows,
             IList<GroupSettlementTotal> totals,
             string summaryPath,
             IList<string> warnings,
             IList<string> missingOwners,
-            IList<Stage2CheckIssue> auditIssues)
+            IList<HainanStage2CheckIssue> auditIssues)
         {
             var reportPath = Path.Combine(options.OutputDirectory, options.Month + "月结算生成总报告.json");
-            var report = new Stage2Report
+            var report = new HainanStage2Report
             {
                 Month = options.Month,
                 Ledger = options.LedgerPath,
@@ -44,12 +44,12 @@ namespace HainanSettlementTool.Excel
             return report;
         }
 
-        internal static void WriteReport(Stage2Options options, Stage2Report report)
+        internal static void WriteReport(HainanStage2Options options, HainanStage2Report report)
         {
             File.WriteAllText(report.ReportPath, JsonConvert.SerializeObject(report, Formatting.Indented), System.Text.Encoding.UTF8);
         }
 
-        internal static void WriteWarnings(Stage2Options options, IList<string> warnings)
+        internal static void WriteWarnings(HainanStage2Options options, IList<string> warnings)
         {
             var path = Path.Combine(options.OutputDirectory, "自动生成汇总提示.txt");
             if (warnings.Count > 0)
@@ -62,7 +62,7 @@ namespace HainanSettlementTool.Excel
             }
         }
 
-        internal static void WriteAuditReport(Stage2Options options, Stage2Report report)
+        internal static void WriteAuditReport(HainanStage2Options options, HainanStage2Report report)
         {
             var path = Path.Combine(options.OutputDirectory, "阶段二校验报告.txt");
             if (report.AuditIssues.Count == 0 && report.Warnings.Count == 0 && report.MissingOwners.Count == 0)

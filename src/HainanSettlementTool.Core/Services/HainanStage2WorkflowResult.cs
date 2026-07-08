@@ -3,9 +3,9 @@ using HainanSettlementTool.Core.Models;
 
 namespace HainanSettlementTool.Core.Services
 {
-    public sealed class Stage2WorkflowResult
+    public sealed class HainanStage2WorkflowResult
     {
-        private Stage2WorkflowResult(bool wasCancelled, StageWorkflowResult<Stage2Report> completed)
+        private HainanStage2WorkflowResult(bool wasCancelled, StageWorkflowResult<HainanStage2Report> completed)
         {
             WasCancelled = wasCancelled;
             Completed = completed;
@@ -13,9 +13,9 @@ namespace HainanSettlementTool.Core.Services
 
         public bool WasCancelled { get; }
 
-        public StageWorkflowResult<Stage2Report> Completed { get; }
+        public StageWorkflowResult<HainanStage2Report> Completed { get; }
 
-        public Stage2Report Report
+        public HainanStage2Report Report
         {
             get { return Completed == null ? null : Completed.Report; }
         }
@@ -30,14 +30,14 @@ namespace HainanSettlementTool.Core.Services
             }
         }
 
-        public static Stage2WorkflowResult Cancelled()
+        public static HainanStage2WorkflowResult Cancelled()
         {
-            return new Stage2WorkflowResult(true, null);
+            return new HainanStage2WorkflowResult(true, null);
         }
 
-        public static Stage2WorkflowResult Complete(StageWorkflowResult<Stage2Report> completed)
+        public static HainanStage2WorkflowResult Complete(StageWorkflowResult<HainanStage2Report> completed)
         {
-            return new Stage2WorkflowResult(false, completed);
+            return new HainanStage2WorkflowResult(false, completed);
         }
     }
 }
