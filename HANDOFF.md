@@ -1,6 +1,6 @@
 # Handoff
 
-Last updated: 2026-07-07
+Last updated: 2026-07-08
 
 ## Project
 
@@ -54,7 +54,7 @@ Historical real-data authorizations recorded for context only. They are not stan
 
 - Current branch: `codex/chongqing-stage2-analysis`
 - Upstream: `origin/codex/chongqing-stage2-analysis`
-- Branch purpose: documentation quality cleanup plus Chongqing Stage 2 design/implementation preparation.
+- Branch purpose: Chongqing Stage 2 first workbook-generation slice plus documentation/current-state cleanup.
 - The branch is based on `main` after the WPF log-controller state.
 - This branch continues the documentation quality cleanup that started at `48c4921 Organize documentation map and current references`.
 - Do not merge to `main`, tag, or publish a release without explicit user authorization.
@@ -64,10 +64,10 @@ Historical real-data authorizations recorded for context only. They are not stan
 
 ## Current Packages
 
-Latest local WPF test package built after the Chongqing Stage 2 WPF preflight entry and Win7/8 freeze policy update:
+Latest local WPF test package built after the Chongqing Stage 2 first workbook-generation slice:
 
-- `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-175657.zip`
-- Unpacked directory: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260707-175657`
+- `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260708-101959.zip`
+- Unpacked directory: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260708-101959`
 
 Latest local acceptance packages before the log-controller merge:
 
@@ -111,11 +111,13 @@ Chongqing Stage 1:
 
 Chongqing Stage 2:
 
-- Partially implemented for Core contract, Excel Analyze-only preflight, and Win10/11 WPF preflight entry.
+- First workbook-generation slice is implemented for Core/Excel and Win10/11 WPF.
 - Analysis is documented in `docs/dev-notes/chongqing-stage2-analysis-2026-07-07.md`.
 - First Core contract slice is implemented: `ChongqingStage2Options`, preflight/report/issue models, `ChongqingStage2Service`, `IChongqingStage2ExcelGateway`, and workflow plan/complete/run entry points.
-- Excel Analyze-only slice is implemented: `ChongqingStage2SettlementGenerator` reads the Chongqing ledger target-month 30-column block, identifies proxy/intermediary/refund groups, and reports new summary subjects requiring payment-party selection. Workbook generation still explicitly throws as not implemented.
-- WPF entry currently runs only preflight and payment-party selection. It does not call `Generate` and does not write分表、退补表、汇总表.
+- Excel slice reads the Chongqing ledger target-month 30-column block, identifies proxy/intermediary/refund groups, requires payment-party selection for new summary subjects, writes proxy/intermediary/refund split workbooks, writes the summary workbook copy, and writes JSON/validation reports.
+- WPF entry now runs preflight/payment-party confirmation and then calls `Generate`.
+- Real 5月 local smoke succeeded on 2026-07-08 against authorized Chongqing inputs, outputting only to `%TEMP%`; it reported proxy 19 rows/2 groups, refund 4 rows/3 groups, intermediary 0 rows/0 groups, with 0 warnings and 0 audit issues.
+- This still needs user实机验收 before treating重庆阶段二 as stable production behavior.
 - Keep this work in Win10/11 WPF plus Core/Excel shared layers; do not add WinForms parity unless the user explicitly reopens Win7/8 support.
 
 WinForms:
@@ -141,10 +143,10 @@ Key implementation constraints:
 - Chongqing Stage 2 must handle代理费、居间费、退补电费. Current observed data has no effective居间 rows, but the user confirmed future居间 should follow代理 structure.
 - Proxy split sheets must carry `少回收电能量电费`; adjusted income is original income minus that value.
 - Refund split sheets use segmented尖峰/峰/平/谷 prices and cannot reuse proxy/intermediary single-price formulas.
-- Authorized Chongqing proxy/退补 template folders were rechecked on 2026-07-07; current real `.xlsx` templates are standard xlsx ZIP containers. Still ignore `._*` / `~$*` noise and report unreadable, duplicate, or missing templates in preflight instead of silently skipping them.
+- Authorized Chongqing proxy/退补 template folders were rechecked on 2026-07-07; current real `.xlsx` templates are standard xlsx ZIP containers. Ignore `._*` / `~$*` noise. Template reads/copies should use shared read because users may have source workbooks open.
 - Existing summary rows should inherit template fixed fields and long-term fields.
 - New Chongqing summary subjects should not silently default to Hainan `清辉`. Recommended first implementation: WPF preflight requires payment-party selection (`清能`/`清辉`) for new summary subjects, and generated reports flag defaulted fields for manual review.
-- First validation target should be a read-only 5月 replay against the manual 5月 result, with outputs only in an explicitly authorized test directory.
+- First validation target is now user实机测试 of the 2026-07-08 Win10/11 package and manual comparison of generated 5月 outputs against the known人工结果.
 
 ## Documentation Pointers
 
@@ -172,12 +174,13 @@ Most recent documentation validation:
 - Chongqing Stage 2 Core contract and Excel Analyze-only slices on 2026-07-07: Core tests passed (26), Excel tests passed (27), and Debug solution build passed.
 - WPF package script passed on 2026-07-07 after those slices and created `HainanSettlementTool-Win10-11-Release-20260707-173137.zip`.
 - Chongqing Stage 2 WPF preflight entry / Win7-8 freeze update on 2026-07-07: WPF Debug build passed, Debug tests passed (Core 26, Excel 27), WPF Release build passed, docs guardrails passed, `git diff --check` passed, and WPF package script created `HainanSettlementTool-Win10-11-Release-20260707-175657.zip`. Real Chongqing 5月 Analyze-only preflight was run read-only against latest summary and 20260512 historical summary; both returned 0 payment-party issues.
+- Chongqing Stage 2 first workbook-generation slice on 2026-07-08: focused Excel tests passed, WPF Debug build passed, real 5月 local smoke generated outputs under `%TEMP%` with 0 warnings/audit issues, Core tests passed (26), Excel tests passed (27), WPF Release build passed, and WPF package script created `HainanSettlementTool-Win10-11-Release-20260708-101959.zip`.
 
 For new code changes, rerun focused tests and builds. For pure documentation changes, run at least `git diff --check` plus targeted stale-wording/link scans.
 
 ## Next Steps
 
-1. Implement `ChongqingStage2SettlementGenerator` behind `IChongqingStage2ExcelGateway`, starting with synthetic workbook tests for ledger month-block parsing and report/preflight output.
-2. Implement 重庆阶段二代理分表、退补分表、汇总表 workbook 写入 behind `ChongqingStage2SettlementGenerator`, starting from synthetic workbook tests.
-3. Use the first validation target from the Chongqing Stage 2 note: read-only 5月 replay and compare against the manual 5月 result, writing outputs only to an explicitly authorized test directory.
+1. Have the user实机测试 `HainanSettlementTool-Win10-11-Release-20260708-101959.zip`.
+2. Compare generated重庆 5月分表、退补表、汇总表 against the人工 5月 result, especially payment-party sheets, summary month block, proxy少回收电能量电费, refund segmented-price formulas, and hidden columns.
+3. Tighten remaining重庆阶段二 risks: duplicate month sheet preflight, template-missing issue surfacing, generated summary fixed-field defaults for newly added summary subjects, and fuller real-result diff notes.
 4. Defer persistent customer alias tables, WinForms parity, and cross-province generic Stage 2 abstraction unless the user explicitly reprioritizes them.

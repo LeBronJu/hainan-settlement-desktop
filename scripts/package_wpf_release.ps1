@@ -106,7 +106,7 @@ $readme = @(
     "How to run:",
     "1. Double-click the Win10/11 exe file.",
     "2. Keep all dll and config files in this folder. Do not copy the exe alone.",
-    "3. Close Excel workbooks before running generation.",
+    "3. Do not edit source workbooks while generation is running; opened workbooks are read with shared access where supported.",
     "",
     "Notes:",
     "- This build uses the Win10/11 WPF shell and the verified Core/Excel settlement logic.",

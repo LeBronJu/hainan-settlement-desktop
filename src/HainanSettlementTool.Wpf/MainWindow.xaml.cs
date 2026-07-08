@@ -722,8 +722,8 @@ namespace HainanSettlementTool.Wpf
                 message.AppendLine("输出文件夹：");
                 message.AppendLine(options.OutputDirectory);
                 message.AppendLine();
-                message.AppendLine("当前只读取重庆台账、代理/居间/退补模板和汇总表进行预检，不写出分表、退补表或汇总表。");
-                if (!ConfirmAction("确认重庆阶段二预检", "即将执行重庆阶段二预检", message.ToString(), "开始预检"))
+                message.AppendLine("将先读取重庆台账、代理/居间/退补模板和汇总表进行预检；确认后生成输出分表、退补表和汇总表副本。");
+                if (!ConfirmAction("确认重庆阶段二生成", "即将执行重庆阶段二生成", message.ToString(), "开始生成"))
                 {
                     return;
                 }
@@ -736,10 +736,10 @@ namespace HainanSettlementTool.Wpf
 
             SetBusy(true);
             ResetResults();
-            ResetProgress("正在执行重庆阶段二预检...", "检查输入文件");
+            ResetProgress("正在执行重庆阶段二...", "检查输入文件");
             SetProgress(8, "检查输入文件");
             SetStepRunning(0);
-            AddLog("开始执行重庆阶段二预检。", "重庆阶段二");
+            AddLog("开始执行重庆阶段二。", "重庆阶段二");
 
             try
             {
@@ -772,25 +772,47 @@ namespace HainanSettlementTool.Wpf
 
                 if (!confirmed)
                 {
-                    AddLog("已取消重庆阶段二预检。", "重庆阶段二");
-                    ResetProgress("等待执行", "已取消重庆阶段二预检");
-                    return;
+                    var cancelled = workflow.CompleteChongqingStage2(plan, confirmed, LogThreadSafe);
+                    if (cancelled.WasCancelled)
+                    {
+                        AddLog("已取消重庆阶段二生成。", "重庆阶段二");
+                        ResetProgress("等待执行", "已取消重庆阶段二");
+                        return;
+                    }
                 }
 
                 SetStepDone(0);
-                SetStepWaiting(1);
-                SetStepWaiting(2);
-                SetStepWaiting(3);
-                SetStepWaiting(4);
-                SetProgress(100, "重庆阶段二预检完成，未写出结算文件");
-                AddLog("重庆阶段二预检完成；分表、退补表和汇总表 workbook 写入仍在实现中，本次未写出结算文件。", "重庆阶段二");
-                SetStage2PreflightSuccess();
-                ShowCompletion("重庆阶段二预检完成", "当前只完成预检，未生成结算文件", options.OutputDirectory);
+                SetProgress(34, "生成重庆分表和汇总表");
+                ChongqingStage2WorkflowResult result = null;
+                await Task.Run(() =>
+                {
+                    result = workflow.CompleteChongqingStage2(plan, confirmed, LogThreadSafe);
+                });
+
+                if (result.WasCancelled)
+                {
+                    AddLog("已取消重庆阶段二生成。", "重庆阶段二");
+                    ResetProgress("等待执行", "已取消重庆阶段二");
+                    return;
+                }
+
+                SetStepDone(1);
+                SetStepDone(2);
+                SetStepDone(3);
+                SetStepDone(4);
+                SetProgress(100, "重庆阶段二执行完成");
+                LogSummary(result.Completed.SummaryLines);
+
+                SetStage2ResultSuccess(
+                    result.Report.ProxyGroups + " 个文件",
+                    "居间" + result.Report.IntermediaryGroups + "/退补" + result.Report.RefundGroups,
+                    "1 个文件");
+                ShowCompletion("重庆阶段二执行完成", "分表、退补表和汇总表已生成", options.OutputDirectory);
             }
             catch (Exception ex)
             {
                 SetStepFailed();
-                SetProgress(100, "预检失败");
+                SetProgress(100, "执行失败");
                 AddLog(ex.Message, "错误");
                 ShowError(ex);
             }
@@ -1204,11 +1226,11 @@ namespace HainanSettlementTool.Wpf
             ReferenceLedgerLabel.Text = hasProvince ? profile.ReferenceLedgerLabel : "参考台账（可选）";
             RunStage1ButtonText.Text = hasProvince ? profile.RunStageOneButtonText : "开始 执行阶段一";
             CleanPowerButton.Content = hasProvince ? profile.CleanPowerButtonText : "只清洗电量";
-            Stage2TitleText.Text = isChongqing ? "阶段二：重庆结算预检" : "阶段二：生成分表和汇总表";
+            Stage2TitleText.Text = isChongqing ? "阶段二：重庆结算生成" : "阶段二：生成分表和汇总表";
             Stage2CaptionText.Text = isChongqing
-                ? "预检代理/居间/退补分表和汇总表；workbook 写入仍在实现中"
+                ? "生成代理/居间/退补分表和汇总表，生成前先确认预检项目"
                 : "生成代理/居间分表和汇总表，输出结算结果";
-            RunStage2ButtonText.Text = isChongqing ? "开始 重庆阶段二预检" : "开始 执行阶段二";
+            RunStage2ButtonText.Text = isChongqing ? "开始 重庆阶段二" : "开始 执行阶段二";
 
             var ledgerVisibility = hasProvince ? Visibility.Visible : Visibility.Collapsed;
             var existingPowerVisibility = hasProvince && profile.ShowsExistingPowerInput ? Visibility.Visible : Visibility.Collapsed;
