@@ -25,6 +25,7 @@ namespace HainanSettlementTool.Wpf
         private readonly MainWindowPathPickerController _pathPickerController;
         private readonly MainWindowLogController _logController;
         private readonly MainWindowInputController _inputController;
+        private readonly MainWindowProvinceUiController _provinceUiController;
         private bool _isBusy;
         private bool _loadingInputs;
         private string _themeMode = ThemeService.SystemMode;
@@ -112,6 +113,38 @@ namespace HainanSettlementTool.Wpf
                 EmployeeRewardResultCount,
                 FinishedAtRow,
                 FinishedAtText,
+                BrushOf);
+            _provinceUiController = new MainWindowProvinceUiController(
+                MainTabControl,
+                MainSettlementTab,
+                EmployeeRewardTab,
+                MonthCombo,
+                SettlementMonthLabel,
+                SharedSettingsCaption,
+                ProvinceEmptyPanel,
+                StageOnePanel,
+                StageTwoPanel,
+                Stage1TitleText,
+                Stage1CaptionText,
+                BaseLedgerLabel,
+                BaseLedgerRow,
+                PowerLabel,
+                PowerRow,
+                RawDetailLabel,
+                ReferenceLedgerLabel,
+                ReferenceLedgerRow,
+                CopyReferenceExistingCheckBox,
+                RunStage1Button,
+                RunStage1ButtonText,
+                CleanPowerButton,
+                Stage2TitleText,
+                Stage2CaptionText,
+                RefundTemplateDirLabel,
+                RefundTemplateDirRow,
+                AllowMissingOwnerCheckBox,
+                RunStage2Button,
+                RunStage2ButtonText,
+                RunEmployeeRewardButton,
                 BrushOf);
             _logController = new MainWindowLogController(this, LogBox);
             ResetProgress("等待执行", "尚未开始");
@@ -1036,81 +1069,28 @@ namespace HainanSettlementTool.Wpf
 
         private void UpdateSharedSettingsState()
         {
-            var employeeRewardSelected = MainTabControl != null && MainTabControl.SelectedIndex == 1;
-            var monthEnabled = !_isBusy && !employeeRewardSelected;
-
-            MonthCombo.IsEnabled = monthEnabled;
-            SettlementMonthLabel.Foreground = monthEnabled ? BrushOf("FieldTextBrush") : BrushOf("MutedBrush");
-            UpdateProvinceUi();
-            if (employeeRewardSelected)
-            {
-                SharedSettingsCaption.Text = "员工电量奖励使用本页的开始/结束月份，输出仍保存到这个文件夹中";
-            }
-        }
-
-        private void UpdateProvinceUi()
-        {
-            if (_inputController == null || ProvinceCombo == null || StageOnePanel == null)
+            if (_inputController == null || _provinceUiController == null)
             {
                 return;
             }
 
-            var province = _inputController.SelectedProvinceOrNull();
-            var hasProvince = province.HasValue;
-            var profile = _inputController.SelectedProfileOrNull();
-            var isChongqing = province == ProvinceCode.Chongqing;
-            if (hasProvince && !profile.SupportsEmployeeReward && MainTabControl.SelectedItem == EmployeeRewardTab)
+            var employeeRewardSelected = MainTabControl != null && MainTabControl.SelectedIndex == 1;
+            var province = _provinceUiController.ApplySharedSettings(
+                _isBusy,
+                _inputController.SelectedProfileOrNull(),
+                employeeRewardSelected);
+            UpdateResultVisibility(province);
+        }
+
+        private void UpdateProvinceUi()
+        {
+            if (_inputController == null || _provinceUiController == null)
             {
-                MainTabControl.SelectedItem = MainSettlementTab;
+                return;
             }
 
-            MainSettlementTab.Header = hasProvince ? profile.MainSettlementTabHeader : "结算流程";
-            EmployeeRewardTab.Visibility = hasProvince && profile.SupportsEmployeeReward ? Visibility.Visible : Visibility.Collapsed;
-            ProvinceEmptyPanel.Visibility = hasProvince ? Visibility.Collapsed : Visibility.Visible;
-            StageOnePanel.Visibility = hasProvince ? Visibility.Visible : Visibility.Collapsed;
-            StageTwoPanel.Visibility = hasProvince && profile.SupportsStage2 ? Visibility.Visible : Visibility.Collapsed;
-            Grid.SetColumnSpan(StageOnePanel, hasProvince && profile.SupportsStage2 ? 1 : 2);
-            StageOnePanel.Margin = hasProvince && profile.SupportsStage2 ? new Thickness(0, 0, 8, 0) : new Thickness(0);
-
-            Stage1TitleText.Text = hasProvince ? profile.StageOneTitle : "请先选择结算省份";
-            Stage1CaptionText.Text = !hasProvince
-                ? "不同省份的结算口径不同，必须先选择省份再执行。"
-                : profile.StageOneCaption;
-            BaseLedgerLabel.Text = hasProvince ? profile.BaseLedgerLabel : "基础台账（先选择省份）";
-            PowerLabel.Text = hasProvince ? profile.ExistingPowerLabel : "电量处理表";
-            RawDetailLabel.Text = hasProvince ? profile.RawDetailLabel : "电量文件（先选择省份）";
-            ReferenceLedgerLabel.Text = hasProvince ? profile.ReferenceLedgerLabel : "参考台账（可选）";
-            RunStage1ButtonText.Text = hasProvince ? profile.RunStageOneButtonText : "开始 执行阶段一";
-            CleanPowerButton.Content = hasProvince ? profile.CleanPowerButtonText : "只清洗电量";
-            Stage2TitleText.Text = isChongqing ? "阶段二：重庆结算生成" : "阶段二：生成分表和汇总表";
-            Stage2CaptionText.Text = isChongqing
-                ? "生成代理/居间/退补分表和汇总表，生成前先确认预检项目"
-                : "生成代理/居间分表和汇总表，输出结算结果";
-            RunStage2ButtonText.Text = isChongqing ? "开始 重庆阶段二" : "开始 执行阶段二";
-
-            var ledgerVisibility = hasProvince ? Visibility.Visible : Visibility.Collapsed;
-            var existingPowerVisibility = hasProvince && profile.ShowsExistingPowerInput ? Visibility.Visible : Visibility.Collapsed;
-            var referenceLedgerVisibility = hasProvince && profile.ShowsReferenceLedgerInput ? Visibility.Visible : Visibility.Collapsed;
-            var chongqingStage2Visibility = isChongqing ? Visibility.Visible : Visibility.Collapsed;
-            BaseLedgerLabel.Visibility = ledgerVisibility;
-            BaseLedgerRow.Visibility = ledgerVisibility;
-            PowerLabel.Visibility = existingPowerVisibility;
-            PowerRow.Visibility = existingPowerVisibility;
-            ReferenceLedgerLabel.Visibility = referenceLedgerVisibility;
-            ReferenceLedgerRow.Visibility = referenceLedgerVisibility;
-            CopyReferenceExistingCheckBox.Visibility = referenceLedgerVisibility;
-            RefundTemplateDirLabel.Visibility = chongqingStage2Visibility;
-            RefundTemplateDirRow.Visibility = chongqingStage2Visibility;
-            AllowMissingOwnerCheckBox.Visibility = isChongqing ? Visibility.Collapsed : Visibility.Visible;
-
-            RunStage1Button.IsEnabled = !_isBusy && hasProvince && profile.SupportsStage1LedgerUpdate;
-            CleanPowerButton.IsEnabled = !_isBusy && hasProvince && profile.SupportsStage1CleanPower;
-            RunStage2Button.IsEnabled = !_isBusy && hasProvince && profile.SupportsStage2;
-            RunEmployeeRewardButton.IsEnabled = !_isBusy && hasProvince && profile.SupportsEmployeeReward;
+            var province = _provinceUiController.ApplyProvinceUi(_isBusy, _inputController.SelectedProfileOrNull());
             UpdateResultVisibility(province);
-            SharedSettingsCaption.Text = !hasProvince
-                ? "请先选择结算省份；选择后会显示对应省份的可用功能"
-                : profile.SharedSettingsCaption;
         }
 
         private void RefreshThemeDependentState()

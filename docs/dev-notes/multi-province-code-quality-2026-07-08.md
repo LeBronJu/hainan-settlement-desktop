@@ -28,7 +28,7 @@
 | 行数 | 文件 | 当前判断 |
 | ---: | --- | --- |
 | 1821 | `src/HainanSettlementTool.Excel/Stage2SettlementGenerator.cs` | 已处理第一批。重命名并拆为 `HainanStage2SettlementGenerator`、台账读取、模板索引、分表写入、汇总表写入、报告输出和工具组件。 |
-| 1519 | `src/HainanSettlementTool.Wpf/MainWindow.xaml.cs` | 第二批已部分处理。已拆日志、进度、结果、弹窗、路径选择、输入状态和 options 构造；后续继续拆 workflow 编排和省份 UI 状态应用。 |
+| 1519 | `src/HainanSettlementTool.Wpf/MainWindow.xaml.cs` | 第二/三批已部分处理。已拆日志、进度、结果、弹窗、路径选择、输入状态/options 构造和省份 UI 状态应用；后续继续拆 workflow 编排。 |
 | 1207 | `src/HainanSettlementTool.WinForms/MainForm.cs` | 冻结。只因共享层修复被动受益，不安排主动拆分。 |
 | 874 | `src/HainanSettlementTool.Excel/ChongqingPowerCleanGenerator.cs` | P2。重庆阶段一清洗稳定后可拆读取、校验、汇总、报告写入。 |
 | 804 | `tests/HainanSettlementTool.Excel.Tests/Stage2SettlementGeneratorTests.cs` | 已随第一批重命名为 `HainanStage2SettlementGeneratorTests.cs`；后续再按行为分组拆测试。 |
@@ -90,7 +90,7 @@
 2026-07-08 已完成 WPF 主窗口输入状态第一轮拆分：
 
 - 新增 `MainWindowInputController`，负责载入/保存用户输入路径、恢复已保存省份、构造海南阶段一/阶段二、重庆阶段一/阶段二和员工电量奖励 options、读取结算月份/奖励月份/当前省份，以及清空阶段输入。
-- `MainWindow.xaml.cs` 不再直接拼装阶段 options 或直接序列化 `UserInputSnapshot`；窗口仍保留按钮事件、workflow 编排、进度/结果/弹窗协调和省份 UI 状态应用。
+- `MainWindow.xaml.cs` 不再直接拼装阶段 options 或直接序列化 `UserInputSnapshot`；窗口当时仍保留按钮事件、workflow 编排、进度/结果/弹窗协调和省份 UI 状态应用，省份 UI 状态应用已在第三批拆出。
 - `MainWindow.xaml.cs` 从 1519 行降到 1324 行。本轮不改变 UI 文案、输入字段、持久化文件格式或运行流程；同时补上原本“保存省份但不恢复省份”的输入状态缺口，并保护 `InitializeComponent()` 期间 SelectionChanged 早触发时的空引用风险。
 
 本轮验证：
@@ -100,11 +100,28 @@
 - `dotnet test tests\HainanSettlementTool.Excel.Tests\HainanSettlementTool.Excel.Tests.csproj --no-restore` 通过，27 个测试。
 - `dotnet msbuild src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Release /m` 通过。
 
+## 第三批进展
+
+2026-07-08 已完成 WPF 主窗口省份 UI 状态应用拆分：
+
+- 新增 `MainWindowProvinceUiController`，负责结算月份启停、省份 tab 和 panel 可见性、省份文案、重庆阶段二退补输入显示、按钮启停和员工奖励 tab 退回逻辑。
+- `MainWindow.xaml.cs` 不再直接操作省份 UI 状态的二十多个控件；窗口只读取当前 `ProvinceUiProfile`，调用控制器应用状态，并刷新结果区可见性。
+- `MainWindow.xaml.cs` 从 1324 行降到 1306 行。本轮不改变 UI 文案、可见性规则、按钮启停规则、输入字段或运行流程。
+
+本轮验证：
+
+- `dotnet msbuild src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Debug /m` 通过。
+- `dotnet test tests\HainanSettlementTool.Core.Tests\HainanSettlementTool.Core.Tests.csproj --no-restore` 通过，26 个测试。
+- `dotnet test tests\HainanSettlementTool.Excel.Tests\HainanSettlementTool.Excel.Tests.csproj --no-restore` 通过，27 个测试。
+- `dotnet msbuild src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Release /m` 通过。
+- 子代理只读 review 未发现初始化顺序、tab 切换、空引用或结果区刷新回归。
+
 ## 待办
 
 - [x] 建立本 current task note，并接入 `docs/README.md`。
 - [x] 拆分并显式命名海南阶段二 Excel 生成器。
 - [x] 视第一批拆分结果更新 `docs/architecture.md` 的 Excel 组件说明。
 - [x] 拆出 `MainWindow.xaml.cs` 的输入状态和 options 构造。
-- [ ] 继续拆 `MainWindow.xaml.cs` 的 workflow 编排和省份 UI 状态应用，作为下一批代码质量目标。
+- [x] 拆出 `MainWindow.xaml.cs` 的省份 UI 状态应用。
+- [ ] 继续拆 `MainWindow.xaml.cs` 的 workflow 编排，作为下一批代码质量目标。
 - [ ] 重庆阶段二实机测试如发现问题，暂停代码质量线并优先处理实测问题。

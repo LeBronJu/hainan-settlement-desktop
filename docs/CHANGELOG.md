@@ -6,6 +6,7 @@
 
 ## 2026-07-08
 
+- 多省份代码质量第三批：WPF `MainWindow.xaml.cs` 抽出 `MainWindowProvinceUiController`，集中结算月份启停、省份 tab/panel 可见性、省份文案和按钮启停；窗口继续保留事件入口和 workflow 编排。
 - 多省份代码质量第二批：WPF `MainWindow.xaml.cs` 抽出 `MainWindowInputController`，集中路径载入/保存、已保存省份恢复、阶段 options 构造、月份/省份选择读取和输入清空；窗口继续保留事件入口和 workflow 编排。
 - 多省份代码质量第一批：海南阶段二 Excel 生成器从通用 `Stage2SettlementGenerator` 拆分并显式命名为 `HainanStage2...` 组件，分离台账读取、模板索引、分表写入、汇总表写入和报告输出；行为目标保持不变。
 - 重庆阶段二首版 workbook 写入：`ChongqingStage2SettlementGenerator` 拆分为入口编排、台账读取、分表写入、汇总写入和报告输出组件；支持代理/居间/退补分表、汇总表副本、JSON 报告和校验报告生成。
