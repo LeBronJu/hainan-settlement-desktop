@@ -195,7 +195,7 @@ namespace HainanSettlementTool.Wpf
             };
         }
 
-        public EmployeeRewardOptions CreateEmployeeRewardOptions()
+        public HainanEmployeePowerRewardOptions CreateHainanEmployeePowerRewardOptions()
         {
             var startMonth = SelectedRewardStartMonth();
             var endMonth = SelectedRewardEndMonth();
@@ -204,7 +204,7 @@ namespace HainanSettlementTool.Wpf
                 throw new InvalidOperationException("员工电量奖励开始月份不能晚于结束月份。");
             }
 
-            return new EmployeeRewardOptions
+            return new HainanEmployeePowerRewardOptions
             {
                 Year = 2026,
                 StartMonth = startMonth,

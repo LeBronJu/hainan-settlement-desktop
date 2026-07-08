@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace HainanSettlementTool.Core.Models
 {
-    public sealed class EmployeeRewardOutput
+    public sealed class HainanEmployeePowerRewardOutput
     {
         public string SummaryPath { get; set; }
         public string ReportPath { get; set; }

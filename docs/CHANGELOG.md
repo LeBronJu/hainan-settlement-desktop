@@ -6,7 +6,8 @@
 
 ## 2026-07-08
 
-- 多省份代码质量第五批：WPF `MainWindow.xaml.cs` 抽出 `MainWindowHainanStage1WorkflowController` 和 `MainWindowEmployeeRewardWorkflowController`，集中海南阶段一写台账/清洗电量和员工奖励生成编排；重庆阶段一暂留主窗口等待实测反馈稳定。
+- 多省份代码质量第六批：员工电量奖励 Core/Excel/WPF workflow 类型显式改为 `HainanEmployeePowerReward...`，模型字段收敛到 `ResponsiblePerson` / `ProjectDeveloper` / `MonthlyPowers`，并把模块 dev note 改为海南专属入口，为未来重庆电量奖预留并列实现空间。
+- 多省份代码质量第五批：WPF `MainWindow.xaml.cs` 抽出 `MainWindowHainanStage1WorkflowController` 和 `MainWindowHainanEmployeePowerRewardWorkflowController`，集中海南阶段一写台账/清洗电量和员工奖励生成编排；重庆阶段一暂留主窗口等待实测反馈稳定。
 - 多省份代码质量第四批：WPF `MainWindow.xaml.cs` 抽出 `MainWindowStage2WorkflowController` 和 `SettlementWorkflowFactory`，集中海南/重庆阶段二 plan-confirm-complete 编排和 workflow 装配；阶段二取消路径和预检决策回写保持不变。
 - 多省份代码质量第三批：WPF `MainWindow.xaml.cs` 抽出 `MainWindowProvinceUiController`，集中结算月份启停、省份 tab/panel 可见性、省份文案和按钮启停；窗口继续保留事件入口和 workflow 编排。
 - 多省份代码质量第二批：WPF `MainWindow.xaml.cs` 抽出 `MainWindowInputController`，集中路径载入/保存、已保存省份恢复、阶段 options 构造、月份/省份选择读取和输入清空；窗口继续保留事件入口和 workflow 编排。
@@ -42,7 +43,7 @@
 
 - 员工电量奖励模块合入 `main`：Win10/11 WPF 增加独立 `员工电量奖励` 功能，按最新台账和月份范围生成奖励总表、个人确认表和 JSON 校验报告。
 - 员工电量奖励实机测试：用户完成实际流程测试并反馈未发现阻塞问题。
-- 员工电量奖励文档：`docs/dev-notes/employee-reward-module-2026-07-02.md` 记录模块范围、输入输出、读取规则和验证结论。
+- 员工电量奖励文档：`docs/dev-notes/hainan-employee-power-reward-module-2026-07-02.md` 记录海南模块范围、输入输出、读取规则和验证结论。
 
 ## 2026-06-30 到 2026-07-01
 

@@ -100,6 +100,7 @@ Employee reward:
 - Merged to `main`.
 - Exposed in Win10/11 WPF.
 - User tested the practical flow on 2026-07-02 and reported no blocking issues.
+- Current Core/Excel/WPF workflow implementation is explicitly named `HainanEmployeePowerReward...`; future Chongqing power reward work should not reuse it without a Chongqing-specific rule review.
 
 Chongqing Stage 1:
 
@@ -179,7 +180,8 @@ Most recent documentation validation:
 - Multi-province code-quality second slice on 2026-07-08: WPF `MainWindowInputController` now owns saved input paths, saved-province restore, options construction, month/province selection reads, and clear-input actions; Core tests passed (26), Excel tests passed (27), and WPF Debug/Release builds passed.
 - Multi-province code-quality third slice on 2026-07-08: WPF `MainWindowProvinceUiController` now owns settlement-month enablement, province tab/panel visibility, province UI copy, and province button enablement; Core tests passed (26), Excel tests passed (27), and WPF Debug/Release builds passed.
 - Multi-province code-quality fourth slice on 2026-07-08: WPF `MainWindowStage2WorkflowController` now owns Hainan/Chongqing Stage 2 plan-confirm-complete orchestration and `SettlementWorkflowFactory` owns workflow construction; Core tests passed (26), Excel tests passed (27), and WPF Debug/Release builds passed.
-- Multi-province code-quality fifth slice on 2026-07-08: WPF `MainWindowHainanStage1WorkflowController` and `MainWindowEmployeeRewardWorkflowController` now own Hainan Stage 1 / clean-power and employee reward orchestration; Core tests passed (26), Excel tests passed (27), and WPF Debug/Release builds passed.
+- Multi-province code-quality fifth slice on 2026-07-08: WPF `MainWindowHainanStage1WorkflowController` and `MainWindowHainanEmployeePowerRewardWorkflowController` now own Hainan Stage 1 / clean-power and employee reward orchestration; Core tests passed (26), Excel tests passed (27), and WPF Debug/Release builds passed.
+- Multi-province code-quality sixth slice on 2026-07-08: employee reward Core/Excel/WPF workflow names now explicitly use `HainanEmployeePowerReward...`; model fields use `ResponsiblePerson`, `ProjectDeveloper`, and `MonthlyPowers`; Core tests passed (26), Excel tests passed (27), and WPF Debug/Release builds passed.
 
 For new code changes, rerun focused tests and builds. For pure documentation changes, run at least `git diff --check` plus targeted stale-wording/link scans.
 

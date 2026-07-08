@@ -78,7 +78,7 @@ namespace HainanSettlementTool.Core.Tests
                 var workflow = new SettlementWorkflow(
                     new HainanStage1Service(gateway),
                     new HainanStage2Service(gateway),
-                    new EmployeeRewardService(gateway),
+                    new HainanEmployeePowerRewardService(gateway),
                     new ProvinceStage1Service(gateway));
                 var rawDetailPath = CreateFile(root, "chongqing-raw.xlsx");
                 var options = new ProvinceStage1CleanOptions
@@ -118,7 +118,7 @@ namespace HainanSettlementTool.Core.Tests
                 var workflow = new SettlementWorkflow(
                     new HainanStage1Service(gateway),
                     new HainanStage2Service(gateway),
-                    new EmployeeRewardService(gateway),
+                    new HainanEmployeePowerRewardService(gateway),
                     new ProvinceStage1Service(gateway));
                 var options = new ProvinceStage1LedgerUpdateOptions
                 {
@@ -264,25 +264,25 @@ namespace HainanSettlementTool.Core.Tests
         }
 
         [TestMethod]
-        public void RunEmployeeRewardReturnsSharedSummaryLines()
+        public void RunHainanEmployeePowerRewardReturnsSharedSummaryLines()
         {
             var root = CreateTempRoot();
             try
             {
                 var gateway = new FakeGateway();
                 var workflow = CreateWorkflow(gateway);
-                var options = CreateEmployeeRewardOptions(root);
+                var options = CreateHainanEmployeePowerRewardOptions(root);
 
-                var result = workflow.RunEmployeeReward(options, null);
+                var result = workflow.RunHainanEmployeePowerReward(options, null);
 
-                Assert.AreEqual(gateway.EmployeeRewardResult.SummaryPath, result.Report.SummaryPath);
-                Assert.AreEqual(gateway.EmployeeRewardResult.ReportPath, result.Report.ReportPath);
+                Assert.AreEqual(gateway.HainanEmployeePowerRewardResult.SummaryPath, result.Report.SummaryPath);
+                Assert.AreEqual(gateway.HainanEmployeePowerRewardResult.ReportPath, result.Report.ReportPath);
                 CollectionAssert.AreEqual(
                     new[]
                     {
                         "员工电量奖励生成完成。",
-                        "奖励总表：" + gateway.EmployeeRewardResult.SummaryPath,
-                        "报告：" + gateway.EmployeeRewardResult.ReportPath,
+                        "奖励总表：" + gateway.HainanEmployeePowerRewardResult.SummaryPath,
+                        "报告：" + gateway.HainanEmployeePowerRewardResult.ReportPath,
                         "员工确认表：2 个",
                         "电量合计：123.4567 万千瓦时",
                         "奖励金额：123.46 元"
@@ -372,7 +372,7 @@ namespace HainanSettlementTool.Core.Tests
             return new SettlementWorkflow(
                 new HainanStage1Service(gateway),
                 new HainanStage2Service(gateway),
-                new EmployeeRewardService(gateway));
+                new HainanEmployeePowerRewardService(gateway));
         }
 
         private static SettlementWorkflow CreateWorkflowWithChongqingStage2(FakeGateway gateway)
@@ -380,7 +380,7 @@ namespace HainanSettlementTool.Core.Tests
             return new SettlementWorkflow(
                 new HainanStage1Service(gateway),
                 new HainanStage2Service(gateway),
-                new EmployeeRewardService(gateway),
+                new HainanEmployeePowerRewardService(gateway),
                 new ProvinceStage1Service(gateway),
                 new ChongqingStage2Service(gateway));
         }
@@ -432,9 +432,9 @@ namespace HainanSettlementTool.Core.Tests
             };
         }
 
-        private static EmployeeRewardOptions CreateEmployeeRewardOptions(string root)
+        private static HainanEmployeePowerRewardOptions CreateHainanEmployeePowerRewardOptions(string root)
         {
-            return new EmployeeRewardOptions
+            return new HainanEmployeePowerRewardOptions
             {
                 Year = 2026,
                 StartMonth = 1,
@@ -465,7 +465,7 @@ namespace HainanSettlementTool.Core.Tests
             }
         }
 
-        private sealed class FakeGateway : IHainanStage1ExcelGateway, IHainanStage2ExcelGateway, IEmployeeRewardExcelGateway, IProvinceStage1ExcelGateway, IChongqingStage2ExcelGateway
+        private sealed class FakeGateway : IHainanStage1ExcelGateway, IHainanStage2ExcelGateway, IHainanEmployeePowerRewardExcelGateway, IProvinceStage1ExcelGateway, IChongqingStage2ExcelGateway
         {
             public bool AddPreflightIssue { get; set; }
 
@@ -498,7 +498,7 @@ namespace HainanSettlementTool.Core.Tests
                 RefundTotal = 12.3456
             };
 
-            public readonly EmployeeRewardResult EmployeeRewardResult = new EmployeeRewardResult
+            public readonly HainanEmployeePowerRewardResult HainanEmployeePowerRewardResult = new HainanEmployeePowerRewardResult
             {
                 SummaryPath = "employee-reward.xlsx",
                 ReportPath = "employee-reward-report.json",
@@ -634,28 +634,28 @@ namespace HainanSettlementTool.Core.Tests
                 return ChongqingStage2Report;
             }
 
-            public IList<EmployeeRewardLedgerRow> ReadLedgerRows(EmployeeRewardOptions options)
+            public IList<HainanEmployeePowerRewardLedgerRow> ReadLedgerRows(HainanEmployeePowerRewardOptions options)
             {
-                return new List<EmployeeRewardLedgerRow>
+                return new List<HainanEmployeePowerRewardLedgerRow>
                 {
-                    new EmployeeRewardLedgerRow
+                    new HainanEmployeePowerRewardLedgerRow
                     {
                         SourceRow = 4,
                         CustomerCode = "001",
                         CustomerName = "客户A",
-                        Owner = "员工A",
-                        MonthPowers = new Dictionary<int, double> { { 1, 123.4567 } }
+                        ResponsiblePerson = "员工A",
+                        MonthlyPowers = new Dictionary<int, double> { { 1, 123.4567 } }
                     }
                 };
             }
 
-            public EmployeeRewardOutput GenerateWorkbooks(EmployeeRewardOptions options, EmployeeRewardResult result)
+            public HainanEmployeePowerRewardOutput GenerateWorkbooks(HainanEmployeePowerRewardOptions options, HainanEmployeePowerRewardResult result)
             {
-                return new EmployeeRewardOutput
+                return new HainanEmployeePowerRewardOutput
                 {
-                    SummaryPath = EmployeeRewardResult.SummaryPath,
-                    ReportPath = EmployeeRewardResult.ReportPath,
-                    PersonalWorkbookPaths = EmployeeRewardResult.PersonalWorkbookPaths
+                    SummaryPath = HainanEmployeePowerRewardResult.SummaryPath,
+                    ReportPath = HainanEmployeePowerRewardResult.ReportPath,
+                    PersonalWorkbookPaths = HainanEmployeePowerRewardResult.PersonalWorkbookPaths
                 };
             }
         }

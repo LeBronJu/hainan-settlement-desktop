@@ -5,7 +5,7 @@ using HainanSettlementTool.Core.Services;
 
 namespace HainanSettlementTool.Excel
 {
-    public sealed class ClosedXmlSettlementExcelGateway : IHainanStage1ExcelGateway, IHainanStage2ExcelGateway, IEmployeeRewardExcelGateway, IProvinceStage1ExcelGateway, IChongqingStage2ExcelGateway
+    public sealed class ClosedXmlSettlementExcelGateway : IHainanStage1ExcelGateway, IHainanStage2ExcelGateway, IHainanEmployeePowerRewardExcelGateway, IProvinceStage1ExcelGateway, IChongqingStage2ExcelGateway
     {
         private readonly PowerWorkbookReader _powerWorkbookReader = new PowerWorkbookReader();
         private readonly RawDetailReader _rawDetailReader = new RawDetailReader();
@@ -13,7 +13,7 @@ namespace HainanSettlementTool.Excel
         private readonly LedgerStage1Updater _ledgerUpdater = new LedgerStage1Updater();
         private readonly HainanStage2SettlementGenerator _stage2Generator = new HainanStage2SettlementGenerator();
         private readonly ChongqingStage2SettlementGenerator _chongqingStage2Generator = new ChongqingStage2SettlementGenerator();
-        private readonly EmployeeRewardGenerator _employeeRewardGenerator = new EmployeeRewardGenerator();
+        private readonly HainanEmployeePowerRewardGenerator _hainanEmployeePowerRewardGenerator = new HainanEmployeePowerRewardGenerator();
         private readonly Dictionary<ProvinceCode, IProvinceStage1Adapter> _provinceStage1Adapters;
 
         public ClosedXmlSettlementExcelGateway()
@@ -95,14 +95,14 @@ namespace HainanSettlementTool.Excel
             return _chongqingStage2Generator.Analyze(options);
         }
 
-        public IList<EmployeeRewardLedgerRow> ReadLedgerRows(EmployeeRewardOptions options)
+        public IList<HainanEmployeePowerRewardLedgerRow> ReadLedgerRows(HainanEmployeePowerRewardOptions options)
         {
-            return _employeeRewardGenerator.ReadLedgerRows(options);
+            return _hainanEmployeePowerRewardGenerator.ReadLedgerRows(options);
         }
 
-        public EmployeeRewardOutput GenerateWorkbooks(EmployeeRewardOptions options, EmployeeRewardResult result)
+        public HainanEmployeePowerRewardOutput GenerateWorkbooks(HainanEmployeePowerRewardOptions options, HainanEmployeePowerRewardResult result)
         {
-            return _employeeRewardGenerator.GenerateWorkbooks(options, result);
+            return _hainanEmployeePowerRewardGenerator.GenerateWorkbooks(options, result);
         }
     }
 }

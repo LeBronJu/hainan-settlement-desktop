@@ -22,7 +22,7 @@
 | `docs/dev-notes/chongqing-stage2-analysis-2026-07-07.md` | 当前任务 note | 重庆阶段二实现前的表格结构、风险、实现边界和用户确认事项。 |
 | `docs/dev-notes/multi-province-code-quality-2026-07-08.md` | 当前任务 note | 多省份代码质量、海南命名中性化、大类拆分和执行连续性。 |
 | `docs/dev-notes/multi-province-readiness-2026-07-07.md` | 当前架构 note | 新省份接入、WPF 省份 UI、Core/Excel 多省份 seam 工作前必须读。 |
-| `docs/dev-notes/employee-reward-module-2026-07-02.md` | 当前模块 note | 员工电量奖励模块的输入、输出、读取规则和验证记录。 |
+| `docs/dev-notes/hainan-employee-power-reward-module-2026-07-02.md` | 当前模块 note | 海南员工电量奖励模块的输入、输出、读取规则和验证记录。 |
 | `docs/dev-notes/win7-8-maintenance-mode-2026-06-29.md` | 当前政策 note | 判断 Win7/8 WinForms 冻结/退役边界，或用户明确重新开启 Win7/8 支持时。 |
 | `docs/dev-notes/documentation-sync-gate-2026-06-25.md` | 当前流程 note | 判断文档影响、决定该更新哪些文档时。 |
 | `docs/dev-notes/real-smoke-runner-2026-06-29.md` | 历史工具 note | 记录 real smoke runner 设计意图；当前脚本引用旧服务/网关名，刷新前不要当作可直接运行入口。 |
@@ -51,7 +51,7 @@
 | WPF UI 或交互改动 | `docs/architecture.md`、`docs/dev-notes/multi-province-readiness-2026-07-07.md`；涉及 WinForms 时再读 `docs/dev-notes/win7-8-maintenance-mode-2026-06-29.md` |
 | Excel adapter / workbook 读写改动 | `CONTEXT.md`、`docs/architecture.md`，再读对应省份或模块的 current-behavior/dev-note |
 | 海南阶段二行为判断 | `CONTEXT.md`、`docs/hainan-stage2-current-behavior.md` |
-| 员工电量奖励改动 | `CONTEXT.md`、`docs/dev-notes/employee-reward-module-2026-07-02.md` |
+| 员工电量奖励改动 | `CONTEXT.md`、`docs/dev-notes/hainan-employee-power-reward-module-2026-07-02.md` |
 | 发布、打包、tag 或 GitHub Release | `README.md`、`HANDOFF.md`、`docs/RELEASE_CHECKLIST.md` |
 | 文档质量或文档同步规则改动 | `docs/README.md`、`docs/dev-notes/documentation-sync-gate-2026-06-25.md`、`HANDOFF.md` |
 | 代码质量、多省命名或大类拆分 | `docs/architecture.md`、`docs/dev-notes/multi-province-readiness-2026-07-07.md`、`docs/dev-notes/multi-province-code-quality-2026-07-08.md` |

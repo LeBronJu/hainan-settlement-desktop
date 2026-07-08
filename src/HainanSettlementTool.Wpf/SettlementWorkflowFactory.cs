@@ -11,7 +11,7 @@ namespace HainanSettlementTool.Wpf
             return new SettlementWorkflow(
                 new HainanStage1Service(gateway),
                 new HainanStage2Service(gateway),
-                new EmployeeRewardService(gateway),
+                new HainanEmployeePowerRewardService(gateway),
                 new ProvinceStage1Service(gateway),
                 new ChongqingStage2Service(gateway));
         }

@@ -10,16 +10,16 @@ using Newtonsoft.Json;
 
 namespace HainanSettlementTool.Excel
 {
-    internal sealed class EmployeeRewardGenerator
+    internal sealed class HainanEmployeePowerRewardGenerator
     {
-        public IList<EmployeeRewardLedgerRow> ReadLedgerRows(EmployeeRewardOptions options)
+        public IList<HainanEmployeePowerRewardLedgerRow> ReadLedgerRows(HainanEmployeePowerRewardOptions options)
         {
             using (var workbook = new XLWorkbook(options.LedgerPath))
             {
                 var worksheet = FindLedgerWorksheet(workbook);
                 var fixedColumns = FindFixedColumns(worksheet);
                 var monthColumns = FindMonthColumns(worksheet, options.StartMonth, options.EndMonth);
-                var rows = new List<EmployeeRewardLedgerRow>();
+                var rows = new List<HainanEmployeePowerRewardLedgerRow>();
                 var lastRow = worksheet.LastRowUsed()?.RowNumber() ?? 2;
 
                 for (var rowNumber = 4; rowNumber <= lastRow; rowNumber++)
@@ -37,7 +37,7 @@ namespace HainanSettlementTool.Excel
             }
         }
 
-        public EmployeeRewardOutput GenerateWorkbooks(EmployeeRewardOptions options, EmployeeRewardResult result)
+        public HainanEmployeePowerRewardOutput GenerateWorkbooks(HainanEmployeePowerRewardOptions options, HainanEmployeePowerRewardResult result)
         {
             Directory.CreateDirectory(options.OutputDirectory);
 
@@ -45,7 +45,7 @@ namespace HainanSettlementTool.Excel
             var personalPaths = GeneratePersonalWorkbooks(options, result);
             var reportPath = WriteReport(options, result, summaryPath, personalPaths);
 
-            return new EmployeeRewardOutput
+            return new HainanEmployeePowerRewardOutput
             {
                 SummaryPath = summaryPath,
                 ReportPath = reportPath,
@@ -53,7 +53,7 @@ namespace HainanSettlementTool.Excel
             };
         }
 
-        private static string GenerateSummaryWorkbook(EmployeeRewardOptions options, EmployeeRewardResult result)
+        private static string GenerateSummaryWorkbook(HainanEmployeePowerRewardOptions options, HainanEmployeePowerRewardResult result)
         {
             var outputName = string.IsNullOrWhiteSpace(options.OutputSummaryName)
                 ? PeriodLabel(options.Year, result.Months) + "员工电量奖励-海南.xlsx"
@@ -73,11 +73,11 @@ namespace HainanSettlementTool.Excel
 
                 var summarySheet = workbook.AddWorksheet(SheetPeriodLabel(result.Months) + "员工电量汇总");
                 summarySheet.Name = SheetPeriodLabel(result.Months) + "员工电量汇总";
-                WriteEmployeeSummarySheet(
+                WriteResponsiblePersonSummarySheet(
                     summarySheet,
                     PeriodLabel(options.Year, result.Months) + "员工电量奖励",
                     result.Months,
-                    result.EmployeeSummaries);
+                    result.ResponsiblePersonSummaries);
 
                 SaveWorkbook(workbook, outputPath);
             }
@@ -85,16 +85,16 @@ namespace HainanSettlementTool.Excel
             return outputPath;
         }
 
-        private static List<string> GeneratePersonalWorkbooks(EmployeeRewardOptions options, EmployeeRewardResult result)
+        private static List<string> GeneratePersonalWorkbooks(HainanEmployeePowerRewardOptions options, HainanEmployeePowerRewardResult result)
         {
             var paths = new List<string>();
-            foreach (var summary in result.EmployeeSummaries.OrderBy(row => row.Owner, StringComparer.Ordinal))
+            foreach (var summary in result.ResponsiblePersonSummaries.OrderBy(row => row.ResponsiblePerson, StringComparer.Ordinal))
             {
                 var details = result.Details
-                    .Where(row => row.Owner == summary.Owner)
+                    .Where(row => row.ResponsiblePerson == summary.ResponsiblePerson)
                     .OrderBy(row => row.SourceRow)
                     .ToList();
-                var fileName = TextUtil.SafeFileName(summary.Owner)
+                var fileName = TextUtil.SafeFileName(summary.ResponsiblePerson)
                     + "-"
                     + PeriodLabel(options.Year, result.Months)
                     + "员工电量确认表-海南.xlsx";
@@ -106,7 +106,7 @@ namespace HainanSettlementTool.Excel
                     worksheet.Name = SheetPrefix(result.Months) + "月企业用电明细";
                     WriteDetailSheet(
                         worksheet,
-                        PeriodLabel(options.Year, result.Months) + "员工电量确认表(" + summary.Owner + ")",
+                        PeriodLabel(options.Year, result.Months) + "员工电量确认表(" + summary.ResponsiblePerson + ")",
                         result.Months,
                         details,
                         personalFooter: true);
@@ -120,8 +120,8 @@ namespace HainanSettlementTool.Excel
         }
 
         private static string WriteReport(
-            EmployeeRewardOptions options,
-            EmployeeRewardResult result,
+            HainanEmployeePowerRewardOptions options,
+            HainanEmployeePowerRewardResult result,
             string summaryPath,
             IList<string> personalPaths)
         {
@@ -131,7 +131,7 @@ namespace HainanSettlementTool.Excel
                 year = result.Year,
                 months = result.Months,
                 totalCustomers = result.TotalCustomers,
-                employeeCount = result.EmployeeSummaries.Count,
+                employeeCount = result.ResponsiblePersonSummaries.Count,
                 monthTotals = result.MonthTotals,
                 totalPower = result.TotalPower,
                 totalReward = result.TotalReward,
@@ -147,7 +147,7 @@ namespace HainanSettlementTool.Excel
             IXLWorksheet worksheet,
             string title,
             IList<int> months,
-            IList<EmployeeRewardDetail> details,
+            IList<HainanEmployeePowerRewardDetail> details,
             bool personalFooter)
         {
             var totalColumn = 8 + months.Count;
@@ -165,14 +165,14 @@ namespace HainanSettlementTool.Excel
                 worksheet.Cell(rowNumber, 2).Value = detail.CustomerCode;
                 worksheet.Cell(rowNumber, 3).Value = detail.CustomerName;
                 worksheet.Cell(rowNumber, 4).Value = detail.ContractStartMonth;
-                worksheet.Cell(rowNumber, 5).Value = detail.Developer;
+                worksheet.Cell(rowNumber, 5).Value = detail.ProjectDeveloper;
                 worksheet.Cell(rowNumber, 6).Value = detail.AgentType;
-                worksheet.Cell(rowNumber, 7).Value = detail.Owner;
+                worksheet.Cell(rowNumber, 7).Value = detail.ResponsiblePerson;
 
                 for (var monthIndex = 0; monthIndex < months.Count; monthIndex++)
                 {
                     var column = 8 + monthIndex;
-                    worksheet.Cell(rowNumber, column).Value = detail.MonthPowers[months[monthIndex]];
+                    worksheet.Cell(rowNumber, column).Value = detail.MonthlyPowers[months[monthIndex]];
                 }
 
                 worksheet.Cell(rowNumber, totalColumn).FormulaA1 = "SUM("
@@ -204,11 +204,11 @@ namespace HainanSettlementTool.Excel
             worksheet.Cell(totalRow + 2, footerColumn).Value = "日  期：";
         }
 
-        private static void WriteEmployeeSummarySheet(
+        private static void WriteResponsiblePersonSummarySheet(
             IXLWorksheet worksheet,
             string title,
             IList<int> months,
-            IList<EmployeeRewardSummary> summaries)
+            IList<HainanEmployeePowerRewardSummary> summaries)
         {
             var totalColumn = 3 + months.Count;
             var rewardColumn = totalColumn + 1;
@@ -223,10 +223,10 @@ namespace HainanSettlementTool.Excel
                 var rowNumber = 3 + index;
                 var summary = summaries[index];
                 worksheet.Cell(rowNumber, 1).Value = index + 1;
-                worksheet.Cell(rowNumber, 2).Value = summary.Owner;
+                worksheet.Cell(rowNumber, 2).Value = summary.ResponsiblePerson;
                 for (var monthIndex = 0; monthIndex < months.Count; monthIndex++)
                 {
-                    worksheet.Cell(rowNumber, 3 + monthIndex).Value = summary.MonthPowers[months[monthIndex]];
+                    worksheet.Cell(rowNumber, 3 + monthIndex).Value = summary.MonthlyPowers[months[monthIndex]];
                 }
 
                 worksheet.Cell(rowNumber, totalColumn).FormulaA1 = "SUM("
@@ -504,29 +504,29 @@ namespace HainanSettlementTool.Excel
             workbook.SaveAs(outputPath, new SaveOptions { EvaluateFormulasBeforeSaving = true });
         }
 
-        private static EmployeeRewardLedgerRow ReadRow(
+        private static HainanEmployeePowerRewardLedgerRow ReadRow(
             IXLWorksheet worksheet,
             int rowNumber,
             FixedColumns fixedColumns,
             IDictionary<int, int> monthColumns)
         {
-            var monthPowers = new Dictionary<int, double>();
+            var monthlyPowers = new Dictionary<int, double>();
             foreach (var item in monthColumns)
             {
-                monthPowers[item.Key] = ReadPower(worksheet.Cell(rowNumber, item.Value), rowNumber, item.Key);
+                monthlyPowers[item.Key] = ReadPower(worksheet.Cell(rowNumber, item.Value), rowNumber, item.Key);
             }
 
-            return new EmployeeRewardLedgerRow
+            return new HainanEmployeePowerRewardLedgerRow
             {
                 SourceRow = rowNumber,
                 Sequence = ReadSequence(worksheet.Cell(rowNumber, 1), rowNumber),
                 CustomerCode = CellText(worksheet.Cell(rowNumber, fixedColumns.CustomerCode)),
                 CustomerName = CellText(worksheet.Cell(rowNumber, fixedColumns.CustomerName)),
                 ContractStartMonth = CellText(worksheet.Cell(rowNumber, fixedColumns.ContractStartMonth)),
-                Developer = CellText(worksheet.Cell(rowNumber, fixedColumns.Developer)),
+                ProjectDeveloper = CellText(worksheet.Cell(rowNumber, fixedColumns.ProjectDeveloper)),
                 AgentType = CellText(worksheet.Cell(rowNumber, fixedColumns.AgentType)),
-                Owner = CellText(worksheet.Cell(rowNumber, fixedColumns.Owner)),
-                MonthPowers = monthPowers
+                ResponsiblePerson = CellText(worksheet.Cell(rowNumber, fixedColumns.ResponsiblePerson)),
+                MonthlyPowers = monthlyPowers
             };
         }
 
@@ -561,9 +561,9 @@ namespace HainanSettlementTool.Excel
                 CustomerCode = FindHeaderColumn(worksheet, "用电企业编号"),
                 CustomerName = FindHeaderColumn(worksheet, "用电企业名称"),
                 ContractStartMonth = FindHeaderColumn(worksheet, "履约开始月份"),
-                Developer = FindHeaderColumn(worksheet, "项目开发人"),
+                ProjectDeveloper = FindHeaderColumn(worksheet, "项目开发人"),
                 AgentType = FindHeaderColumn(worksheet, "代理或自营"),
-                Owner = FindHeaderColumn(worksheet, "负责人")
+                ResponsiblePerson = FindHeaderColumn(worksheet, "负责人")
             };
         }
 
@@ -660,13 +660,13 @@ namespace HainanSettlementTool.Excel
             return TextUtil.S(cell.GetFormattedString());
         }
 
-        private static bool IsBlankIdentityRow(EmployeeRewardLedgerRow row)
+        private static bool IsBlankIdentityRow(HainanEmployeePowerRewardLedgerRow row)
         {
             return string.IsNullOrWhiteSpace(row.CustomerCode)
                 && string.IsNullOrWhiteSpace(row.CustomerName)
-                && string.IsNullOrWhiteSpace(row.Developer)
+                && string.IsNullOrWhiteSpace(row.ProjectDeveloper)
                 && string.IsNullOrWhiteSpace(row.AgentType)
-                && string.IsNullOrWhiteSpace(row.Owner);
+                && string.IsNullOrWhiteSpace(row.ResponsiblePerson);
         }
 
         private sealed class FixedColumns
@@ -674,9 +674,9 @@ namespace HainanSettlementTool.Excel
             public int CustomerCode { get; set; }
             public int CustomerName { get; set; }
             public int ContractStartMonth { get; set; }
-            public int Developer { get; set; }
+            public int ProjectDeveloper { get; set; }
             public int AgentType { get; set; }
-            public int Owner { get; set; }
+            public int ResponsiblePerson { get; set; }
         }
     }
 }

@@ -1,6 +1,6 @@
 namespace HainanSettlementTool.Core.Models
 {
-    public sealed class EmployeeRewardOptions
+    public sealed class HainanEmployeePowerRewardOptions
     {
         public int Year { get; set; }
         public int StartMonth { get; set; }

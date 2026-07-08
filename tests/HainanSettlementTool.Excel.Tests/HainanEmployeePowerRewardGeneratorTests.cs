@@ -10,7 +10,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace HainanSettlementTool.Excel.Tests
 {
     [TestClass]
-    public sealed class EmployeeRewardGeneratorTests
+    public sealed class HainanEmployeePowerRewardGeneratorTests
     {
         [TestMethod]
         public void ReadLedgerRowsUsesOfficialSheetAndMonthTotalHeaders()
@@ -21,10 +21,10 @@ namespace HainanSettlementTool.Excel.Tests
 
             try
             {
-                WriteRewardLedger(ledgerPath);
+                WriteHainanEmployeePowerRewardLedger(ledgerPath);
 
                 var rows = new ClosedXmlSettlementExcelGateway().ReadLedgerRows(
-                    new EmployeeRewardOptions
+                    new HainanEmployeePowerRewardOptions
                     {
                         Year = 2026,
                         StartMonth = 1,
@@ -35,9 +35,9 @@ namespace HainanSettlementTool.Excel.Tests
 
                 Assert.AreEqual(3, rows.Count);
                 Assert.AreEqual("客户A", rows[0].CustomerName);
-                Assert.AreEqual("员工A", rows[0].Owner);
-                Assert.AreEqual(10.1234, rows[0].MonthPowers[1], 0.00001);
-                Assert.AreEqual(20.5, rows[0].MonthPowers[2], 0.00001);
+                Assert.AreEqual("员工A", rows[0].ResponsiblePerson);
+                Assert.AreEqual(10.1234, rows[0].MonthlyPowers[1], 0.00001);
+                Assert.AreEqual(20.5, rows[0].MonthlyPowers[2], 0.00001);
                 Assert.AreEqual("客户B", rows[1].CustomerName);
                 Assert.AreEqual("客户C", rows[2].CustomerName);
             }
@@ -56,12 +56,12 @@ namespace HainanSettlementTool.Excel.Tests
 
             try
             {
-                WriteRewardLedger(ledgerPath);
+                WriteHainanEmployeePowerRewardLedger(ledgerPath);
                 Directory.CreateDirectory(outputDirectory);
                 File.WriteAllText(Path.Combine(outputDirectory, "2026年1-2月员工电量奖励-海南.xlsx"), "existing");
 
-                var result = new EmployeeRewardService(new ClosedXmlSettlementExcelGateway()).Run(
-                    new EmployeeRewardOptions
+                var result = new HainanEmployeePowerRewardService(new ClosedXmlSettlementExcelGateway()).Run(
+                    new HainanEmployeePowerRewardOptions
                     {
                         Year = 2026,
                         StartMonth = 1,
@@ -130,7 +130,7 @@ namespace HainanSettlementTool.Excel.Tests
             }
         }
 
-        private static void WriteRewardLedger(string path)
+        private static void WriteHainanEmployeePowerRewardLedger(string path)
         {
             using (var workbook = new XLWorkbook())
             {
@@ -177,9 +177,9 @@ namespace HainanSettlementTool.Excel.Tests
             string customerCode,
             string customerName,
             string contractStartMonth,
-            string developer,
+            string projectDeveloper,
             string agentType,
-            string owner,
+            string responsiblePerson,
             double janPower,
             double febPower)
         {
@@ -187,9 +187,9 @@ namespace HainanSettlementTool.Excel.Tests
             worksheet.Cell(row, 2).Value = customerCode;
             worksheet.Cell(row, 3).Value = customerName;
             worksheet.Cell(row, 6).Value = contractStartMonth;
-            worksheet.Cell(row, 8).Value = developer;
+            worksheet.Cell(row, 8).Value = projectDeveloper;
             worksheet.Cell(row, 9).Value = agentType;
-            worksheet.Cell(row, 10).Value = owner;
+            worksheet.Cell(row, 10).Value = responsiblePerson;
             worksheet.Cell(row, LedgerLayout.MonthStartColumn(1)).Value = janPower;
             worksheet.Cell(row, LedgerLayout.MonthStartColumn(2)).Value = febPower;
         }

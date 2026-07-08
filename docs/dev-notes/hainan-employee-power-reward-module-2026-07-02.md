@@ -1,10 +1,10 @@
-# Employee Reward Module
+# Hainan Employee Power Reward Module
 
 Date: 2026-07-02
 
-Status: current module note. Use this file for employee reward scope and rules; stable cross-module vocabulary remains in `CONTEXT.md`.
+Status: current module note. Use this file for Hainan employee power reward scope and rules; stable cross-module vocabulary remains in `CONTEXT.md`.
 
-This note records the implementation decisions for the independent `员工电量奖励` module.
+This note records the implementation decisions for the independent Hainan `员工电量奖励` module. The implementation is intentionally named `HainanEmployeePowerReward...` because its ledger sheet, unit, output names, and validation rules are Hainan-specific. Future Chongqing power reward work should add a Chongqing-specific module or extract a shared module only after both provinces prove the same interface.
 
 ## Reference And Real Files
 
@@ -49,16 +49,16 @@ If an output file already exists, the generator creates a timestamped unique fil
 ## Implementation Shape
 
 - Core:
-  - `EmployeeRewardOptions`
-  - `EmployeeRewardLedgerRow`
-  - `EmployeeRewardDetail`
-  - `EmployeeRewardSummary`
-  - `EmployeeRewardResult`
-  - `EmployeeRewardService`
-  - `IEmployeeRewardExcelGateway`
+  - `HainanEmployeePowerRewardOptions`
+  - `HainanEmployeePowerRewardLedgerRow`
+  - `HainanEmployeePowerRewardDetail`
+  - `HainanEmployeePowerRewardSummary`
+  - `HainanEmployeePowerRewardResult`
+  - `HainanEmployeePowerRewardService`
+  - `IHainanEmployeePowerRewardExcelGateway`
 - Excel:
-  - `EmployeeRewardGenerator`
-  - `ClosedXmlSettlementExcelGateway` implements the employee reward gateway in addition to the existing stage 1/2 gateways.
+  - `HainanEmployeePowerRewardGenerator`
+- `ClosedXmlSettlementExcelGateway` implements the Hainan employee power reward gateway in addition to the existing stage 1/2 gateways.
 - WPF:
   - Adds an `员工电量奖励` tab.
   - UI collects ledger path, start/end months, and uses the shared output folder.

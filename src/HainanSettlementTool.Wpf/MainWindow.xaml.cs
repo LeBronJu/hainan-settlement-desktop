@@ -27,7 +27,7 @@ namespace HainanSettlementTool.Wpf
         private readonly MainWindowProvinceUiController _provinceUiController;
         private readonly MainWindowStage2WorkflowController _stage2WorkflowController;
         private readonly MainWindowHainanStage1WorkflowController _hainanStage1WorkflowController;
-        private readonly MainWindowEmployeeRewardWorkflowController _employeeRewardWorkflowController;
+        private readonly MainWindowHainanEmployeePowerRewardWorkflowController _hainanEmployeePowerRewardWorkflowController;
         private bool _isBusy;
         private bool _loadingInputs;
         private string _themeMode = ThemeService.SystemMode;
@@ -168,7 +168,7 @@ namespace HainanSettlementTool.Wpf
                 _dialogController,
                 SetBusy,
                 SaveInputs);
-            _employeeRewardWorkflowController = new MainWindowEmployeeRewardWorkflowController(
+            _hainanEmployeePowerRewardWorkflowController = new MainWindowHainanEmployeePowerRewardWorkflowController(
                 Dispatcher,
                 _inputController,
                 _progressController,
@@ -568,7 +568,7 @@ namespace HainanSettlementTool.Wpf
 
         private async void RunEmployeeReward_Click(object sender, RoutedEventArgs e)
         {
-            await _employeeRewardWorkflowController.RunAsync();
+            await _hainanEmployeePowerRewardWorkflowController.RunAsync();
         }
 
         private void LogSummary(IEnumerable<string> summaryLines)

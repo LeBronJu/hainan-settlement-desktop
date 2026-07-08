@@ -7,7 +7,7 @@ namespace HainanSettlementTool.Core.Services
     {
         private readonly HainanStage1Service _stage1Service;
         private readonly HainanStage2Service _stage2Service;
-        private readonly EmployeeRewardService _employeeRewardService;
+        private readonly HainanEmployeePowerRewardService _hainanEmployeePowerRewardService;
         private readonly ProvinceStage1Service _provinceStage1Service;
         private readonly ChongqingStage2Service _chongqingStage2Service;
 
@@ -16,24 +16,24 @@ namespace HainanSettlementTool.Core.Services
         {
         }
 
-        public SettlementWorkflow(HainanStage1Service stage1Service, HainanStage2Service stage2Service, EmployeeRewardService employeeRewardService)
-            : this(stage1Service, stage2Service, employeeRewardService, null)
+        public SettlementWorkflow(HainanStage1Service stage1Service, HainanStage2Service stage2Service, HainanEmployeePowerRewardService hainanEmployeePowerRewardService)
+            : this(stage1Service, stage2Service, hainanEmployeePowerRewardService, null)
         {
         }
 
         public SettlementWorkflow(
             HainanStage1Service stage1Service,
             HainanStage2Service stage2Service,
-            EmployeeRewardService employeeRewardService,
+            HainanEmployeePowerRewardService hainanEmployeePowerRewardService,
             ProvinceStage1Service provinceStage1Service)
-            : this(stage1Service, stage2Service, employeeRewardService, provinceStage1Service, null)
+            : this(stage1Service, stage2Service, hainanEmployeePowerRewardService, provinceStage1Service, null)
         {
         }
 
         public SettlementWorkflow(
             HainanStage1Service stage1Service,
             HainanStage2Service stage2Service,
-            EmployeeRewardService employeeRewardService,
+            HainanEmployeePowerRewardService hainanEmployeePowerRewardService,
             ProvinceStage1Service provinceStage1Service,
             ChongqingStage2Service chongqingStage2Service)
         {
@@ -49,7 +49,7 @@ namespace HainanSettlementTool.Core.Services
 
             _stage1Service = stage1Service;
             _stage2Service = stage2Service;
-            _employeeRewardService = employeeRewardService;
+            _hainanEmployeePowerRewardService = hainanEmployeePowerRewardService;
             _provinceStage1Service = provinceStage1Service;
             _chongqingStage2Service = chongqingStage2Service;
         }
@@ -234,15 +234,15 @@ namespace HainanSettlementTool.Core.Services
                 });
         }
 
-        public StageWorkflowResult<EmployeeRewardResult> RunEmployeeReward(EmployeeRewardOptions options, Action<string> log)
+        public StageWorkflowResult<HainanEmployeePowerRewardResult> RunHainanEmployeePowerReward(HainanEmployeePowerRewardOptions options, Action<string> log)
         {
-            if (_employeeRewardService == null)
+            if (_hainanEmployeePowerRewardService == null)
             {
                 throw new InvalidOperationException("员工电量奖励服务未配置。");
             }
 
-            var report = _employeeRewardService.Run(options, log);
-            return new StageWorkflowResult<EmployeeRewardResult>(
+            var report = _hainanEmployeePowerRewardService.Run(options, log);
+            return new StageWorkflowResult<HainanEmployeePowerRewardResult>(
                 report,
                 new[]
                 {

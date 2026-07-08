@@ -6,11 +6,11 @@ using HainanSettlementTool.Core.Models;
 
 namespace HainanSettlementTool.Core.Services
 {
-    public sealed class EmployeeRewardService
+    public sealed class HainanEmployeePowerRewardService
     {
-        private readonly IEmployeeRewardExcelGateway _excel;
+        private readonly IHainanEmployeePowerRewardExcelGateway _excel;
 
-        public EmployeeRewardService(IEmployeeRewardExcelGateway excel)
+        public HainanEmployeePowerRewardService(IHainanEmployeePowerRewardExcelGateway excel)
         {
             if (excel == null)
             {
@@ -20,7 +20,7 @@ namespace HainanSettlementTool.Core.Services
             _excel = excel;
         }
 
-        public EmployeeRewardResult Run(EmployeeRewardOptions options, Action<string> log)
+        public HainanEmployeePowerRewardResult Run(HainanEmployeePowerRewardOptions options, Action<string> log)
         {
             ValidateOptions(options);
             Directory.CreateDirectory(options.OutputDirectory);
@@ -37,10 +37,10 @@ namespace HainanSettlementTool.Core.Services
             return result;
         }
 
-        private static EmployeeRewardResult BuildResult(EmployeeRewardOptions options, IList<EmployeeRewardLedgerRow> ledgerRows)
+        private static HainanEmployeePowerRewardResult BuildResult(HainanEmployeePowerRewardOptions options, IList<HainanEmployeePowerRewardLedgerRow> ledgerRows)
         {
             var months = Enumerable.Range(options.StartMonth, options.EndMonth - options.StartMonth + 1).ToList();
-            var rows = (ledgerRows ?? new List<EmployeeRewardLedgerRow>())
+            var rows = (ledgerRows ?? new List<HainanEmployeePowerRewardLedgerRow>())
                 .Where(row => !IsEmptyHelperRow(row))
                 .Where(row => HasSelectedPower(row, months))
                 .ToList();
@@ -57,19 +57,19 @@ namespace HainanSettlementTool.Core.Services
                 .ToList();
 
             var summaries = details
-                .GroupBy(row => row.Owner)
+                .GroupBy(row => row.ResponsiblePerson)
                 .Select(group => CreateSummary(group.Key, group.ToList(), months))
                 .ToList();
 
-            var monthTotals = months.ToDictionary(month => month, month => Math.Round(details.Sum(row => row.MonthPowers[month]), 4));
+            var monthTotals = months.ToDictionary(month => month, month => Math.Round(details.Sum(row => row.MonthlyPowers[month]), 4));
             var totalPower = Math.Round(details.Sum(row => row.TotalPower), 4);
 
-            return new EmployeeRewardResult
+            return new HainanEmployeePowerRewardResult
             {
                 Year = options.Year,
                 Months = months,
                 Details = details,
-                EmployeeSummaries = summaries,
+                ResponsiblePersonSummaries = summaries,
                 MonthTotals = monthTotals,
                 TotalCustomers = details.Count,
                 TotalPower = totalPower,
@@ -77,44 +77,44 @@ namespace HainanSettlementTool.Core.Services
             };
         }
 
-        private static EmployeeRewardDetail CreateDetail(EmployeeRewardLedgerRow row, IList<int> months)
+        private static HainanEmployeePowerRewardDetail CreateDetail(HainanEmployeePowerRewardLedgerRow row, IList<int> months)
         {
-            var monthPowers = months.ToDictionary(month => month, month => Math.Round(GetPower(row, month), 4));
-            return new EmployeeRewardDetail
+            var monthlyPowers = months.ToDictionary(month => month, month => Math.Round(GetPower(row, month), 4));
+            return new HainanEmployeePowerRewardDetail
             {
                 SourceRow = row.SourceRow,
                 Sequence = row.Sequence,
                 CustomerCode = TextUtil.S(row.CustomerCode),
                 CustomerName = TextUtil.S(row.CustomerName),
                 ContractStartMonth = TextUtil.S(row.ContractStartMonth),
-                Developer = TextUtil.S(row.Developer),
+                ProjectDeveloper = TextUtil.S(row.ProjectDeveloper),
                 AgentType = TextUtil.S(row.AgentType),
-                Owner = TextUtil.S(row.Owner),
-                MonthPowers = monthPowers,
-                TotalPower = Math.Round(monthPowers.Values.Sum(), 4)
+                ResponsiblePerson = TextUtil.S(row.ResponsiblePerson),
+                MonthlyPowers = monthlyPowers,
+                TotalPower = Math.Round(monthlyPowers.Values.Sum(), 4)
             };
         }
 
-        private static EmployeeRewardSummary CreateSummary(string owner, IList<EmployeeRewardDetail> details, IList<int> months)
+        private static HainanEmployeePowerRewardSummary CreateSummary(string responsiblePerson, IList<HainanEmployeePowerRewardDetail> details, IList<int> months)
         {
-            var monthPowers = months.ToDictionary(month => month, month => Math.Round(details.Sum(row => row.MonthPowers[month]), 4));
-            var totalPower = Math.Round(monthPowers.Values.Sum(), 4);
-            return new EmployeeRewardSummary
+            var monthlyPowers = months.ToDictionary(month => month, month => Math.Round(details.Sum(row => row.MonthlyPowers[month]), 4));
+            var totalPower = Math.Round(monthlyPowers.Values.Sum(), 4);
+            return new HainanEmployeePowerRewardSummary
             {
-                Owner = owner,
+                ResponsiblePerson = responsiblePerson,
                 CustomerCount = details.Count,
-                MonthPowers = monthPowers,
+                MonthlyPowers = monthlyPowers,
                 TotalPower = totalPower,
                 RewardAmount = totalPower
             };
         }
 
-        private static List<string> ValidateLedgerRows(IList<EmployeeRewardLedgerRow> rows, IList<int> months)
+        private static List<string> ValidateLedgerRows(IList<HainanEmployeePowerRewardLedgerRow> rows, IList<int> months)
         {
             var errors = new List<string>();
             foreach (var row in rows)
             {
-                if (string.IsNullOrWhiteSpace(row.Owner))
+                if (string.IsNullOrWhiteSpace(row.ResponsiblePerson))
                 {
                     errors.Add("第" + row.SourceRow + "行负责人为空。");
                 }
@@ -138,31 +138,31 @@ namespace HainanSettlementTool.Core.Services
             return errors;
         }
 
-        private static bool IsEmptyHelperRow(EmployeeRewardLedgerRow row)
+        private static bool IsEmptyHelperRow(HainanEmployeePowerRewardLedgerRow row)
         {
             return row == null
                 || (string.IsNullOrWhiteSpace(row.CustomerCode)
                     && string.IsNullOrWhiteSpace(row.CustomerName)
-                    && string.IsNullOrWhiteSpace(row.Owner));
+                    && string.IsNullOrWhiteSpace(row.ResponsiblePerson));
         }
 
-        private static bool HasSelectedPower(EmployeeRewardLedgerRow row, IList<int> months)
+        private static bool HasSelectedPower(HainanEmployeePowerRewardLedgerRow row, IList<int> months)
         {
             return months.Any(month => Math.Abs(GetPower(row, month)) > 0.0000001d);
         }
 
-        private static double GetPower(EmployeeRewardLedgerRow row, int month)
+        private static double GetPower(HainanEmployeePowerRewardLedgerRow row, int month)
         {
-            if (row == null || row.MonthPowers == null)
+            if (row == null || row.MonthlyPowers == null)
             {
                 return 0d;
             }
 
             double value;
-            return row.MonthPowers.TryGetValue(month, out value) ? value : 0d;
+            return row.MonthlyPowers.TryGetValue(month, out value) ? value : 0d;
         }
 
-        private static void ValidateOptions(EmployeeRewardOptions options)
+        private static void ValidateOptions(HainanEmployeePowerRewardOptions options)
         {
             if (options == null)
             {

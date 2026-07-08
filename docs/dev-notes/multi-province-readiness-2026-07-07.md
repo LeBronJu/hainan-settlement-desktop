@@ -34,6 +34,7 @@
 - Excel 内部 `IProvinceStage1Adapter` / `ChongqingProvinceStage1Adapter` seam。
 - `ProvinceStage1LedgerUpdateIssue.Kind` 稳定 issue code。
 - WPF 进度、结果、弹窗、路径选择、日志、输入状态、省份 UI 状态应用、海南阶段一、阶段二和员工奖励 workflow controller 拆分。
+- 海南员工电量奖励 Core/Excel/WPF workflow 已显式命名为 `HainanEmployeePowerReward...`，避免未来重庆电量奖误用海南台账口径。
 - 省份显示名、Hainan Stage 1/2 服务名、组合型 ClosedXML gateway 等低风险命名中性化。
 - 重庆客户处理决定模型和 WPF 预检交互；海南阶段一保持原有自动新增流程。
 
@@ -298,8 +299,9 @@ UI 约束：
 8. WPF 新增 `MainWindowInputController`，把路径载入/保存、阶段 options 构造、月份/省份选择读取和输入清空行为从 `MainWindow.xaml.cs` 拆出。
 9. WPF 新增 `MainWindowProvinceUiController`，把结算月份启停、省份 tab/panel 可见性、省份文案和省份按钮启停应用从 `MainWindow.xaml.cs` 拆出。
 10. WPF 新增 `MainWindowStage2WorkflowController` 和 `SettlementWorkflowFactory`，把海南/重庆阶段二 plan-confirm-complete 编排和 workflow 构造从 `MainWindow.xaml.cs` 拆出。
-11. WPF 新增 `MainWindowHainanStage1WorkflowController` 和 `MainWindowEmployeeRewardWorkflowController`，把海南阶段一写台账/清洗电量和员工奖励生成编排从 `MainWindow.xaml.cs` 拆出；重庆阶段一暂时留在主窗口等待实测反馈稳定。
+11. WPF 新增 `MainWindowHainanStage1WorkflowController` 和 `MainWindowHainanEmployeePowerRewardWorkflowController`，把海南阶段一写台账/清洗电量和员工奖励生成编排从 `MainWindow.xaml.cs` 拆出；重庆阶段一暂时留在主窗口等待实测反馈稳定。
 12. Core/Excel/WPF 已实现重庆客户处理决定：`匹配已有台账客户`、`新增客户到台账`、`本月不写入`。海南阶段一保持原有稳定自动新增客户流程。
+13. 员工电量奖励实现已显式命名为 `HainanEmployeePowerReward...`，模型字段改用 `ResponsiblePerson`、`ProjectDeveloper` 和 `MonthlyPowers`；未来重庆电量奖应新增重庆专属 Module 或在两省规则验证一致后再抽共享 seam。
 
 未完成且仍建议后续处理：
 

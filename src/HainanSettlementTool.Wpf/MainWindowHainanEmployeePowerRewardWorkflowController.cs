@@ -7,7 +7,7 @@ using HainanSettlementTool.Core.Services;
 
 namespace HainanSettlementTool.Wpf
 {
-    internal sealed class MainWindowEmployeeRewardWorkflowController
+    internal sealed class MainWindowHainanEmployeePowerRewardWorkflowController
     {
         private readonly Dispatcher _dispatcher;
         private readonly MainWindowInputController _inputController;
@@ -18,7 +18,7 @@ namespace HainanSettlementTool.Wpf
         private readonly Action<bool> _setBusy;
         private readonly Action _saveInputs;
 
-        public MainWindowEmployeeRewardWorkflowController(
+        public MainWindowHainanEmployeePowerRewardWorkflowController(
             Dispatcher dispatcher,
             MainWindowInputController inputController,
             MainWindowProgressController progressController,
@@ -40,10 +40,10 @@ namespace HainanSettlementTool.Wpf
 
         public async Task RunAsync()
         {
-            EmployeeRewardOptions options;
+            HainanEmployeePowerRewardOptions options;
             try
             {
-                options = _inputController.CreateEmployeeRewardOptions();
+                options = _inputController.CreateHainanEmployeePowerRewardOptions();
                 _saveInputs();
                 if (!ConfirmRun(options))
                 {
@@ -65,7 +65,7 @@ namespace HainanSettlementTool.Wpf
 
             try
             {
-                StageWorkflowResult<EmployeeRewardResult> result = null;
+                StageWorkflowResult<HainanEmployeePowerRewardResult> result = null;
                 await Task.Run(() =>
                 {
                     _dispatcher.Invoke(() =>
@@ -75,7 +75,7 @@ namespace HainanSettlementTool.Wpf
                         _progressController.SetProgress(30, "读取售电结算台账");
                     });
 
-                    result = SettlementWorkflowFactory.Create().RunEmployeeReward(options, LogThreadSafe);
+                    result = SettlementWorkflowFactory.Create().RunHainanEmployeePowerReward(options, LogThreadSafe);
                 });
 
                 _progressController.SetStepDone(1);
@@ -101,7 +101,7 @@ namespace HainanSettlementTool.Wpf
             }
         }
 
-        private bool ConfirmRun(EmployeeRewardOptions options)
+        private bool ConfirmRun(HainanEmployeePowerRewardOptions options)
         {
             var period = options.StartMonth == options.EndMonth
                 ? "2026年" + options.StartMonth + "月"
