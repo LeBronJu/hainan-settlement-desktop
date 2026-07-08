@@ -26,6 +26,8 @@ namespace HainanSettlementTool.Wpf
         private readonly MainWindowInputController _inputController;
         private readonly MainWindowProvinceUiController _provinceUiController;
         private readonly MainWindowStage2WorkflowController _stage2WorkflowController;
+        private readonly MainWindowHainanStage1WorkflowController _hainanStage1WorkflowController;
+        private readonly MainWindowEmployeeRewardWorkflowController _employeeRewardWorkflowController;
         private bool _isBusy;
         private bool _loadingInputs;
         private string _themeMode = ThemeService.SystemMode;
@@ -149,6 +151,24 @@ namespace HainanSettlementTool.Wpf
             _logController = new MainWindowLogController(this, LogBox);
             _stage2WorkflowController = new MainWindowStage2WorkflowController(
                 this,
+                Dispatcher,
+                _inputController,
+                _progressController,
+                _resultController,
+                _logController,
+                _dialogController,
+                SetBusy,
+                SaveInputs);
+            _hainanStage1WorkflowController = new MainWindowHainanStage1WorkflowController(
+                Dispatcher,
+                _inputController,
+                _progressController,
+                _resultController,
+                _logController,
+                _dialogController,
+                SetBusy,
+                SaveInputs);
+            _employeeRewardWorkflowController = new MainWindowEmployeeRewardWorkflowController(
                 Dispatcher,
                 _inputController,
                 _progressController,
@@ -364,7 +384,8 @@ namespace HainanSettlementTool.Wpf
             switch (profile.Province)
             {
                 case ProvinceCode.Hainan:
-                    break;
+                    await _hainanStage1WorkflowController.RunLedgerUpdateAsync();
+                    return;
                 case ProvinceCode.Chongqing:
                     await RunProvinceStage1LedgerUpdateAsync();
                     return;
@@ -373,65 +394,6 @@ namespace HainanSettlementTool.Wpf
                     return;
             }
 
-            Stage1Options options;
-            try
-            {
-                options = _inputController.CreateStage1Options();
-                SaveInputs();
-                if (!ConfirmRun("阶段一：写入电量到台账", options.Month, options.OutputDirectory))
-                {
-                    return;
-                }
-            }
-            catch (Exception ex)
-            {
-                ShowError(ex);
-                return;
-            }
-
-            SetBusy(true);
-            ResetResults();
-            ResetProgress("正在执行阶段一...", "写入电量到台账");
-            SetProgress(10, "检查输入文件");
-            SetStepRunning(0);
-            AddLog("开始执行阶段一。", "阶段一");
-
-            try
-            {
-                StageWorkflowResult<Stage1Report> result = null;
-                await Task.Run(() =>
-                {
-                    Dispatcher.Invoke(() =>
-                    {
-                        SetStepDone(0);
-                        SetStepRunning(1);
-                        SetProgress(28, "读取台账和电量文件");
-                    });
-
-                    result = SettlementWorkflowFactory.Create().RunStage1(options, LogThreadSafe);
-                });
-
-                SetStepDone(1);
-                SetStepDone(2);
-                SetStepDone(3);
-                SetStepDone(4);
-                SetProgress(100, "阶段一执行完成");
-                LogSummary(result.SummaryLines);
-
-                SetStage1ResultSuccess("1 个文件");
-                ShowCompletion("阶段一执行完成", "台账和检查报告已生成", options.OutputDirectory);
-            }
-            catch (Exception ex)
-            {
-                SetStepFailed();
-                SetProgress(100, "执行失败");
-                AddLog(ex.Message, "错误");
-                ShowError(ex);
-            }
-            finally
-            {
-                SetBusy(false);
-            }
         }
 
         private async void CleanPower_Click(object sender, RoutedEventArgs e)
@@ -452,7 +414,8 @@ namespace HainanSettlementTool.Wpf
             switch (profile.Province)
             {
                 case ProvinceCode.Hainan:
-                    break;
+                    await _hainanStage1WorkflowController.CleanPowerAsync();
+                    return;
                 case ProvinceCode.Chongqing:
                     await RunProvinceStage1CleanPowerAsync();
                     return;
@@ -461,72 +424,6 @@ namespace HainanSettlementTool.Wpf
                     return;
             }
 
-            string rawDetailPath;
-            string outputPath;
-            string outputDirectory;
-            try
-            {
-                rawDetailPath = RawDetailBox.Text.Trim();
-                outputPath = _inputController.ResolvePowerOutputPath(rawDetailPath);
-                outputDirectory = OutputDirBox.Text.Trim();
-                PowerBox.Text = outputPath;
-                SaveInputs();
-
-                var message = "即将清洗原始零售侧明细并生成电量处理表。\n\n输出文件：\n" + outputPath;
-                if (!ConfirmAction("确认清洗电量", "即将清洗电量数据", message, "开始清洗"))
-                {
-                    return;
-                }
-            }
-            catch (Exception ex)
-            {
-                ShowError(ex);
-                return;
-            }
-
-            SetBusy(true);
-            ResetResults();
-            ResetProgress("正在清洗电量...", "生成电量处理表");
-            SetProgress(10, "检查输入文件");
-            SetStepRunning(0);
-            AddLog("开始清洗电量数据。", "阶段一");
-
-            try
-            {
-                StageWorkflowResult<PowerCleanReport> result = null;
-                await Task.Run(() =>
-                {
-                    Dispatcher.Invoke(() =>
-                    {
-                        SetStepDone(0);
-                        SetStepRunning(1);
-                        SetProgress(35, "读取原始零售侧明细");
-                    });
-
-                    result = SettlementWorkflowFactory.Create().CleanPowerData(rawDetailPath, outputPath, LogThreadSafe);
-                });
-
-                SetStepDone(1);
-                SetStepDone(2);
-                SetStepDone(3);
-                SetStepDone(4);
-                SetProgress(100, "电量清洗完成");
-                LogSummary(result.SummaryLines);
-
-                SetStage1ResultSuccess(result.Report.PowerRows + " 个客户");
-                ShowCompletion("电量清洗完成", "电量处理表已生成", outputDirectory);
-            }
-            catch (Exception ex)
-            {
-                SetStepFailed();
-                SetProgress(100, "执行失败");
-                AddLog(ex.Message, "错误");
-                ShowError(ex);
-            }
-            finally
-            {
-                SetBusy(false);
-            }
         }
 
         private async Task RunProvinceStage1CleanPowerAsync()
@@ -671,65 +568,7 @@ namespace HainanSettlementTool.Wpf
 
         private async void RunEmployeeReward_Click(object sender, RoutedEventArgs e)
         {
-            EmployeeRewardOptions options;
-            try
-            {
-                options = _inputController.CreateEmployeeRewardOptions();
-                SaveInputs();
-                if (!ConfirmEmployeeRewardRun(options))
-                {
-                    return;
-                }
-            }
-            catch (Exception ex)
-            {
-                ShowError(ex);
-                return;
-            }
-
-            SetBusy(true);
-            ResetResults();
-            ResetProgress("正在生成员工电量奖励...", "检查输入文件");
-            SetProgress(10, "检查输入文件");
-            SetStepRunning(0);
-            AddLog("开始生成员工电量奖励表。", "员工奖励");
-
-            try
-            {
-                StageWorkflowResult<EmployeeRewardResult> result = null;
-                await Task.Run(() =>
-                {
-                    Dispatcher.Invoke(() =>
-                    {
-                        SetStepDone(0);
-                        SetStepRunning(1);
-                        SetProgress(30, "读取售电结算台账");
-                    });
-
-                    result = SettlementWorkflowFactory.Create().RunEmployeeReward(options, LogThreadSafe);
-                });
-
-                SetStepDone(1);
-                SetStepDone(2);
-                SetStepDone(3);
-                SetStepDone(4);
-                SetProgress(100, "员工电量奖励生成完成");
-                LogSummary(result.SummaryLines);
-
-                SetEmployeeRewardResultSuccess(result.Report.PersonalWorkbookPaths.Count + " 个", "1 个文件");
-                ShowCompletion("员工电量奖励生成完成", "奖励总表、个人确认表和校验报告已生成", options.OutputDirectory);
-            }
-            catch (Exception ex)
-            {
-                SetStepFailed();
-                SetProgress(100, "执行失败");
-                AddLog(ex.Message, "错误");
-                ShowError(ex);
-            }
-            finally
-            {
-                SetBusy(false);
-            }
+            await _employeeRewardWorkflowController.RunAsync();
         }
 
         private void LogSummary(IEnumerable<string> summaryLines)
@@ -785,20 +624,6 @@ namespace HainanSettlementTool.Wpf
                 default:
                     return ThemeService.SystemMode;
             }
-        }
-
-        private bool ConfirmRun(string stageName, int month, string outputDirectory)
-        {
-            return _dialogController.ConfirmRun(stageName, month, outputDirectory);
-        }
-
-        private bool ConfirmEmployeeRewardRun(EmployeeRewardOptions options)
-        {
-            var period = options.StartMonth == options.EndMonth
-                ? "2026年" + options.StartMonth + "月"
-                : "2026年" + options.StartMonth + "-" + options.EndMonth + "月";
-            var message = "即将生成员工电量奖励表。\n\n期间：" + period + "\n输出文件夹：\n" + options.OutputDirectory;
-            return ConfirmAction("确认生成员工电量奖励", "即将生成员工电量奖励", message, "开始生成");
         }
 
         private void SetBusy(bool busy)
@@ -898,11 +723,6 @@ namespace HainanSettlementTool.Wpf
         private void SetStage1ResultSuccess(string countText)
         {
             _resultController.SetStage1Success(countText);
-        }
-
-        private void SetEmployeeRewardResultSuccess(string personalCountText, string summaryCountText)
-        {
-            _resultController.SetEmployeeRewardSuccess(personalCountText, summaryCountText);
         }
 
         private void LoadSavedInputs(UserInputSnapshot snapshot)

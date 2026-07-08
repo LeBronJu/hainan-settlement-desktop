@@ -6,6 +6,7 @@
 
 ## 2026-07-08
 
+- 多省份代码质量第五批：WPF `MainWindow.xaml.cs` 抽出 `MainWindowHainanStage1WorkflowController` 和 `MainWindowEmployeeRewardWorkflowController`，集中海南阶段一写台账/清洗电量和员工奖励生成编排；重庆阶段一暂留主窗口等待实测反馈稳定。
 - 多省份代码质量第四批：WPF `MainWindow.xaml.cs` 抽出 `MainWindowStage2WorkflowController` 和 `SettlementWorkflowFactory`，集中海南/重庆阶段二 plan-confirm-complete 编排和 workflow 装配；阶段二取消路径和预检决策回写保持不变。
 - 多省份代码质量第三批：WPF `MainWindow.xaml.cs` 抽出 `MainWindowProvinceUiController`，集中结算月份启停、省份 tab/panel 可见性、省份文案和按钮启停；窗口继续保留事件入口和 workflow 编排。
 - 多省份代码质量第二批：WPF `MainWindow.xaml.cs` 抽出 `MainWindowInputController`，集中路径载入/保存、已保存省份恢复、阶段 options 构造、月份/省份选择读取和输入清空；窗口继续保留事件入口和 workflow 编排。

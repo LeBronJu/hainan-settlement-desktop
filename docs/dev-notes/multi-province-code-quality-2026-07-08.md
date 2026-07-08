@@ -28,7 +28,7 @@
 | 行数 | 文件 | 当前判断 |
 | ---: | --- | --- |
 | 1821 | `src/HainanSettlementTool.Excel/Stage2SettlementGenerator.cs` | 已处理第一批。重命名并拆为 `HainanStage2SettlementGenerator`、台账读取、模板索引、分表写入、汇总表写入、报告输出和工具组件。 |
-| 1519 | `src/HainanSettlementTool.Wpf/MainWindow.xaml.cs` | 第二/三/四批已部分处理。已拆日志、进度、结果、弹窗、路径选择、输入状态/options 构造、省份 UI 状态应用和阶段二 workflow；后续视需要继续拆阶段一和员工奖励 workflow。 |
+| 1519 | `src/HainanSettlementTool.Wpf/MainWindow.xaml.cs` | 第二至五批已部分处理。已拆日志、进度、结果、弹窗、路径选择、输入状态/options 构造、省份 UI 状态应用、海南阶段一、阶段二和员工奖励 workflow；重庆阶段一 workflow 暂留主窗口等待实测反馈稳定。 |
 | 1207 | `src/HainanSettlementTool.WinForms/MainForm.cs` | 冻结。只因共享层修复被动受益，不安排主动拆分。 |
 | 874 | `src/HainanSettlementTool.Excel/ChongqingPowerCleanGenerator.cs` | P2。重庆阶段一清洗稳定后可拆读取、校验、汇总、报告写入。 |
 | 804 | `tests/HainanSettlementTool.Excel.Tests/Stage2SettlementGeneratorTests.cs` | 已随第一批重命名为 `HainanStage2SettlementGeneratorTests.cs`；后续再按行为分组拆测试。 |
@@ -133,6 +133,24 @@
 - `dotnet msbuild src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Release /m` 通过。
 - 子代理只读 review 未发现 options 创建、保存/确认顺序、预检决策回写、取消路径、结果文案或 dispatcher 使用回归。
 
+## 第五批进展
+
+2026-07-08 已完成 WPF 主窗口海南阶段一和员工奖励 workflow 编排拆分：
+
+- 新增 `MainWindowHainanStage1WorkflowController`，负责海南阶段一写台账和海南只清洗电量的确认、保存输入、运行进度、日志和结果摘要。
+- 新增 `MainWindowEmployeeRewardWorkflowController`，负责员工电量奖励的期间确认、保存输入、运行进度、日志和结果摘要。
+- `MainWindowInputController` 新增 `PrepareHainanPowerCleanInput`，保留海南只清洗电量时先计算输出路径、写入 `PowerBox`、再保存输入的既有行为。
+- `MainWindow.xaml.cs` 从 1032 行降到 852 行。本轮不改变海南阶段一、海南清洗或员工奖励的确认文案、日志文案、进度百分比、结果摘要或输出路径行为。
+- 重庆阶段一 workflow 暂时留在 `MainWindow.xaml.cs`，避免在重庆阶段二核对期间扩大重庆相关改动面。
+
+本轮验证：
+
+- `dotnet msbuild src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Debug /m` 通过。
+- `dotnet test tests\HainanSettlementTool.Core.Tests\HainanSettlementTool.Core.Tests.csproj --no-restore` 通过，26 个测试。
+- `dotnet test tests\HainanSettlementTool.Excel.Tests\HainanSettlementTool.Excel.Tests.csproj --no-restore` 通过，27 个测试。
+- `dotnet msbuild src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Release /m` 通过。
+- 子代理只读 review 未发现海南阶段一、海南清洗、员工奖励的保存/确认顺序、进度日志、结果摘要或输出路径行为回归。
+
 ## 待办
 
 - [x] 建立本 current task note，并接入 `docs/README.md`。
@@ -141,5 +159,6 @@
 - [x] 拆出 `MainWindow.xaml.cs` 的输入状态和 options 构造。
 - [x] 拆出 `MainWindow.xaml.cs` 的省份 UI 状态应用。
 - [x] 拆出 `MainWindow.xaml.cs` 的阶段二 workflow 编排。
-- [ ] 视重庆实机核对反馈和当前风险，决定是否继续拆阶段一/员工奖励 workflow 编排。
+- [x] 拆出 `MainWindow.xaml.cs` 的海南阶段一和员工奖励 workflow 编排。
+- [ ] 视重庆实机核对反馈和当前风险，决定是否继续拆重庆阶段一 workflow 编排。
 - [ ] 重庆阶段二实机测试如发现问题，暂停代码质量线并优先处理实测问题。

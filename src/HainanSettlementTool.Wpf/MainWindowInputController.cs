@@ -158,6 +158,15 @@ namespace HainanSettlementTool.Wpf
             return Path.Combine(outputDirectory, "零售侧用户电量数据处理表.xlsx");
         }
 
+        public HainanPowerCleanInput PrepareHainanPowerCleanInput()
+        {
+            var rawDetailPath = _rawDetailBox.Text.Trim();
+            var outputPath = ResolvePowerOutputPath(rawDetailPath);
+            var outputDirectory = _outputDirBox.Text.Trim();
+            _powerBox.Text = outputPath;
+            return new HainanPowerCleanInput(rawDetailPath, outputPath, outputDirectory);
+        }
+
         public Stage2Options CreateStage2Options()
         {
             return new Stage2Options
@@ -309,5 +318,21 @@ namespace HainanSettlementTool.Wpf
             _rewardStartMonthCombo.SelectedIndex = 0;
             _rewardEndMonthCombo.SelectedIndex = -1;
         }
+    }
+
+    internal sealed class HainanPowerCleanInput
+    {
+        public HainanPowerCleanInput(string rawDetailPath, string outputPath, string outputDirectory)
+        {
+            RawDetailPath = rawDetailPath;
+            OutputPath = outputPath;
+            OutputDirectory = outputDirectory;
+        }
+
+        public string RawDetailPath { get; }
+
+        public string OutputPath { get; }
+
+        public string OutputDirectory { get; }
     }
 }
