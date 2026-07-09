@@ -170,6 +170,42 @@ namespace HainanSettlementTool.Excel.Tests
             }
         }
 
+        [TestMethod]
+        public void GenerateSettlementRefreshesPaymentPartySheetColumnVisibility()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var options = CreateOptions(root);
+                WriteChongqingStage2Ledger(options.LedgerPath, includeIntermediary: false);
+                WriteProxyTemplate(Path.Combine(options.ProxyTemplateDirectory, "测试负责人", "新增代理.xlsx"));
+                WriteRefundTemplate(Path.Combine(options.RefundTemplateDirectory, "测试负责人", "新增退补.xlsx"));
+                WriteSummaryTemplate(
+                    options.SummaryTemplatePath,
+                    "新增代理",
+                    ChongqingStage2SettlementKinds.Proxy,
+                    "新增退补",
+                    ChongqingStage2SettlementKinds.Refund);
+                HidePaymentPartyTemplateColumns(options.SummaryTemplatePath, "清能4月");
+
+                var report = new ChongqingStage2Service(new ClosedXmlSettlementExcelGateway()).Run(options, null);
+
+                using (var workbook = new XLWorkbook(report.Summary))
+                {
+                    var ws = workbook.Worksheet("清能5月");
+                    AssertColumnsHidden(ws, 12, 17, true);
+                    AssertColumnsHidden(ws, 18, 23, false);
+                    AssertColumnsHidden(ws, 24, 30, false);
+                    Assert.IsTrue(ws.Column(31).IsHidden);
+                    Assert.IsFalse(ws.Column(32).IsHidden);
+                }
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
         private static void AssertHasPaymentIssue(ChongqingStage2PreflightReport report, string kind, string entity)
         {
             Assert.IsTrue(report.Issues.Any(issue =>
@@ -415,6 +451,32 @@ namespace HainanSettlementTool.Excel.Tests
                 WriteSummarySheet(workbook.AddWorksheet("清能4月"), existingEntity, existingKind, null, null, ChongqingStage2PaymentParties.Qingneng);
                 WriteSummarySheet(workbook.AddWorksheet("清辉4月"), secondEntity, secondKind, null, null, ChongqingStage2PaymentParties.Qinghui);
                 workbook.SaveAs(path);
+            }
+        }
+
+        private static void HidePaymentPartyTemplateColumns(string path, string sheetName)
+        {
+            using (var workbook = new XLWorkbook(path))
+            {
+                var ws = workbook.Worksheet(sheetName);
+                AssertColumnsHidden(ws, 12, 17, false);
+                AssertColumnsHidden(ws, 18, 24, false);
+                for (var column = 18; column <= 24; column++)
+                {
+                    ws.Column(column).Hide();
+                }
+
+                ws.Column(25).Hide();
+                ws.Column(26).Unhide();
+                workbook.Save();
+            }
+        }
+
+        private static void AssertColumnsHidden(IXLWorksheet worksheet, int firstColumn, int lastColumn, bool expectedHidden)
+        {
+            for (var column = firstColumn; column <= lastColumn; column++)
+            {
+                Assert.AreEqual(expectedHidden, worksheet.Column(column).IsHidden, "Column " + column);
             }
         }
 

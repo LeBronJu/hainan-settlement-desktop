@@ -105,6 +105,11 @@ namespace HainanSettlementTool.Excel
             DeleteSummaryRowsNotAllowed(worksheet, allowedKeys);
             var monthColumn = FindOrInsertSummaryMonthBlock(worksheet, month);
             var cumulativeColumn = SummaryColumn(worksheet, "当年费用总计");
+            if (allowedKeys != null)
+            {
+                ApplyPaymentPartySheetVisibility(worksheet, monthColumn, cumulativeColumn);
+            }
+
             var totalByKey = groups.ToDictionary(group => ChongqingStage2Keys.SummaryKey(group.Entity, group.Kind), group => group);
             var knownKeys = new HashSet<string>(ReadSummaryMeta(worksheet).Select(row => ChongqingStage2Keys.SummaryKey(row.Entity, row.Kind)));
             var newGroups = groups.Where(group => !knownKeys.Contains(ChongqingStage2Keys.SummaryKey(group.Entity, group.Kind))).ToList();
@@ -298,6 +303,43 @@ namespace HainanSettlementTool.Excel
             worksheet.Cell(3, insertAt + 4).Value = "当月抵扣";
             worksheet.Cell(3, insertAt + 5).Clear(XLClearOptions.Contents);
             return insertAt;
+        }
+
+        private static void ApplyPaymentPartySheetVisibility(IXLWorksheet worksheet, int monthColumn, int cumulativeColumn)
+        {
+            var lastColumn = worksheet.LastColumnUsed()?.ColumnNumber() ?? cumulativeColumn + 8;
+            for (var column = 1; column <= lastColumn; column++)
+            {
+                if (ChongqingStage2ExcelUtil.CellText(worksheet.Cell(3, column)) != "代理费")
+                {
+                    continue;
+                }
+
+                for (var offset = 0; offset < 6 && column + offset <= lastColumn; offset++)
+                {
+                    worksheet.Column(column + offset).Hide();
+                }
+            }
+
+            for (var offset = 0; offset < 6 && monthColumn + offset <= lastColumn; offset++)
+            {
+                worksheet.Column(monthColumn + offset).Unhide();
+            }
+
+            for (var column = cumulativeColumn; column <= Math.Min(lastColumn, cumulativeColumn + 6); column++)
+            {
+                worksheet.Column(column).Unhide();
+            }
+
+            if (cumulativeColumn + 7 <= lastColumn)
+            {
+                worksheet.Column(cumulativeColumn + 7).Hide();
+            }
+
+            if (cumulativeColumn + 8 <= lastColumn)
+            {
+                worksheet.Column(cumulativeColumn + 8).Unhide();
+            }
         }
 
         private static int FindSummaryMonthBlock(IXLWorksheet worksheet, int month)
