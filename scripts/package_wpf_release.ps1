@@ -110,7 +110,7 @@ $readme = @(
     "",
     "Notes:",
     "- This build uses the Win10/11 WPF shell and the verified Core/Excel settlement logic.",
-    "- The Win7/8 build is packaged by scripts/package_release.ps1."
+    "- The Win7/8 build is frozen as a historical compatibility entry and is no longer packaged by default."
 )
 $readme | Set-Content -LiteralPath (Join-Path $packageDir "README.txt") -Encoding UTF8
 

@@ -1,7 +1,7 @@
 # Agent Instructions
 
 This repository is the standalone C# desktop project for multi-province retail electricity settlement automation.
-Hainan is the mature first province module. Chongqing Stage 1 power cleaning and ledger update are implemented; Chongqing Stage 2 has a WPF preflight entry and Excel Analyze-only slice, but workbook generation is not implemented current behavior.
+Hainan is the mature first province module. Chongqing Stage 1 power cleaning and ledger update are implemented; Chongqing Stage 2 has a Win10/11 WPF preflight-and-generate entry plus the first Core/Excel workbook-generation slice. Treat Chongqing Stage 2 as a testable first implementation until user practical validation and manual result comparison are complete.
 
 ## Safety Rules
 
