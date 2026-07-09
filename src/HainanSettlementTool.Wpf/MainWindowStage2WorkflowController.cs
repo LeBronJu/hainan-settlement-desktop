@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -293,43 +294,63 @@ namespace HainanSettlementTool.Wpf
                 return;
             }
 
+            _dialogController.ShowWarningMessage(
+                "重庆阶段二需要复核",
+                "生成完成，但有项目需要人工确认",
+                BuildChongqingStage2ReviewMessage(report));
+        }
+
+        private static string BuildChongqingStage2ReviewMessage(ChongqingStage2Report report)
+        {
             var message = new StringBuilder();
-            message.AppendLine("校验问题：" + report.AuditIssues.Count + " 条");
-            message.AppendLine("自动生成提示：" + report.Warnings.Count + " 条");
+            message.AppendLine("校验问题：" + report.AuditIssues.Count + " 条；自动生成提示：" + report.Warnings.Count + " 条");
             message.AppendLine();
 
-            var shown = 0;
-            foreach (var issue in report.AuditIssues)
+            var extraDeductionWarnings = report.Warnings.Count(item => item != null && item.IndexOf("额外扣减块", StringComparison.Ordinal) >= 0);
+            if (extraDeductionWarnings > 0)
             {
-                if (shown >= 3)
-                {
-                    break;
-                }
-
-                message.AppendLine("- " + issue.Category + "：" + issue.Message);
-                shown++;
+                message.AppendLine("- 退补额外扣减块：" + extraDeductionWarnings + " 项。已同步 C-G 当月电量；H 列以后、汇总表当月抵扣和实际支付仍按模板保留，请人工复核。");
             }
 
-            foreach (var warning in report.Warnings)
+            foreach (var group in report.AuditIssues
+                .Where(item => item != null)
+                .GroupBy(item => string.IsNullOrWhiteSpace(item.Category) ? "其他校验问题" : item.Category)
+                .Take(3))
             {
-                if (shown >= 3)
-                {
-                    break;
-                }
+                message.AppendLine("- " + group.Key + "：" + group.Count() + " 项");
+            }
 
+            var otherWarnings = report.Warnings
+                .Where(item => item == null || item.IndexOf("额外扣减块", StringComparison.Ordinal) < 0)
+                .Take(2)
+                .Select(ShortenChongqingReviewWarning)
+                .ToList();
+            foreach (var warning in otherWarnings)
+            {
                 message.AppendLine("- " + warning);
-                shown++;
             }
 
-            if (report.Warnings.Count + report.AuditIssues.Count > shown)
+            if (report.AuditIssues.Count > 3 || report.Warnings.Count > extraDeductionWarnings + otherWarnings.Count)
             {
                 message.AppendLine("- 其余复核项请查看校验报告。");
             }
 
             message.AppendLine();
-            message.AppendLine("校验报告：");
+            message.AppendLine("完整明细：");
             message.AppendLine(report.ValidationReportPath);
-            _dialogController.ShowWarningMessage("重庆阶段二需要复核", "生成完成，但存在需要人工确认的项目", message.ToString());
+            return message.ToString();
+        }
+
+        private static string ShortenChongqingReviewWarning(string warning)
+        {
+            if (string.IsNullOrWhiteSpace(warning))
+            {
+                return "自动生成提示";
+            }
+
+            var fileIndex = warning.IndexOf("文件：", StringComparison.Ordinal);
+            var text = fileIndex >= 0 ? warning.Substring(0, fileIndex).TrimEnd(' ', '；', ';') : warning.Trim();
+            return text.Length <= 96 ? text : text.Substring(0, 96) + "...";
         }
 
         private bool ConfirmChongqingStage2Preflight(ChongqingStage2PreflightReport report, ChongqingStage2Options options)

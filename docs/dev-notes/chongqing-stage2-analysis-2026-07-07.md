@@ -229,6 +229,13 @@
 - 覆盖测试新增：`GenerateSettlementPreservesExistingTargetMonthSheets`、`GenerateSettlementSyncsRefundExtraPowerRowsAndWarns`，并保留 `GenerateSettlementRefreshesPaymentPartySheetColumnVisibility` 覆盖新建支付方 sheet 的可见列刷新。
 - 最终 3/4/5 月真实回测仍为 `ReviewRequired`，但无失败、无决策阻断、无隐藏列差异、无阶段一电量差异、无已确认的金额静默错误。剩余差异主要是结算日期文本格式、公式文本写法、退补 C 列公式写法，以及 3 月历史人工抵扣导致的汇总实际支付差异；这些不应在没有业务确认的情况下硬编码为通用规则。
 
+2026-07-09 实机反馈后的 UI/格式收口：
+
+- WPF 完成后复核弹窗只显示校验问题数、自动生成提示数、分类摘要和校验报告路径，不再展开每条长 warning 或完整分表路径。
+- 重庆汇总表目标月份 `清能X月` / `清辉X月` sheet 生成后固定移动到 `汇总表` 后面；目标月份 sheet 第 1 行标题合并到当前 `备注` 列并居中。
+- WPF 启动时不再恢复上次选择的结算省份；历史路径仍恢复，省份和月份需要用户本次显式选择。
+- 重庆入口主 tab 显示 `代理费结算`；`员工电量奖励` tab 对重庆可见但禁用，tooltip 提示 `正在开发中`。
+
 ## 预检建议
 
 生成前至少提示：

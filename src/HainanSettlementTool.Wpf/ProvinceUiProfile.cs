@@ -33,7 +33,7 @@ namespace HainanSettlementTool.Wpf
         private static readonly ProvinceUiProfile ChongqingProfile = new ProvinceUiProfile(
             ProvinceCode.Chongqing,
             "重庆",
-            "阶段一：台账更新",
+            "代理费结算",
             "阶段一：台账更新",
             "清洗交易中心电量确认结算单，并写入重庆台账副本",
             "重庆售电结算台账（必填）",

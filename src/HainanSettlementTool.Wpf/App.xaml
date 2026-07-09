@@ -77,11 +77,11 @@
         <Style x:Key="FieldLabel" TargetType="{x:Type TextBlock}">
             <Setter Property="Foreground" Value="{DynamicResource FieldTextBrush}" />
             <Setter Property="FontSize" Value="13" />
-            <Setter Property="Margin" Value="0,7,0,4" />
+            <Setter Property="Margin" Value="0,5,0,3" />
         </Style>
 
         <Style x:Key="ModernTextBox" TargetType="{x:Type TextBox}">
-            <Setter Property="Height" Value="32" />
+            <Setter Property="Height" Value="30" />
             <Setter Property="Padding" Value="10,6" />
             <Setter Property="FontSize" Value="13" />
             <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
@@ -110,7 +110,7 @@
         </Style>
 
         <Style x:Key="ModernComboBox" TargetType="{x:Type ComboBox}">
-            <Setter Property="Height" Value="34" />
+            <Setter Property="Height" Value="32" />
             <Setter Property="Padding" Value="10,0" />
             <Setter Property="FontSize" Value="13" />
             <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
@@ -255,7 +255,7 @@
         </Style>
 
         <Style x:Key="SecondaryButton" TargetType="{x:Type Button}">
-            <Setter Property="Height" Value="34" />
+            <Setter Property="Height" Value="32" />
             <Setter Property="MinWidth" Value="76" />
             <Setter Property="Padding" Value="14,0" />
             <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
@@ -287,7 +287,7 @@
         </Style>
 
         <Style x:Key="PrimaryButton" TargetType="{x:Type Button}" BasedOn="{StaticResource SecondaryButton}">
-            <Setter Property="Height" Value="40" />
+            <Setter Property="Height" Value="36" />
             <Setter Property="MinWidth" Value="190" />
             <Setter Property="Foreground" Value="{DynamicResource OnAccentBrush}" />
             <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
@@ -349,7 +349,7 @@
         </Style>
 
         <Style x:Key="ModernTabItem" TargetType="{x:Type TabItem}">
-            <Setter Property="MinHeight" Value="34" />
+            <Setter Property="MinHeight" Value="32" />
             <Setter Property="MinWidth" Value="118" />
             <Setter Property="Padding" Value="18,0" />
             <Setter Property="Margin" Value="0" />

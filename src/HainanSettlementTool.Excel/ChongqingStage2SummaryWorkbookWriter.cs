@@ -44,8 +44,10 @@ namespace HainanSettlementTool.Excel
                     }
 
                     WriteSummarySheet(sheet, partyGroups, options.Month, allowedKeys, warnings, paymentPartyByKey, createdPaymentPartySheet);
+                    ApplyPaymentPartyTitleMerge(sheet);
                 }
 
+                MoveTargetPaymentPartySheetsAfterSummary(workbook, options.Month, mainSheet);
                 ChongqingStage2ExcelUtil.SaveWorkbook(workbook, outputPath);
             }
 
@@ -279,6 +281,38 @@ namespace HainanSettlementTool.Excel
             month = 0;
             var match = Regex.Match(TextUtil.S(name), "^" + Regex.Escape(paymentParty) + "(\\d{1,2})月$");
             return match.Success && int.TryParse(match.Groups[1].Value, out month);
+        }
+
+        private static void MoveTargetPaymentPartySheetsAfterSummary(XLWorkbook workbook, int month, IXLWorksheet mainSheet)
+        {
+            var position = mainSheet.Position + 1;
+            foreach (var paymentParty in ChongqingStage2PaymentParties.Supported)
+            {
+                var targetName = paymentParty + month + "月";
+                var sheet = workbook.Worksheets.FirstOrDefault(item => item.Name == targetName);
+                if (sheet == null)
+                {
+                    continue;
+                }
+
+                sheet.Position = position++;
+            }
+        }
+
+        private static void ApplyPaymentPartyTitleMerge(IXLWorksheet worksheet)
+        {
+            var titleEndColumn = FindHeaderColumnInRows(worksheet, "备注", 1, 3);
+            if (titleEndColumn <= 1)
+            {
+                return;
+            }
+
+            var titleRange = worksheet.Range(1, 1, 1, titleEndColumn);
+            titleRange.Unmerge();
+            titleRange.Merge();
+            titleRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            titleRange.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+            titleRange.Style.Font.Bold = true;
         }
 
         private static int FindOrInsertSummaryMonthBlock(IXLWorksheet worksheet, int month)

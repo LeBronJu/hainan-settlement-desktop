@@ -126,13 +126,17 @@ namespace HainanSettlementTool.Wpf
             var hasProvince = profile != null;
             var province = hasProvince ? (ProvinceCode?)profile.Province : null;
             var isChongqing = province == ProvinceCode.Chongqing;
-            if (hasProvince && !profile.SupportsEmployeeReward && _mainTabControl.SelectedItem == _employeeRewardTab)
+            var showEmployeeRewardTab = hasProvince && (profile.SupportsEmployeeReward || isChongqing);
+            var enableEmployeeRewardTab = hasProvince && profile.SupportsEmployeeReward;
+            if (hasProvince && !enableEmployeeRewardTab && _mainTabControl.SelectedItem == _employeeRewardTab)
             {
                 _mainTabControl.SelectedItem = _mainSettlementTab;
             }
 
             _mainSettlementTab.Header = hasProvince ? profile.MainSettlementTabHeader : "结算流程";
-            _employeeRewardTab.Visibility = hasProvince && profile.SupportsEmployeeReward ? Visibility.Visible : Visibility.Collapsed;
+            _employeeRewardTab.Visibility = showEmployeeRewardTab ? Visibility.Visible : Visibility.Collapsed;
+            _employeeRewardTab.IsEnabled = enableEmployeeRewardTab;
+            _employeeRewardTab.ToolTip = showEmployeeRewardTab && !profile.SupportsEmployeeReward ? "正在开发中" : null;
             _provinceEmptyPanel.Visibility = hasProvince ? Visibility.Collapsed : Visibility.Visible;
             _stageOnePanel.Visibility = hasProvince ? Visibility.Visible : Visibility.Collapsed;
             _stageTwoPanel.Visibility = hasProvince && profile.SupportsStage2 ? Visibility.Visible : Visibility.Collapsed;
@@ -173,7 +177,7 @@ namespace HainanSettlementTool.Wpf
             _runStageOneButton.IsEnabled = !isBusy && hasProvince && profile.SupportsStage1LedgerUpdate;
             _cleanPowerButton.IsEnabled = !isBusy && hasProvince && profile.SupportsStage1CleanPower;
             _runStageTwoButton.IsEnabled = !isBusy && hasProvince && profile.SupportsStage2;
-            _runEmployeeRewardButton.IsEnabled = !isBusy && hasProvince && profile.SupportsEmployeeReward;
+            _runEmployeeRewardButton.IsEnabled = !isBusy && enableEmployeeRewardTab;
             _sharedSettingsCaption.Text = !hasProvince
                 ? "请先选择结算省份；选择后会显示对应省份的可用功能"
                 : profile.SharedSettingsCaption;

@@ -158,10 +158,15 @@ namespace HainanSettlementTool.Excel.Tests
 
                 using (var workbook = new XLWorkbook(report.Summary))
                 {
+                    var sheetNames = workbook.Worksheets.Select(sheet => sheet.Name).ToList();
+                    Assert.AreEqual("汇总表", sheetNames[0]);
+                    Assert.AreEqual("清能5月", sheetNames[1]);
+                    Assert.AreEqual("清辉5月", sheetNames[2]);
+
                     var ws = workbook.Worksheet("汇总表");
                     Assert.IsTrue(ws.Row(2).CellsUsed().Any(cell => cell.GetFormattedString().Contains("2026") && cell.GetFormattedString().Contains("5")));
-                    Assert.IsTrue(workbook.Worksheets.Any(sheet => sheet.Name == "清能5月"));
-                    Assert.IsTrue(workbook.Worksheets.Any(sheet => sheet.Name == "清辉5月"));
+                    AssertPaymentPartyTitleMerged(workbook.Worksheet("清能5月"));
+                    AssertPaymentPartyTitleMerged(workbook.Worksheet("清辉5月"));
                 }
             }
             finally
@@ -242,7 +247,8 @@ namespace HainanSettlementTool.Excel.Tests
 
                 using (var workbook = new XLWorkbook(report.Summary))
                 {
-                    Assert.AreEqual("目标月清能格式", workbook.Worksheet("清能5月").Cell("D1").GetFormattedString());
+                    Assert.AreEqual("目标月清能格式", workbook.Worksheet("清能5月").Cell("A3").GetFormattedString());
+                    AssertPaymentPartyTitleMerged(workbook.Worksheet("清能5月"));
                 }
             }
             finally
@@ -572,7 +578,7 @@ namespace HainanSettlementTool.Excel.Tests
             using (var workbook = new XLWorkbook(path))
             {
                 workbook.Worksheet(sourceSheetName).CopyTo(targetSheetName);
-                workbook.Worksheet(targetSheetName).Cell("D1").Value = marker;
+                workbook.Worksheet(targetSheetName).Cell("A3").Value = marker;
                 workbook.Save();
             }
         }
@@ -601,6 +607,34 @@ namespace HainanSettlementTool.Excel.Tests
             {
                 Assert.AreEqual(expectedHidden, worksheet.Column(column).IsHidden, "Column " + column);
             }
+        }
+
+        private static void AssertPaymentPartyTitleMerged(IXLWorksheet worksheet)
+        {
+            var remarkColumn = FindHeaderColumn(worksheet, "备注");
+            Assert.IsTrue(worksheet.MergedRanges.Any(range => range.RangeAddress.FirstAddress.RowNumber == 1
+                && range.RangeAddress.FirstAddress.ColumnNumber == 1
+                && range.RangeAddress.LastAddress.RowNumber == 1
+                && range.RangeAddress.LastAddress.ColumnNumber == remarkColumn));
+            Assert.AreEqual(XLAlignmentHorizontalValues.Center, worksheet.Cell("A1").Style.Alignment.Horizontal);
+        }
+
+        private static int FindHeaderColumn(IXLWorksheet worksheet, string header)
+        {
+            var lastColumn = worksheet.LastColumnUsed()?.ColumnNumber() ?? 1;
+            for (var row = 1; row <= 3; row++)
+            {
+                for (var column = 1; column <= lastColumn; column++)
+                {
+                    if (worksheet.Cell(row, column).GetFormattedString() == header)
+                    {
+                        return column;
+                    }
+                }
+            }
+
+            Assert.Fail("未找到表头：" + header);
+            return 0;
         }
 
         private static void WriteSummarySheet(

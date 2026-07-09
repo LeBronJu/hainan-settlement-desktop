@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Linq;
 using System.Windows.Controls;
 using HainanSettlementTool.Core.Models;
 
@@ -77,12 +76,6 @@ namespace HainanSettlementTool.Wpf
             _refundTemplateDirBox.Text = snapshot.RefundTemplateDirectory ?? string.Empty;
             _summaryTemplateBox.Text = snapshot.SummaryTemplatePath ?? string.Empty;
             _rewardLedgerBox.Text = snapshot.RewardLedgerPath ?? string.Empty;
-
-            ProvinceCode province;
-            if (Enum.TryParse(snapshot.ProvinceCode, out province))
-            {
-                _provinceCombo.SelectedItem = ProvinceUiProfile.Supported.FirstOrDefault(item => item.Province == province);
-            }
         }
 
         public void SaveInputs(string themeMode)

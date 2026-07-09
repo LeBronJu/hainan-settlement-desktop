@@ -559,7 +559,7 @@ namespace HainanSettlementTool.Wpf
 
             if (_inputController.HasSavedInputs(snapshot))
             {
-                AddLog("已载入上次选择的文件路径；结算月份仍需手动选择。", "信息");
+                AddLog("已载入上次选择的文件路径；结算省份和月份仍需手动选择。", "信息");
             }
         }
 
