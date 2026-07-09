@@ -6,7 +6,7 @@
 
 今日并行两条主线：
 
-1. 重庆阶段二实机验收支援。用户测试 `HainanSettlementTool-Win10-11-Release-20260708-101959.zip` 时，如果反馈 bug、输出差异或需要重做的规则，优先级高于代码质量拆分。
+1. 重庆阶段二实机验收支援。用户当前测试包为 `HainanSettlementTool-Win10-11-Release-20260708-155953.zip`；如果反馈 bug、输出差异或需要重做的规则，优先级高于代码质量拆分。
 2. 多省份代码质量提升。目标是控制大类、逐步修正误导性的海南/通用命名，并让后续 agent 能从文档知道下一步做什么。
 
 本主线不读取真实 Excel、真实台账、客户数据、截图或结算结果，除非用户针对某个文件、目录或回放明确授权。当前拆分优先使用合成测试和现有单元测试。
@@ -28,7 +28,7 @@
 | 行数 | 文件 | 当前判断 |
 | ---: | --- | --- |
 | 1821 | `src/HainanSettlementTool.Excel/Stage2SettlementGenerator.cs` | 已处理第一批。重命名并拆为 `HainanStage2SettlementGenerator`、台账读取、模板索引、分表写入、汇总表写入、报告输出和工具组件。 |
-| 1519 | `src/HainanSettlementTool.Wpf/MainWindow.xaml.cs` | 第二至六批已部分处理。已拆日志、进度、结果、弹窗、路径选择、输入状态/options 构造、省份 UI 状态应用、海南阶段一、阶段二和海南员工奖励 workflow；重庆阶段一 workflow 暂留主窗口等待实测反馈稳定。 |
+| 1519 | `src/HainanSettlementTool.Wpf/MainWindow.xaml.cs` | 第二至九批已处理主要 workflow 编排。已拆日志、进度、结果、弹窗、路径选择、输入状态/options 构造、省份 UI 状态应用、海南阶段一、重庆阶段一、阶段二和海南员工奖励 workflow；主窗口当前主要保留事件路由、主题、省份切换和少量壳层协调。 |
 | 1207 | `src/HainanSettlementTool.WinForms/MainForm.cs` | 冻结。只因共享层修复被动受益，不安排主动拆分。 |
 | 874 | `src/HainanSettlementTool.Excel/ChongqingPowerCleanGenerator.cs` | P2。重庆阶段一清洗稳定后可拆读取、校验、汇总、报告写入。 |
 | 804 | `tests/HainanSettlementTool.Excel.Tests/HainanStage2SettlementGeneratorTests.cs` | 已随第一批重命名为 `HainanStage2SettlementGeneratorTests.cs`；后续再按行为分组拆测试。 |
@@ -142,6 +142,7 @@
 - `dotnet test tests\HainanSettlementTool.Core.Tests\HainanSettlementTool.Core.Tests.csproj --no-restore` 通过，26 个测试。
 - `dotnet test tests\HainanSettlementTool.Excel.Tests\HainanSettlementTool.Excel.Tests.csproj --no-restore` 通过，27 个测试。
 - `dotnet msbuild src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Release /m` 通过。
+- `dotnet msbuild src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Release /m` 通过。
 - 子代理只读 review 未发现初始化顺序、tab 切换、空引用或结果区刷新回归。
 
 ## 第四批进展
@@ -169,7 +170,7 @@
 - 新增 `MainWindowHainanEmployeePowerRewardWorkflowController`，负责员工电量奖励的期间确认、保存输入、运行进度、日志和结果摘要。
 - `MainWindowInputController` 新增 `PrepareHainanPowerCleanInput`，保留海南只清洗电量时先计算输出路径、写入 `PowerBox`、再保存输入的既有行为。
 - `MainWindow.xaml.cs` 从 1032 行降到 852 行。本轮不改变海南阶段一、海南清洗或员工奖励的确认文案、日志文案、进度百分比、结果摘要或输出路径行为。
-- 重庆阶段一 workflow 暂时留在 `MainWindow.xaml.cs`，避免在重庆阶段二核对期间扩大重庆相关改动面。
+- 重庆阶段一 workflow 当时暂留 `MainWindow.xaml.cs`，避免在重庆阶段二核对期间扩大重庆相关改动面；用户后续实机测试未发现阻断性问题后，已在第九批拆出。
 
 本轮验证：
 
@@ -235,6 +236,22 @@
 - `dotnet test tests\HainanSettlementTool.Excel.Tests\HainanSettlementTool.Excel.Tests.csproj --no-restore` 通过，27 个测试。
 - `dotnet msbuild src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Debug /m` 通过。
 
+## 第九批进展
+
+2026-07-09 已完成 WPF 重庆阶段一 workflow 编排拆分：
+
+- 新增 `MainWindowChongqingStage1WorkflowController`，负责重庆阶段一只清洗电量和清洗并更新台账的确认、保存输入、预检确认、客户处理决定回写、运行进度、日志和结果摘要。
+- `MainWindow.xaml.cs` 不再承载 `RunChongqingStage1CleanPowerAsync`、`RunChongqingStage1LedgerUpdateAsync` 或重庆阶段一预检确认逻辑，只保留省份能力检查和按钮事件路由。
+- 本轮不改变重庆阶段一输入字段、预检窗口、客户处理决定规则、确认文案、日志文案、进度百分比、输出文件名或生成流程。
+- `MainWindow.xaml.cs` 从 852 行降到 637 行。
+
+本轮验证：
+
+- `dotnet msbuild src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Debug /m` 通过。
+- `dotnet test tests\HainanSettlementTool.Core.Tests\HainanSettlementTool.Core.Tests.csproj --no-restore` 通过，26 个测试。
+- `dotnet test tests\HainanSettlementTool.Excel.Tests\HainanSettlementTool.Excel.Tests.csproj --no-restore` 通过，27 个测试。
+- `dotnet msbuild src\HainanSettlementTool.Wpf\HainanSettlementTool.Wpf.csproj /restore /p:Configuration=Release /m` 通过。
+
 ## 待办
 
 - [x] 建立本 current task note，并接入 `docs/README.md`。
@@ -247,5 +264,5 @@
 - [x] 将员工电量奖励 Core/Excel/WPF workflow 命名明确为海南专属，为未来重庆电量奖预留并列实现空间。
 - [x] 将海南阶段二 Core/WPF 合同和 workflow 方法命名明确为海南专属，并把海南预检问题构建从共享阶段二金额计算器移出。
 - [x] 完成全项目命名治理收口：海南阶段一、海南台账布局、海南原始明细读取、海南阶段二明细行和重庆阶段一 WPF 私有方法已显式命名；真实共享名保留。
-- [ ] 视重庆实机核对反馈和当前风险，决定是否继续拆重庆阶段一 workflow 编排。
+- [x] 视重庆实机核对反馈和当前风险，拆出重庆阶段一 workflow 编排。
 - [ ] 重庆阶段二实机测试如发现问题，暂停代码质量线并优先处理实测问题。

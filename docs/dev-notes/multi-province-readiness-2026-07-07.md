@@ -42,7 +42,7 @@
 仍待处理：
 
 - `ProvinceStage1Service` 的“是否支持”和通用必填项仍偏重庆专用，第三个省接入前应继续收敛到省份能力 seam。
-- `MainWindow.xaml.cs` 仍保留重庆阶段一 workflow 编排逻辑，后续可在重庆实机反馈稳定后继续低风险拆分。
+- `MainWindow.xaml.cs` 已拆出重庆阶段一 workflow 编排逻辑；主窗口主要保留事件路由、主题、省份切换和少量壳层协调。
 - 项目名、命名空间、程序集名和发布包名暂不做一次性大迁移。
 - 完整 MVVM、持久化客户别名表、跨省通用阶段二抽象仍是 P2。
 
@@ -300,7 +300,7 @@ UI 约束：
 8. WPF 新增 `MainWindowInputController`，把路径载入/保存、阶段 options 构造、月份/省份选择读取和输入清空行为从 `MainWindow.xaml.cs` 拆出。
 9. WPF 新增 `MainWindowProvinceUiController`，把结算月份启停、省份 tab/panel 可见性、省份文案和省份按钮启停应用从 `MainWindow.xaml.cs` 拆出。
 10. WPF 新增 `MainWindowStage2WorkflowController` 和 `SettlementWorkflowFactory`，把海南/重庆阶段二 plan-confirm-complete 编排和 workflow 构造从 `MainWindow.xaml.cs` 拆出。
-11. WPF 新增 `MainWindowHainanStage1WorkflowController` 和 `MainWindowHainanEmployeePowerRewardWorkflowController`，把海南阶段一写台账/清洗电量和员工奖励生成编排从 `MainWindow.xaml.cs` 拆出；重庆阶段一暂时留在主窗口等待实测反馈稳定。
+11. WPF 新增 `MainWindowHainanStage1WorkflowController`、`MainWindowChongqingStage1WorkflowController` 和 `MainWindowHainanEmployeePowerRewardWorkflowController`，把海南阶段一、重庆阶段一和员工奖励生成编排从 `MainWindow.xaml.cs` 拆出。
 12. Core/Excel/WPF 已实现重庆客户处理决定：`匹配已有台账客户`、`新增客户到台账`、`本月不写入`。海南阶段一保持原有稳定自动新增客户流程。
 13. 员工电量奖励实现已显式命名为 `HainanEmployeePowerReward...`，模型字段改用 `ResponsiblePerson`、`ProjectDeveloper` 和 `MonthlyPowers`；未来重庆电量奖应新增重庆专属 Module 或在两省规则验证一致后再抽共享 seam。
 
@@ -316,7 +316,7 @@ UI 约束：
 1. 建立省份能力/界面 profile，先替换 WPF `UpdateProvinceUi` 里的省份文案和可见性判断。（已完成第一版）
 2. 建立 Excel 内部省份阶段一 adapter seam，把重庆 adapter 从 `ClosedXmlSettlementExcelGateway` 的 if 分支里独立出来。（已完成第一版）
 3. 给 `ProvinceStage1LedgerUpdateIssue` 增加稳定 code / kind，避免 UI 行为依赖中文分类。（已完成第一版）
-4. 继续按低风险边界拆 `MainWindow.xaml.cs`：进度/状态、结果摘要、确认/错误弹窗入口、文件/文件夹选择入口、日志控制、输入状态/options 构造、省份 UI 状态应用、海南阶段一、阶段二和员工奖励 workflow 已拆出；后续可在重庆实机反馈稳定后处理仍留在窗口里的重庆阶段一 workflow 编排逻辑。
+4. 继续按低风险边界拆 `MainWindow.xaml.cs`：进度/状态、结果摘要、确认/错误弹窗入口、文件/文件夹选择入口、日志控制、输入状态/options 构造、省份 UI 状态应用、海南阶段一、重庆阶段一、阶段二和员工奖励 workflow 已拆出。
 5. 全项目命名规范化已完成当前低风险收口；后续新增省份继续遵循“省份专属 Module 带省份名、真实跨省共享 Module 才用通用名”。保留根项目名、程序集名、命名空间和发布包名，不做高风险大迁移。
 
 ### P1：第三个省接入时同步做

@@ -33,6 +33,7 @@ WinForms 入口已冻结，不再承接新省份功能、体验优化、常规 b
 - 文件/文件夹选择入口控制器
 - 输入状态、路径持久化和阶段 options 构造控制器
 - 海南阶段一 workflow 编排控制器
+- 重庆阶段一 workflow 编排控制器
 - 阶段二 workflow 编排控制器
 - 海南员工电量奖励 workflow 编排控制器
 - `SettlementWorkflow` 构造工厂

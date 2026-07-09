@@ -1,6 +1,6 @@
 # Handoff
 
-Last updated: 2026-07-08
+Last updated: 2026-07-09
 
 ## Project
 
@@ -82,6 +82,10 @@ User practical testing on 2026-07-07 reported no blocking issues so far with:
 
 - `HainanSettlementTool-Win10-11-Release-20260707-140505.zip`
 
+User practical testing on 2026-07-09 reported no blocking issues so far with:
+
+- `HainanSettlementTool-Win10-11-Release-20260708-155953.zip`
+
 Current formal release:
 
 - Tag: `v1.0.1`
@@ -122,7 +126,8 @@ Chongqing Stage 2:
 - Excel slice reads the Chongqing ledger target-month 30-column block, identifies proxy/intermediary/refund groups, requires payment-party selection for new summary subjects, writes proxy/intermediary/refund split workbooks, writes the summary workbook copy, and writes JSON/validation reports.
 - WPF entry now runs preflight/payment-party confirmation and then calls `Generate`.
 - Real 5月 local smoke succeeded on 2026-07-08 against authorized Chongqing inputs, outputting only to `%TEMP%`; it reported proxy 19 rows/2 groups, refund 4 rows/3 groups, intermediary 0 rows/0 groups, with 0 warnings and 0 audit issues.
-- This still needs user实机验收 before treating重庆阶段二 as stable production behavior.
+- User实机测试 on 2026-07-09 reported重庆阶段二入口能完整跑完；代理/退补/居间分表基本符合人工结果，个别特殊客户仍需要手动小改；汇总表副本、清能/清辉月度 sheet、JSON 报告和校验报告正常；暂未发现金额、公式、隐藏列、少回收电能量电费或支付方选择的静默错误。
+- Next validation target is 1-5月真实回测 after the user provides explicit current paths/authorization for the real inputs.
 - Keep this work in Win10/11 WPF plus Core/Excel shared layers; do not add WinForms parity unless the user explicitly reopens Win7/8 support.
 
 WinForms:
@@ -151,7 +156,7 @@ Key implementation constraints:
 - Authorized Chongqing proxy/退补 template folders were rechecked on 2026-07-07; current real `.xlsx` templates are standard xlsx ZIP containers. Ignore `._*` / `~$*` noise. Template reads/copies should use shared read because users may have source workbooks open.
 - Existing summary rows should inherit template fixed fields and long-term fields.
 - New Chongqing summary subjects should not silently default to Hainan `清辉`. Recommended first implementation: WPF preflight requires payment-party selection (`清能`/`清辉`) for new summary subjects, and generated reports flag defaulted fields for manual review.
-- First validation target is now user实机测试 of the 2026-07-08 Win10/11 package and manual comparison of generated 5月 outputs against the known人工结果.
+- Current validation target is 1-5月真实回测 using `scripts/run_chongqing_stage2_backtest.ps1` after explicit current path authorization. The script must receive paths via parameters or case JSON and must write only to `dist/` or another explicit test output directory.
 
 ## Documentation Pointers
 
@@ -189,12 +194,15 @@ Most recent documentation validation:
 - Multi-province code-quality seventh slice on 2026-07-08: Hainan Stage 2 Core/WPF contracts now explicitly use `HainanStage2...`; workflow entry points use `Analyze/Plan/Complete/RunHainanStage2`; Hainan audit issue construction moved to `HainanStage2AuditIssueFactory` while `Stage2SettlementCalculator` remains shared amount calculation/formatting; Core tests passed (26), Excel tests passed (27), and WPF Debug/Release builds passed.
 - Multi-province code-quality eighth slice on 2026-07-08: project-wide naming cleanup reached the current low-risk endpoint; Hainan Stage 1 Core/Excel contracts, Hainan ledger layout, Hainan raw-detail readers, Hainan Stage 2 detail rows, and Chongqing Stage 1 WPF private workflow methods now use explicit province names; Core tests passed (26), Excel tests passed (27), and WPF Debug/Release builds passed.
 - Documentation status/package refresh on 2026-07-08: `AGENTS.md` and `README.md` now describe Chongqing Stage 2 as a preflight-confirm-generate first implementation instead of Analyze-only; WPF package README no longer advertises Win7/8 packaging as a normal path; docs guardrails passed, stale wording scan had no matches, Core tests passed (26), Excel tests passed (27), WPF Debug build passed, WPF Release build passed, and WPF package script created `HainanSettlementTool-Win10-11-Release-20260708-155953.zip`.
+- Chongqing Stage 2 practical test feedback on 2026-07-09: user reported the 20260708-155953 package completed重庆阶段二 and produced normal summary/report outputs with no blocking issues; some special customers still need manual adjustments.
+- Chongqing Stage 2 backtest runner on 2026-07-09: `scripts/run_chongqing_stage2_backtest.ps1` was added and pushed in `f16872a`; parser check passed, Release build passed, fake-path no-real-data run wrote a failed summary successfully, docs guardrails passed, and `git diff --check` passed.
+- Multi-province code-quality ninth slice on 2026-07-09: WPF `MainWindowChongqingStage1WorkflowController` now owns Chongqing Stage 1 clean-power and ledger-update orchestration; `MainWindow.xaml.cs` no longer contains those workflow methods and is down to 637 lines; Core tests passed (26), Excel tests passed (27), WPF Debug build passed, and WPF Release build passed.
 
 For new code changes, rerun focused tests and builds. For pure documentation changes, run at least `git diff --check` plus targeted stale-wording/link scans.
 
 ## Next Steps
 
-1. Have the user实机测试 `HainanSettlementTool-Win10-11-Release-20260708-155953.zip`.
-2. If user reports重庆阶段二实机问题, pause refactor work and triage the specific generated output or rule gap with fresh authorization for any real file reads.
-3. Continue the code-quality mainline tracked in `docs/dev-notes/multi-province-code-quality-2026-07-08.md`: next structural candidate is extracting the remaining Chongqing Stage 1 workflow orchestration from `MainWindow.xaml.cs`, unless重庆阶段二实机反馈 interrupts.
+1. Wait for the user to provide explicit current paths/authorization for重庆 1-5月真实回测 inputs, then run `scripts/run_chongqing_stage2_backtest.ps1` with a case JSON or explicit parameters. Do not infer permission from historical authorizations.
+2. If 1-5月回测 finds重庆阶段二 output, formula, hidden-column, payment-party, or manual-special-case issues, pause refactor work and triage those first.
+3. If no重庆阶段二 issue is active, continue the code-quality mainline tracked in `docs/dev-notes/multi-province-code-quality-2026-07-08.md`. Next low-risk candidates are `ProvinceStage1Service` province capability validation or later Excel-side Chongqing Stage 1 generator/updater decomposition.
 4. Do not publish a formal release unless the user asks; current user-facing重庆阶段二 test package is `HainanSettlementTool-Win10-11-Release-20260708-155953.zip`.
