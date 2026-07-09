@@ -255,6 +255,7 @@ namespace HainanSettlementTool.Wpf
                     "居间" + result.Report.IntermediaryGroups + "/退补" + result.Report.RefundGroups,
                     "1 个文件");
                 _resultController.ShowCompletion("重庆阶段二执行完成", "分表、退补表和汇总表已生成", options.OutputDirectory);
+                ShowChongqingStage2ReviewReminder(result.Report);
             }
             catch (Exception ex)
             {
@@ -283,6 +284,52 @@ namespace HainanSettlementTool.Wpf
             }
 
             return confirmed;
+        }
+
+        private void ShowChongqingStage2ReviewReminder(ChongqingStage2Report report)
+        {
+            if (report == null || (report.Warnings.Count == 0 && report.AuditIssues.Count == 0))
+            {
+                return;
+            }
+
+            var message = new StringBuilder();
+            message.AppendLine("校验问题：" + report.AuditIssues.Count + " 条");
+            message.AppendLine("自动生成提示：" + report.Warnings.Count + " 条");
+            message.AppendLine();
+
+            var shown = 0;
+            foreach (var issue in report.AuditIssues)
+            {
+                if (shown >= 3)
+                {
+                    break;
+                }
+
+                message.AppendLine("- " + issue.Category + "：" + issue.Message);
+                shown++;
+            }
+
+            foreach (var warning in report.Warnings)
+            {
+                if (shown >= 3)
+                {
+                    break;
+                }
+
+                message.AppendLine("- " + warning);
+                shown++;
+            }
+
+            if (report.Warnings.Count + report.AuditIssues.Count > shown)
+            {
+                message.AppendLine("- 其余复核项请查看校验报告。");
+            }
+
+            message.AppendLine();
+            message.AppendLine("校验报告：");
+            message.AppendLine(report.ValidationReportPath);
+            _dialogController.ShowWarningMessage("重庆阶段二需要复核", "生成完成，但存在需要人工确认的项目", message.ToString());
         }
 
         private bool ConfirmChongqingStage2Preflight(ChongqingStage2PreflightReport report, ChongqingStage2Options options)

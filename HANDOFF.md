@@ -64,10 +64,14 @@ Historical real-data authorizations recorded for context only. They are not stan
 
 ## Current Packages
 
-Latest local WPF test package built after the documentation status fix and WPF package README update:
+Latest local WPF test package built after the Chongqing Stage 2 backtest fixes:
 
-- `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260708-155953.zip`
-- Unpacked directory: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260708-155953`
+- `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260709-113859.zip`
+- Unpacked directory: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260709-113859`
+
+Previous Chongqing 3-5月 combined-backtest package before the latest fixes:
+
+- `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260709-104346.zip`
 
 Previous Chongqing Stage 2 first workbook-generation package:
 
@@ -127,7 +131,9 @@ Chongqing Stage 2:
 - WPF entry now runs preflight/payment-party confirmation and then calls `Generate`.
 - Real 5月 local smoke succeeded on 2026-07-08 against authorized Chongqing inputs, outputting only to `%TEMP%`; it reported proxy 19 rows/2 groups, refund 4 rows/3 groups, intermediary 0 rows/0 groups, with 0 warnings and 0 audit issues.
 - User实机测试 on 2026-07-09 reported重庆阶段二入口能完整跑完；代理/退补/居间分表基本符合人工结果，个别特殊客户仍需要手动小改；汇总表副本、清能/清辉月度 sheet、JSON 报告和校验报告正常；暂未发现金额、公式、隐藏列、少回收电能量电费或支付方选择的静默错误。
-- Next validation target is 1-5月真实回测 after the user provides explicit current paths/authorization for the real inputs.
+- 2026-07-09 authorized 3/4/5月 combined backtest completed for Stage 1 + Stage 2. Stage 1 target-month power columns matched the authorized latest ledger historical month blocks with 0 power diffs and 0 missing rows. Stage 2 fixed target-month sheet preservation, payment-party sheet hidden-column preservation, and refund extra-block C-G power sync.
+- Chongqing Stage 2 now pops a WPF completion warning when generated reports contain warning/audit items. Current refund extra-block warnings explicitly say C-G was synced and H onward plus summary monthly deduction/actual payment still require manual review.
+- Final backtest still returns `ReviewRequired` for expected manual/history differences: date display text, formula text style, refund C-column formula style, and 3月 historical manual deduction/actual-payment values. Do not hardcode these without user confirmation.
 - Keep this work in Win10/11 WPF plus Core/Excel shared layers; do not add WinForms parity unless the user explicitly reopens Win7/8 support.
 
 WinForms:
@@ -197,14 +203,14 @@ Most recent documentation validation:
 - Chongqing Stage 2 practical test feedback on 2026-07-09: user reported the 20260708-155953 package completed重庆阶段二 and produced normal summary/report outputs with no blocking issues; some special customers still need manual adjustments.
 - Chongqing Stage 2 backtest runner on 2026-07-09: `scripts/run_chongqing_stage2_backtest.ps1` was added and pushed in `f16872a`; parser check passed, Release build passed, fake-path no-real-data run wrote a failed summary successfully, docs guardrails passed, and `git diff --check` passed.
 - Multi-province code-quality ninth slice on 2026-07-09: WPF `MainWindowChongqingStage1WorkflowController` now owns Chongqing Stage 1 clean-power and ledger-update orchestration; `MainWindow.xaml.cs` no longer contains those workflow methods and is down to 637 lines; Core tests passed (26), Excel tests passed (27), WPF Debug build passed, and WPF Release build passed.
-- Chongqing 3-5月 combined backtest on 2026-07-09: `scripts/run_chongqing_backtest.ps1` now runs Chongqing Stage 1 clean/update plus Stage 2 generation for authorized local cases. Real 3/4/5月回测 with a local ignored case file completed with 0 failures and 0 decision blockers; Stage 1 ledger target-month power columns matched the authorized latest ledger historical month blocks with 0 power diffs and 0 missing rows. Backtest found and fixed a Stage 2 summary payment-party sheet hidden-column bug; Excel tests passed (28), Core tests passed (26), WPF Debug build passed, WPF Release build passed, docs guardrails passed, `git diff --check` passed, and WPF package script created `HainanSettlementTool-Win10-11-Release-20260709-104346.zip`. Remaining `ReviewRequired` items are exact-history differences around proxy notes/date display, refund manual/special layouts/formulas/values, and some 3/4月 historical summary sheet layout differences.
+- Chongqing Stage 2 backtest-fix pass on 2026-07-09: fixed target-month split/payment-party sheet preservation, preserved existing payment-party hidden columns, synced C-G power for safe refund extra-block rows, and added WPF post-run review popup for warnings/audit issues. Final real 3/4/5月回测 completed with 0 failures and 0 decision blockers; Stage 1 power diffs remained 0; Stage 2 hidden-column diffs cleared; refund extra-block C-G numeric diffs cleared. Excel tests passed (30), Core tests passed (26), WPF Debug build passed, WPF Release build passed, and WPF package script created `HainanSettlementTool-Win10-11-Release-20260709-113859.zip`. Remaining `ReviewRequired` items are non-blocking date/formula text differences and 3月 historical manual deduction/actual-payment differences.
 
 For new code changes, rerun focused tests and builds. For pure documentation changes, run at least `git diff --check` plus targeted stale-wording/link scans.
 
 ## Next Steps
 
-1. Report the重庆 3-5月回测 outcome and test package path to the user: `dist\HainanSettlementTool-Win10-11-Release-20260709-104346.zip`.
-2. User实机测试 focus for this package: 重庆阶段二生成后检查 `清能5月` / `清辉5月` 是否只显示目标月份块和累计区，非目标月份块应隐藏；同时复核退补分表的人工特殊情况是否需要产品化。
-3. If the user wants product behavior for the remaining退补/manual special cases, triage those before broad refactor work. Do not hardcode observed real customer exceptions without explicit user confirmation.
+1. Ask the user to实机测试 `dist\HainanSettlementTool-Win10-11-Release-20260709-113859.zip`.
+2. Test focus: 重庆阶段二生成后确认目标月已有 sheet 不被上月格式覆盖；`清能/清辉` 月度 sheet 隐藏列符合模板；退补额外扣减块 C-G 已更新；完成后若有 warning/audit 会弹出复核提示并指向校验报告。
+3. If the user wants product behavior for remaining退补/manual deduction cases, triage those with the重庆负责人 before broad refactor work. Do not hardcode observed real customer exceptions without explicit confirmation.
 4. If no重庆阶段二 issue is active, continue the code-quality mainline tracked in `docs/dev-notes/multi-province-code-quality-2026-07-08.md`. Next low-risk candidates are `ProvinceStage1Service` province capability validation or later Excel-side Chongqing Stage 1 generator/updater decomposition.
-5. Do not publish a formal release unless the user asks; current user-facing重庆阶段二 test package is `HainanSettlementTool-Win10-11-Release-20260709-104346.zip`.
+5. Do not publish a formal release unless the user asks; current user-facing重庆阶段二 test package is `HainanSettlementTool-Win10-11-Release-20260709-113859.zip`.

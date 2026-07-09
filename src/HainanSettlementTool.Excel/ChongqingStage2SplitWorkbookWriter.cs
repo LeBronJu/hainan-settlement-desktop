@@ -34,7 +34,7 @@ namespace HainanSettlementTool.Excel
                 using (var workbook = new XLWorkbook(outputPath))
                 {
                     var worksheet = PrepareMonthSheet(workbook, options.Month);
-                    WriteSplitSheet(worksheet, first.Kind, first.Entity, options.Month, group.ToList(), outputPath, auditIssues);
+                    WriteSplitSheet(worksheet, first.Kind, first.Entity, options.Month, group.ToList(), outputPath, warnings, auditIssues);
                     if (!matchedTemplate)
                     {
                         KeepOnlyCurrentMonthSheet(workbook, worksheet);
@@ -183,6 +183,7 @@ namespace HainanSettlementTool.Excel
             int month,
             IList<ChongqingSettlementDetail> rows,
             string outputPath,
+            IList<string> warnings,
             IList<ChongqingStage2CheckIssue> auditIssues)
         {
             SetSplitTopTitles(worksheet, kind, entity, month);
@@ -203,6 +204,10 @@ namespace HainanSettlementTool.Excel
             }
 
             WriteSplitTotalRow(worksheet, totalRow, kind, rows.Count);
+            if (kind == ChongqingStage2SettlementKinds.Refund)
+            {
+                SyncRefundExtraPowerRows(worksheet, rows, outputPath, warnings);
+            }
         }
 
         private static void WriteProxyLikeDetailRow(IXLWorksheet worksheet, int row, int sequence, ChongqingSettlementDetail detail)
@@ -268,17 +273,12 @@ namespace HainanSettlementTool.Excel
         {
             var title = ChongqingStage2ExcelUtil.MonthSheetName(month);
             var existing = workbook.Worksheets.FirstOrDefault(sheet => sheet.Name == title);
-            var source = PreviousMonthSheet(workbook, month, title);
             if (existing != null)
             {
-                if (source == null)
-                {
-                    return existing;
-                }
-
-                existing.Delete();
+                return existing;
             }
 
+            var source = PreviousMonthSheet(workbook, month, title);
             if (source == null)
             {
                 source = LastMonthSheet(workbook);
@@ -372,6 +372,56 @@ namespace HainanSettlementTool.Excel
             }
 
             throw new InvalidOperationException(worksheet.Name + " 未找到合计行。");
+        }
+
+        private static void SyncRefundExtraPowerRows(
+            IXLWorksheet worksheet,
+            IList<ChongqingSettlementDetail> rows,
+            string outputPath,
+            IList<string> warnings)
+        {
+            var firstTotalRow = FindSplitTotalRow(worksheet);
+            var extraRows = FindRefundExtraPowerRows(worksheet, firstTotalRow);
+            if (extraRows.Count == 0)
+            {
+                return;
+            }
+
+            var entity = rows.Count > 0 ? rows[0].Entity : ExtractEntityFromSplitSheet(worksheet);
+            if (rows.Count != 1)
+            {
+                warnings.Add("重庆退补分表“" + entity + "”" + worksheet.Name + "月检测到" + extraRows.Count + "行额外扣减块，但当前主体有" + rows.Count + "条退补明细，无法安全自动匹配，已保留额外块 C-G 原值；请人工处理。文件：" + outputPath);
+                return;
+            }
+
+            var detail = rows[0];
+            foreach (var row in extraRows)
+            {
+                worksheet.Cell(row, 3).FormulaA1 = "SUM(D" + row + ":G" + row + ")";
+                worksheet.Cell(row, 4).Value = Math.Round(detail.Sharp, 4);
+                worksheet.Cell(row, 5).Value = Math.Round(detail.Peak, 4);
+                worksheet.Cell(row, 6).Value = Math.Round(detail.Flat, 4);
+                worksheet.Cell(row, 7).Value = Math.Round(detail.Valley, 4);
+            }
+
+            warnings.Add("重庆退补分表“" + entity + "”" + worksheet.Name + "月检测到" + extraRows.Count + "行额外扣减块，已同步 C-G 当月电量；H列以后、汇总表当月抵扣和实际支付仍按模板保留，请人工复核。文件：" + outputPath);
+        }
+
+        private static List<int> FindRefundExtraPowerRows(IXLWorksheet worksheet, int firstTotalRow)
+        {
+            var result = new List<int>();
+            var lastRow = worksheet.LastRowUsed()?.RowNumber() ?? firstTotalRow;
+            for (var row = firstTotalRow + 1; row <= lastRow; row++)
+            {
+                var label = ChongqingStage2ExcelUtil.CellText(worksheet.Cell(row, 2));
+                if (label.IndexOf("当月应扣", StringComparison.Ordinal) >= 0
+                    || label.IndexOf("电表改造", StringComparison.Ordinal) >= 0)
+                {
+                    result.Add(row);
+                }
+            }
+
+            return result;
         }
 
         private static void SetSplitTopTitles(IXLWorksheet worksheet, string kind, string entity, int month)

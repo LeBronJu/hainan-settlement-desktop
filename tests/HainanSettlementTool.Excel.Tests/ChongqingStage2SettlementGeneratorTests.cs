@@ -206,6 +206,92 @@ namespace HainanSettlementTool.Excel.Tests
             }
         }
 
+        [TestMethod]
+        public void GenerateSettlementPreservesExistingTargetMonthSheets()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var options = CreateOptions(root);
+                WriteChongqingStage2Ledger(options.LedgerPath, includeIntermediary: false);
+                var proxyTemplate = Path.Combine(options.ProxyTemplateDirectory, "测试负责人", "新增代理.xlsx");
+                var refundTemplate = Path.Combine(options.RefundTemplateDirectory, "测试负责人", "新增退补.xlsx");
+                WriteProxyTemplate(proxyTemplate);
+                WriteRefundTemplate(refundTemplate);
+                AddExistingSplitMonthSheet(proxyTemplate, "5", "目标月代理格式");
+                AddExistingSplitMonthSheet(refundTemplate, "5", "目标月退补格式");
+                WriteSummaryTemplate(
+                    options.SummaryTemplatePath,
+                    "新增代理",
+                    ChongqingStage2SettlementKinds.Proxy,
+                    "新增退补",
+                    ChongqingStage2SettlementKinds.Refund);
+                AddExistingPaymentPartyMonthSheet(options.SummaryTemplatePath, "清能4月", "清能5月", "目标月清能格式");
+
+                var report = new ChongqingStage2Service(new ClosedXmlSettlementExcelGateway()).Run(options, null);
+
+                using (var workbook = new XLWorkbook(report.Groups.Single(group => group.Kind == ChongqingStage2SettlementKinds.Proxy).OutputFile))
+                {
+                    Assert.AreEqual("目标月代理格式", workbook.Worksheet("5").Cell("A3").GetFormattedString());
+                }
+
+                using (var workbook = new XLWorkbook(report.Groups.Single(group => group.Kind == ChongqingStage2SettlementKinds.Refund).OutputFile))
+                {
+                    Assert.AreEqual("目标月退补格式", workbook.Worksheet("5").Cell("A3").GetFormattedString());
+                }
+
+                using (var workbook = new XLWorkbook(report.Summary))
+                {
+                    Assert.AreEqual("目标月清能格式", workbook.Worksheet("清能5月").Cell("D1").GetFormattedString());
+                }
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
+        public void GenerateSettlementSyncsRefundExtraPowerRowsAndWarns()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var options = CreateOptions(root);
+                WriteChongqingStage2Ledger(options.LedgerPath, includeIntermediary: false);
+                WriteProxyTemplate(Path.Combine(options.ProxyTemplateDirectory, "测试负责人", "新增代理.xlsx"));
+                var refundTemplate = Path.Combine(options.RefundTemplateDirectory, "测试负责人", "新增退补.xlsx");
+                WriteRefundTemplate(refundTemplate);
+                AddRefundExtraPowerBlock(refundTemplate);
+                WriteSummaryTemplate(
+                    options.SummaryTemplatePath,
+                    "新增代理",
+                    ChongqingStage2SettlementKinds.Proxy,
+                    "新增退补",
+                    ChongqingStage2SettlementKinds.Refund);
+
+                var report = new ChongqingStage2Service(new ClosedXmlSettlementExcelGateway()).Run(options, null);
+
+                Assert.IsTrue(report.Warnings.Any(item => item.Contains("额外扣减块") && item.Contains("已同步 C-G")));
+                var refundGroup = report.Groups.Single(group => group.Kind == ChongqingStage2SettlementKinds.Refund);
+                using (var workbook = new XLWorkbook(refundGroup.OutputFile))
+                {
+                    var ws = workbook.Worksheet("5");
+                    Assert.AreEqual("SUM(D14:G14)", ws.Cell(14, 3).FormulaA1);
+                    Assert.AreEqual(10, CellNumber(ws.Cell(14, 4)), 0.0001);
+                    Assert.AreEqual(20, CellNumber(ws.Cell(14, 5)), 0.0001);
+                    Assert.AreEqual(30, CellNumber(ws.Cell(14, 6)), 0.0001);
+                    Assert.AreEqual(40, CellNumber(ws.Cell(14, 7)), 0.0001);
+                    Assert.AreEqual(0.9, CellNumber(ws.Cell(14, 8)), 0.0001);
+                    Assert.AreEqual("D14+E14", ws.Cell(14, 13).FormulaA1);
+                }
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
         private static void AssertHasPaymentIssue(ChongqingStage2PreflightReport report, string kind, string entity)
         {
             Assert.IsTrue(report.Issues.Any(issue =>
@@ -429,6 +515,33 @@ namespace HainanSettlementTool.Excel.Tests
             }
         }
 
+        private static void AddExistingSplitMonthSheet(string path, string sheetName, string marker)
+        {
+            using (var workbook = new XLWorkbook(path))
+            {
+                workbook.Worksheet("4").CopyTo(sheetName);
+                workbook.Worksheet(sheetName).Cell("A3").Value = marker;
+                workbook.Save();
+            }
+        }
+
+        private static void AddRefundExtraPowerBlock(string path)
+        {
+            using (var workbook = new XLWorkbook(path))
+            {
+                var ws = workbook.Worksheet("4");
+                ws.Cell(14, 2).Value = "当月应扣电表改造费用";
+                ws.Cell(14, 3).Value = 1;
+                ws.Cell(14, 4).Value = 2;
+                ws.Cell(14, 5).Value = 3;
+                ws.Cell(14, 6).Value = 4;
+                ws.Cell(14, 7).Value = 5;
+                ws.Cell(14, 8).Value = 0.9;
+                ws.Cell(14, 13).FormulaA1 = "D14+E14";
+                workbook.Save();
+            }
+        }
+
         private static void WriteSplitHeader(IXLWorksheet ws, int maxColumn)
         {
             for (var column = 1; column <= maxColumn; column++)
@@ -451,6 +564,16 @@ namespace HainanSettlementTool.Excel.Tests
                 WriteSummarySheet(workbook.AddWorksheet("清能4月"), existingEntity, existingKind, null, null, ChongqingStage2PaymentParties.Qingneng);
                 WriteSummarySheet(workbook.AddWorksheet("清辉4月"), secondEntity, secondKind, null, null, ChongqingStage2PaymentParties.Qinghui);
                 workbook.SaveAs(path);
+            }
+        }
+
+        private static void AddExistingPaymentPartyMonthSheet(string path, string sourceSheetName, string targetSheetName, string marker)
+        {
+            using (var workbook = new XLWorkbook(path))
+            {
+                workbook.Worksheet(sourceSheetName).CopyTo(targetSheetName);
+                workbook.Worksheet(targetSheetName).Cell("D1").Value = marker;
+                workbook.Save();
             }
         }
 

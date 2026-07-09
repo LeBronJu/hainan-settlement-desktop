@@ -26,6 +26,15 @@ namespace HainanSettlementTool.Wpf
             dialog.ShowDialog();
         }
 
+        public void ShowWarningMessage(string title, string heading, string message)
+        {
+            var dialog = new ModernDialogWindow(title, heading, message, "知道了", null, ModernDialogKind.Warning)
+            {
+                Owner = _owner
+            };
+            dialog.ShowDialog();
+        }
+
         public bool ConfirmAction(string title, string heading, string message, string primaryButtonText)
         {
             var dialog = new ModernDialogWindow(title, heading, message, primaryButtonText, "取消", ModernDialogKind.Warning)

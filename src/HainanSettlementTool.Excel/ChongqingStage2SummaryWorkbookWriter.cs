@@ -30,7 +30,8 @@ namespace HainanSettlementTool.Excel
 
                 foreach (var paymentParty in ChongqingStage2PaymentParties.Supported)
                 {
-                    var sheet = PreparePaymentPartySheet(workbook, paymentParty, options.Month, mainSheet);
+                    bool createdPaymentPartySheet;
+                    var sheet = PreparePaymentPartySheet(workbook, paymentParty, options.Month, mainSheet, out createdPaymentPartySheet);
                     var allowedKeys = new HashSet<string>(paymentPartyByKey
                         .Where(item => item.Value == paymentParty)
                         .Select(item => item.Key));
@@ -42,7 +43,7 @@ namespace HainanSettlementTool.Excel
                         allowedKeys.Add(ChongqingStage2Keys.SummaryKey(group.Entity, group.Kind));
                     }
 
-                    WriteSummarySheet(sheet, partyGroups, options.Month, allowedKeys, warnings, paymentPartyByKey);
+                    WriteSummarySheet(sheet, partyGroups, options.Month, allowedKeys, warnings, paymentPartyByKey, createdPaymentPartySheet);
                 }
 
                 ChongqingStage2ExcelUtil.SaveWorkbook(workbook, outputPath);
@@ -100,12 +101,13 @@ namespace HainanSettlementTool.Excel
             int month,
             ISet<string> allowedKeys,
             IList<string> warnings,
-            IDictionary<string, string> paymentPartyByKey)
+            IDictionary<string, string> paymentPartyByKey,
+            bool refreshPaymentPartyVisibility = false)
         {
             DeleteSummaryRowsNotAllowed(worksheet, allowedKeys);
             var monthColumn = FindOrInsertSummaryMonthBlock(worksheet, month);
             var cumulativeColumn = SummaryColumn(worksheet, "当年费用总计");
-            if (allowedKeys != null)
+            if (allowedKeys != null && refreshPaymentPartyVisibility)
             {
                 ApplyPaymentPartySheetVisibility(worksheet, monthColumn, cumulativeColumn);
             }
@@ -232,26 +234,29 @@ namespace HainanSettlementTool.Excel
             return partyByKey;
         }
 
-        private static IXLWorksheet PreparePaymentPartySheet(XLWorkbook workbook, string paymentParty, int month, IXLWorksheet mainSheet)
+        private static IXLWorksheet PreparePaymentPartySheet(
+            XLWorkbook workbook,
+            string paymentParty,
+            int month,
+            IXLWorksheet mainSheet,
+            out bool created)
         {
             var targetName = paymentParty + month + "月";
             var existing = workbook.Worksheets.FirstOrDefault(sheet => sheet.Name == targetName);
-            var source = PreviousPaymentPartySheet(workbook, paymentParty, month);
             if (existing != null)
             {
-                if (source == null)
-                {
-                    return existing;
-                }
-
-                existing.Delete();
+                created = false;
+                return existing;
             }
 
+            var source = PreviousPaymentPartySheet(workbook, paymentParty, month);
             if (source != null)
             {
+                created = true;
                 return source.CopyTo(targetName);
             }
 
+            created = true;
             return mainSheet.CopyTo(targetName);
         }
 
@@ -404,8 +409,15 @@ namespace HainanSettlementTool.Excel
             for (var column = firstMonthColumn; column <= cumulativeColumn + 3; column++)
             {
                 var letter = ClosedXmlUtil.ColumnLetter(column);
-                worksheet.Cell(totalRow, column).FormulaA1 = "SUM(" + letter + ChongqingStage2Layout.SummaryDataStartRow + ":" + letter + (totalRow - 1) + ")";
+                worksheet.Cell(totalRow, column).FormulaA1 = ColumnSumFormula(letter, ChongqingStage2Layout.SummaryDataStartRow, totalRow - 1);
             }
+        }
+
+        private static string ColumnSumFormula(string letter, int firstRow, int lastRow)
+        {
+            return firstRow == lastRow
+                ? "SUM(" + letter + firstRow + ")"
+                : "SUM(" + letter + firstRow + ":" + letter + lastRow + ")";
         }
 
         private static int FirstSummaryMonthColumn(IXLWorksheet worksheet)
