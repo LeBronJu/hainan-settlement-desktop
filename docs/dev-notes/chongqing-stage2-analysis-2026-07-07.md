@@ -203,6 +203,14 @@
 - 生成汇总表、JSON 报告、校验报告和 5 个分表 workbook；所有输出 workbook 可打开，5 个分表都包含目标 `5` sheet，汇总表包含 `汇总表`、`清能5月`、`清辉5月`。
 - 报告摘要：代理 19 行/2 组，退补 4 行/3 组，居间 0 行/0 组，warning 0，audit issue 0。
 
+2026-07-09 新增参数化真实回测入口：
+
+- `scripts/run_chongqing_stage2_backtest.ps1` 用于重庆阶段二 1-N 月本地回测，调用当前 Core/Excel 服务，不经过 WPF。
+- 输入路径必须通过参数或 case JSON 显式传入；脚本不硬编码真实生产路径。
+- 默认输出到 `dist/chongqing-stage2-backtest-<timestamp>`，生成每月独立输出目录和 `chongqing-stage2-backtest-summary.json`。
+- summary 只记录行数、组数、金额合计、warning/audit issue 数、公式错误文本扫描和 workbook 可打开性，不应记录客户明细。
+- 若预检发现新增汇总主体支付方未选择，脚本会标记该月份为 `NeedsPaymentPartyDecisions`，不自动默认 `清能` 或 `清辉`。
+
 ## 预检建议
 
 生成前至少提示：

@@ -26,6 +26,7 @@
 | `docs/dev-notes/win7-8-maintenance-mode-2026-06-29.md` | 当前政策 note | 判断 Win7/8 WinForms 冻结/退役边界，或用户明确重新开启 Win7/8 支持时。 |
 | `docs/dev-notes/documentation-sync-gate-2026-06-25.md` | 当前流程 note | 判断文档影响、决定该更新哪些文档时。 |
 | `docs/dev-notes/real-smoke-runner-2026-06-29.md` | 历史工具 note | 记录 real smoke runner 设计意图；当前脚本引用旧服务/网关名，刷新前不要当作可直接运行入口。 |
+| `scripts/run_chongqing_stage2_backtest.ps1` | 当前回测工具 | 用户明确授权重庆真实数据路径后，参数化运行重庆阶段二 1-N 月回测；输出到 `dist/` 或指定目录，不硬编码真实路径。 |
 
 ## 历史记录
 
@@ -56,7 +57,7 @@
 | 文档质量或文档同步规则改动 | `docs/README.md`、`docs/dev-notes/documentation-sync-gate-2026-06-25.md`、`HANDOFF.md` |
 | 代码质量、多省命名或大类拆分 | `docs/architecture.md`、`docs/dev-notes/multi-province-readiness-2026-07-07.md`、`docs/dev-notes/multi-province-code-quality-2026-07-08.md` |
 | issue、PRD 或 triage 工作 | `docs/agents/domain.md`、`docs/agents/issue-tracker.md`、`docs/agents/triage-labels.md` |
-| 授权真实数据分析或 smoke | `HANDOFF.md` 的数据安全边界、对应任务 dev-note；没有当前明确授权时先问用户 |
+| 授权真实数据分析、回测或 smoke | `HANDOFF.md` 的数据安全边界、对应任务 dev-note；重庆阶段二回测可用 `scripts/run_chongqing_stage2_backtest.ps1`；没有当前明确授权时先问用户 |
 
 ## 维护规则
 
