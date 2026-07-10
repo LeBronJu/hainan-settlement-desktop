@@ -45,11 +45,10 @@ For the next performance/Open XML work, also read:
 
 ## Git State
 
-- Current branch: `codex/guangdong-stage2-month-preparation`
-- Upstream: `origin/codex/guangdong-stage2-month-preparation`
-- Branch contains Guangdong month-sheet preparation, WPF third-province support, and the current documentation/performance research closeout.
-- `origin/main` contains Chongqing Stage 2 acceptance closeout commit `6be47aa`.
-- Do not merge this branch to `main`, tag, or publish a formal release without explicit user authorization.
+- `main` contains Guangdong month-sheet preparation, WPF third-province support, and the current documentation/performance research closeout.
+- The historical implementation branch is `codex/guangdong-stage2-month-preparation`; new development should not continue on it.
+- The next development branch must be created from the updated `origin/main` with the `codex/` prefix.
+- Do not tag or publish a formal release without explicit user authorization.
 - Formal release remains `v1.0.1`.
 
 ## Latest Test Package
@@ -116,6 +115,7 @@ Most recent code/package validation for this branch:
 - Excel tests: 35 passed.
 - Build portability check passed.
 - Full Debug and Release solution builds passed.
+- The authorized Guangdong closeout gate reran all four checks after refreshing `origin`; all passed before the fast-forward to `main`.
 - Authorized Guangdong sample smoke generated 41/41 outputs; repeat analysis classified all 41 as already prepared; temporary copies were deleted.
 - Package inspection found the executable, config, 17 DLLs, and 20 ZIP entries.
 - User then completed the larger 600+ workbook practical run without reporting a blocking correctness issue.
@@ -124,7 +124,7 @@ The documentation closeout after that package changes no business code. Its requ
 
 ## Next Session
 
-1. Start a fresh branch from the intended base before code changes; do not continue development directly on `main`.
+1. Create `codex/hainan-excel-performance-baseline` from the updated `origin/main` before code changes; do not continue development directly on `main` or the historical Guangdong branch.
 2. Treat Hainan performance baseline/instrumentation as the next mainline. Do not begin with Open XML writer replacement.
 3. Measure Stage 1, Stage 2, and employee reward separately: scan/read, business calculation, workbook mutation, formula evaluation, save, total time, and peak memory where practical.
 4. Use synthetic workbooks unless the user provides a new explicit real-data authorization.
