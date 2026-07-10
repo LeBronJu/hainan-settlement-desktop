@@ -8,6 +8,8 @@ namespace HainanSettlementTool.Core.Models
             {
                 case ProvinceCode.Chongqing:
                     return "重庆";
+                case ProvinceCode.Guangdong:
+                    return "广东";
                 case ProvinceCode.Hainan:
                     return "海南";
                 default:

@@ -188,6 +188,19 @@ namespace HainanSettlementTool.Wpf
             };
         }
 
+        public GuangdongStage2MonthPreparationOptions CreateGuangdongStage2MonthPreparationOptions()
+        {
+            return new GuangdongStage2MonthPreparationOptions
+            {
+                Year = 2026,
+                Month = SelectedMonth(),
+                ProxyDirectory = _proxyTemplateDirBox.Text.Trim(),
+                IntermediaryDirectory = _intermediaryTemplateDirBox.Text.Trim(),
+                RefundDirectory = _refundTemplateDirBox.Text.Trim(),
+                OutputDirectory = _outputDirBox.Text.Trim()
+            };
+        }
+
         public HainanEmployeePowerRewardOptions CreateHainanEmployeePowerRewardOptions()
         {
             var startMonth = SelectedRewardStartMonth();

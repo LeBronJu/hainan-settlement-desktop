@@ -1,7 +1,7 @@
 # Agent Instructions
 
 This repository is the standalone C# desktop project for multi-province retail electricity settlement automation.
-Hainan is the mature first province module. Chongqing Stage 1 power cleaning and ledger update are implemented; Chongqing Stage 2 has passed user practical testing and the authorized March-May combined backtest and is the first usable production baseline. Keep its documented manual-review boundaries and continue monitoring later months rather than treating isolated customer exceptions as universal rules.
+Hainan is the mature first province module. Chongqing Stage 1 power cleaning and ledger update are implemented; Chongqing Stage 2 has passed user practical testing and the authorized March-May combined backtest and is the first usable production baseline. Guangdong is the third province entry; its current scope is only low-risk proxy/intermediary/refund workbook month-sheet preparation, not full settlement calculation. Keep province-specific rules isolated and do not infer complete Guangdong Stage 2 behavior from this first utility.
 
 ## Safety Rules
 
@@ -30,6 +30,7 @@ The C# version is being built as a maintainable Windows desktop app. It should e
 - `docs/CHANGELOG.md`: high-signal completed milestone history.
 - `docs/architecture.md`: layering and migration boundary.
 - `docs/hainan-stage2-current-behavior.md`: current Hainan Stage 2 behavior and validation summary.
+- `docs/dev-notes/guangdong-stage2-month-preparation-2026-07-10.md`: current Guangdong month-sheet preparation rules and validation boundary.
 - `CONTEXT.md`: domain vocabulary and settlement rules.
 - `docs/dev-notes/`: architecture reviews, robustness priorities, and one-off technical notes.
 - `HANDOFF.md`: concise current handoff for future sessions.
@@ -79,6 +80,8 @@ This is a single-context repo. See `docs/agents/domain.md`.
 The app is evolving from a Hainan-only desktop tool into a multi-province settlement automation tool. Keep province-specific business rules isolated behind province/module naming. Do not add broad `if Hainan / if Chongqing` branches in shared logic when a province-specific service or Excel generator is the cleaner boundary.
 
 Current business scope and stage rules live in `CONTEXT.md`. Current architecture and module boundaries live in `docs/architecture.md`. Hainan Stage 2 implementation details live in `docs/hainan-stage2-current-behavior.md`. Chongqing Stage 2 analysis lives in `docs/dev-notes/chongqing-stage2-analysis-2026-07-07.md`.
+
+Guangdong month-sheet preparation details live in `docs/dev-notes/guangdong-stage2-month-preparation-2026-07-10.md`. Standard month sheets are exact numeric names; non-standard names are preserved but ignored for source selection. Existing target-month sheets are normalized in place in the output copy, while missing target months are copied only from the exact previous numeric month sheet.
 
 ## Business Rules To Preserve
 

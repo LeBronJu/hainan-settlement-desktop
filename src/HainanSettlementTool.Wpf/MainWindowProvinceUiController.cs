@@ -32,8 +32,16 @@ namespace HainanSettlementTool.Wpf
         private readonly Button _cleanPowerButton;
         private readonly TextBlock _stageTwoTitleText;
         private readonly TextBlock _stageTwoCaptionText;
+        private readonly TextBlock _completedLedgerLabel;
+        private readonly FrameworkElement _completedLedgerRow;
+        private readonly TextBlock _proxyTemplateDirLabel;
+        private readonly FrameworkElement _proxyTemplateDirRow;
+        private readonly TextBlock _intermediaryTemplateDirLabel;
+        private readonly FrameworkElement _intermediaryTemplateDirRow;
         private readonly TextBlock _refundTemplateDirLabel;
         private readonly FrameworkElement _refundTemplateDirRow;
+        private readonly TextBlock _summaryTemplateLabel;
+        private readonly FrameworkElement _summaryTemplateRow;
         private readonly CheckBox _allowMissingOwnerCheckBox;
         private readonly Button _runStageTwoButton;
         private readonly TextBlock _runStageTwoButtonText;
@@ -65,8 +73,16 @@ namespace HainanSettlementTool.Wpf
             Button cleanPowerButton,
             TextBlock stageTwoTitleText,
             TextBlock stageTwoCaptionText,
+            TextBlock completedLedgerLabel,
+            FrameworkElement completedLedgerRow,
+            TextBlock proxyTemplateDirLabel,
+            FrameworkElement proxyTemplateDirRow,
+            TextBlock intermediaryTemplateDirLabel,
+            FrameworkElement intermediaryTemplateDirRow,
             TextBlock refundTemplateDirLabel,
             FrameworkElement refundTemplateDirRow,
+            TextBlock summaryTemplateLabel,
+            FrameworkElement summaryTemplateRow,
             CheckBox allowMissingOwnerCheckBox,
             Button runStageTwoButton,
             TextBlock runStageTwoButtonText,
@@ -97,8 +113,16 @@ namespace HainanSettlementTool.Wpf
             _cleanPowerButton = cleanPowerButton;
             _stageTwoTitleText = stageTwoTitleText;
             _stageTwoCaptionText = stageTwoCaptionText;
+            _completedLedgerLabel = completedLedgerLabel;
+            _completedLedgerRow = completedLedgerRow;
+            _proxyTemplateDirLabel = proxyTemplateDirLabel;
+            _proxyTemplateDirRow = proxyTemplateDirRow;
+            _intermediaryTemplateDirLabel = intermediaryTemplateDirLabel;
+            _intermediaryTemplateDirRow = intermediaryTemplateDirRow;
             _refundTemplateDirLabel = refundTemplateDirLabel;
             _refundTemplateDirRow = refundTemplateDirRow;
+            _summaryTemplateLabel = summaryTemplateLabel;
+            _summaryTemplateRow = summaryTemplateRow;
             _allowMissingOwnerCheckBox = allowMissingOwnerCheckBox;
             _runStageTwoButton = runStageTwoButton;
             _runStageTwoButtonText = runStageTwoButtonText;
@@ -125,8 +149,10 @@ namespace HainanSettlementTool.Wpf
         {
             var hasProvince = profile != null;
             var province = hasProvince ? (ProvinceCode?)profile.Province : null;
-            var isChongqing = province == ProvinceCode.Chongqing;
-            var showEmployeeRewardTab = hasProvince && (profile.SupportsEmployeeReward || isChongqing);
+            var hasStageOne = hasProvince && (profile.SupportsStage1LedgerUpdate || profile.SupportsStage1CleanPower);
+            var hasStageTwo = hasProvince && profile.SupportsStage2;
+            var showEmployeeRewardTab = hasProvince
+                && (profile.SupportsEmployeeReward || profile.ShowEmployeeRewardPlaceholder);
             var enableEmployeeRewardTab = hasProvince && profile.SupportsEmployeeReward;
             if (hasProvince && !enableEmployeeRewardTab && _mainTabControl.SelectedItem == _employeeRewardTab)
             {
@@ -138,10 +164,13 @@ namespace HainanSettlementTool.Wpf
             _employeeRewardTab.IsEnabled = enableEmployeeRewardTab;
             _employeeRewardTab.ToolTip = showEmployeeRewardTab && !profile.SupportsEmployeeReward ? "正在开发中" : null;
             _provinceEmptyPanel.Visibility = hasProvince ? Visibility.Collapsed : Visibility.Visible;
-            _stageOnePanel.Visibility = hasProvince ? Visibility.Visible : Visibility.Collapsed;
-            _stageTwoPanel.Visibility = hasProvince && profile.SupportsStage2 ? Visibility.Visible : Visibility.Collapsed;
-            Grid.SetColumnSpan(_stageOnePanel, hasProvince && profile.SupportsStage2 ? 1 : 2);
-            _stageOnePanel.Margin = hasProvince && profile.SupportsStage2 ? new Thickness(0, 0, 8, 0) : new Thickness(0);
+            _stageOnePanel.Visibility = hasStageOne ? Visibility.Visible : Visibility.Collapsed;
+            _stageTwoPanel.Visibility = hasStageTwo ? Visibility.Visible : Visibility.Collapsed;
+            Grid.SetColumnSpan(_stageOnePanel, hasStageTwo ? 1 : 2);
+            _stageOnePanel.Margin = hasStageTwo ? new Thickness(0, 0, 8, 0) : new Thickness(0);
+            Grid.SetColumn(_stageTwoPanel, hasStageOne ? 1 : 0);
+            Grid.SetColumnSpan(_stageTwoPanel, hasStageOne ? 1 : 2);
+            _stageTwoPanel.Margin = hasStageOne ? new Thickness(8, 0, 0, 0) : new Thickness(0);
 
             _stageOneTitleText.Text = hasProvince ? profile.StageOneTitle : "请先选择结算省份";
             _stageOneCaptionText.Text = !hasProvince
@@ -153,16 +182,19 @@ namespace HainanSettlementTool.Wpf
             _referenceLedgerLabel.Text = hasProvince ? profile.ReferenceLedgerLabel : "参考台账（可选）";
             _runStageOneButtonText.Text = hasProvince ? profile.RunStageOneButtonText : "开始 执行阶段一";
             _cleanPowerButton.Content = hasProvince ? profile.CleanPowerButtonText : "只清洗电量";
-            _stageTwoTitleText.Text = isChongqing ? "阶段二：重庆结算生成" : "阶段二：生成分表和汇总表";
-            _stageTwoCaptionText.Text = isChongqing
-                ? "生成代理/居间/退补分表和汇总表，生成前先确认预检项目"
-                : "生成代理/居间分表和汇总表，输出结算结果";
-            _runStageTwoButtonText.Text = isChongqing ? "开始 重庆阶段二" : "开始 执行阶段二";
+            var stageTwo = hasStageTwo ? profile.StageTwo : null;
+            _stageTwoTitleText.Text = stageTwo?.Title ?? "阶段二";
+            _stageTwoCaptionText.Text = stageTwo?.Caption ?? "当前省份暂未开放阶段二。";
+            _runStageTwoButtonText.Text = stageTwo?.RunButtonText ?? "暂未开放";
+            _completedLedgerLabel.Text = stageTwo?.CompletedLedgerLabel ?? "人工整理后的台账";
+            _proxyTemplateDirLabel.Text = stageTwo?.ProxyDirectoryLabel ?? "代理分表文件夹";
+            _intermediaryTemplateDirLabel.Text = stageTwo?.IntermediaryDirectoryLabel ?? "居间分表文件夹";
+            _refundTemplateDirLabel.Text = stageTwo?.RefundDirectoryLabel ?? "退补分表文件夹";
+            _summaryTemplateLabel.Text = stageTwo?.SummaryTemplateLabel ?? "汇总表";
 
             var ledgerVisibility = hasProvince ? Visibility.Visible : Visibility.Collapsed;
             var existingPowerVisibility = hasProvince && profile.ShowsExistingPowerInput ? Visibility.Visible : Visibility.Collapsed;
             var referenceLedgerVisibility = hasProvince && profile.ShowsReferenceLedgerInput ? Visibility.Visible : Visibility.Collapsed;
-            var chongqingStage2Visibility = isChongqing ? Visibility.Visible : Visibility.Collapsed;
             _baseLedgerLabel.Visibility = ledgerVisibility;
             _baseLedgerRow.Visibility = ledgerVisibility;
             _powerLabel.Visibility = existingPowerVisibility;
@@ -170,9 +202,17 @@ namespace HainanSettlementTool.Wpf
             _referenceLedgerLabel.Visibility = referenceLedgerVisibility;
             _referenceLedgerRow.Visibility = referenceLedgerVisibility;
             _copyReferenceExistingCheckBox.Visibility = referenceLedgerVisibility;
-            _refundTemplateDirLabel.Visibility = chongqingStage2Visibility;
-            _refundTemplateDirRow.Visibility = chongqingStage2Visibility;
-            _allowMissingOwnerCheckBox.Visibility = isChongqing ? Visibility.Collapsed : Visibility.Visible;
+            _completedLedgerLabel.Visibility = VisibilityOf(stageTwo?.ShowsCompletedLedger == true);
+            _completedLedgerRow.Visibility = VisibilityOf(stageTwo?.ShowsCompletedLedger == true);
+            _proxyTemplateDirLabel.Visibility = VisibilityOf(stageTwo?.ShowsProxyDirectory == true);
+            _proxyTemplateDirRow.Visibility = VisibilityOf(stageTwo?.ShowsProxyDirectory == true);
+            _intermediaryTemplateDirLabel.Visibility = VisibilityOf(stageTwo?.ShowsIntermediaryDirectory == true);
+            _intermediaryTemplateDirRow.Visibility = VisibilityOf(stageTwo?.ShowsIntermediaryDirectory == true);
+            _refundTemplateDirLabel.Visibility = VisibilityOf(stageTwo?.ShowsRefundDirectory == true);
+            _refundTemplateDirRow.Visibility = VisibilityOf(stageTwo?.ShowsRefundDirectory == true);
+            _summaryTemplateLabel.Visibility = VisibilityOf(stageTwo?.ShowsSummaryTemplate == true);
+            _summaryTemplateRow.Visibility = VisibilityOf(stageTwo?.ShowsSummaryTemplate == true);
+            _allowMissingOwnerCheckBox.Visibility = VisibilityOf(stageTwo?.ShowsAllowMissingOwner == true);
 
             _runStageOneButton.IsEnabled = !isBusy && hasProvince && profile.SupportsStage1LedgerUpdate;
             _cleanPowerButton.IsEnabled = !isBusy && hasProvince && profile.SupportsStage1CleanPower;
@@ -183,6 +223,11 @@ namespace HainanSettlementTool.Wpf
                 : profile.SharedSettingsCaption;
 
             return province;
+        }
+
+        private static Visibility VisibilityOf(bool visible)
+        {
+            return visible ? Visibility.Visible : Visibility.Collapsed;
         }
     }
 }

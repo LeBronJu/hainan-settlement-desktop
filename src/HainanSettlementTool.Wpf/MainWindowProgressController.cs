@@ -17,6 +17,15 @@ namespace HainanSettlementTool.Wpf
         private readonly TextBlock[] _stepTexts;
         private readonly TextBlock[] _stepStatuses;
         private readonly Func<string, Brush> _brushOf;
+        private readonly string[] _defaultStepNames =
+        {
+            "检查输入文件",
+            "读取台账数据",
+            "生成结算文件",
+            "写入结果报告",
+            "保存结果文件"
+        };
+        private string[] _stepNames;
 
         public MainWindowProgressController(
             TextBlock statusText,
@@ -40,6 +49,7 @@ namespace HainanSettlementTool.Wpf
             _stepTexts = stepTexts;
             _stepStatuses = stepStatuses;
             _brushOf = brushOf;
+            _stepNames = _defaultStepNames;
         }
 
         public void SetStatus(string text, string dotBrushKey, string backgroundBrushKey)
@@ -63,6 +73,14 @@ namespace HainanSettlementTool.Wpf
 
         public void ResetProgress(string title, string description)
         {
+            ResetProgress(title, description, null);
+        }
+
+        public void ResetProgress(string title, string description, string[] stepNames)
+        {
+            _stepNames = stepNames != null && stepNames.Length == _stepTexts.Length
+                ? stepNames
+                : _defaultStepNames;
             _progressTitle.Text = title;
             _progressDescriptionText.Text = description;
             SetProgress(0, description);
@@ -132,21 +150,9 @@ namespace HainanSettlementTool.Wpf
             }
         }
 
-        private static string StepName(int index)
+        private string StepName(int index)
         {
-            switch (index)
-            {
-                case 0:
-                    return "检查输入文件";
-                case 1:
-                    return "读取台账数据";
-                case 2:
-                    return "生成结算文件";
-                case 3:
-                    return "写入结果报告";
-                default:
-                    return "保存结果文件";
-            }
+            return index >= 0 && index < _stepNames.Length ? _stepNames[index] : "处理文件";
         }
     }
 }

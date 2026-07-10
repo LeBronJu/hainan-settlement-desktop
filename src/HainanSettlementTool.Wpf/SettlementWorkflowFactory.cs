@@ -15,5 +15,11 @@ namespace HainanSettlementTool.Wpf
                 new ProvinceStage1Service(gateway),
                 new ChongqingStage2Service(gateway));
         }
+
+        public static GuangdongStage2MonthPreparationService CreateGuangdongStage2MonthPreparationService()
+        {
+            var gateway = new ClosedXmlSettlementExcelGateway();
+            return new GuangdongStage2MonthPreparationService(gateway);
+        }
     }
 }

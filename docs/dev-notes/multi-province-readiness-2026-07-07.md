@@ -4,7 +4,7 @@
 
 ## 背景
 
-海南是成熟省份模块；重庆已经接入阶段一电量清洗和台账更新。工具后续会继续接入其它省份，因此下一轮新增省份前要先控制省份分支扩散，避免每加一个省就在 WPF、Core、Excel 三处同时堆 `if Hainan / if Chongqing / if XXX`。
+海南是成熟省份模块；重庆已经接入阶段一和阶段二；广东作为第三个省份，当前只接入低风险分表月份初始化。后续仍要控制省份分支扩散，避免每加一个省就在 WPF、Core、Excel 三处同时堆 `if Hainan / if Chongqing / if Guangdong / if XXX`。
 
 本自查只看代码结构和文档，不读取真实 Excel、真实台账或结算输出。
 
@@ -38,10 +38,12 @@
 - 海南阶段二 Core/WPF 合同已显式命名为 `HainanStage2...`；共享 `Stage2SettlementCalculator` 仅保留金额计算、容差和格式化，海南预检问题构建已移到 `HainanStage2AuditIssueFactory`。
 - 省份显示名、Hainan Stage 1/2 服务名、海南阶段一 Core/Excel 合同、海南台账布局、组合型 ClosedXML gateway 等低风险命名中性化。
 - 重庆客户处理决定模型和 WPF 预检交互；海南阶段一保持原有自动新增流程。
+- 广东使用独立 `GuangdongStage2MonthPreparation...` Core/Excel Module，不复用海南或重庆完整阶段二生成器。
+- `ProvinceStage2UiProfile` 集中阶段二标题、输入可见性、按钮和第三结果项；广东接入时没有继续增加 `isGuangdong` 控件分支。
 
 仍待处理：
 
-- `ProvinceStage1Service` 的“是否支持”和通用必填项仍偏重庆专用，第三个省接入前应继续收敛到省份能力 seam。
+- `ProvinceStage1Service` 的“是否支持”和通用必填项仍偏重庆专用；广东当前不开放阶段一，因此这项技术债不阻断广东月份初始化，但在下一个新省阶段一接入前仍需处理。
 - `MainWindow.xaml.cs` 已拆出重庆阶段一 workflow 编排逻辑；主窗口主要保留事件路由、主题、省份切换和少量壳层协调。
 - 项目名、命名空间、程序集名和发布包名暂不做一次性大迁移。
 - 完整 MVVM、持久化客户别名表、跨省通用阶段二抽象仍是 P2。
@@ -321,9 +323,9 @@ UI 约束：
 
 ### P1：第三个省接入时同步做
 
-1. 为新省份建立独立 Excel adapter，不把新省规则塞进重庆或海南类。
-2. 补齐新省份 synthetic workbook 测试。
-3. 更新 `CONTEXT.md` 的省份业务口径，并更新 `docs/architecture.md` 的阶段边界。
+1. 为新省份建立独立 Excel Module，不把新省规则塞进重庆或海南类。（广东第一批已完成）
+2. 补齐新省份 synthetic workbook 测试。（广东第一批已完成）
+3. 更新 `CONTEXT.md` 的省份业务口径，并更新 `docs/architecture.md` 的阶段边界。（广东第一批已完成）
 
 ### P2：可以暂缓
 

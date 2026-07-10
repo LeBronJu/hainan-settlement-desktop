@@ -1,6 +1,6 @@
 # Handoff
 
-Last updated: 2026-07-09
+Last updated: 2026-07-10
 
 ## Project
 
@@ -49,20 +49,25 @@ Historical real-data authorizations recorded for context only. They are not stan
 - 2026-07-06: read-only inspection of selected Chongqing Stage 1 source/comparison/ledger workbooks for Stage 1 design.
 - 2026-07-07: read-only inspection of `C:\Users\juqx2\Desktop\2026年-重庆` for Chongqing Stage 2 analysis.
 - 2026-07-07: read-only inspection of `C:\Users\juqx2\Desktop\2026海南` for Hainan Stage 2 behavior comparison.
+- 2026-07-10: read-only inspection and temporary-output smoke of `C:\Users\juqx2\Desktop\广东\交易结算\2026广东代理` for Guangdong month-sheet preparation. Temporary real-data copies were deleted after verification; source workbooks were not modified.
 
 ## Current Git State
 
-- Current branch: `codex/chongqing-stage2-analysis`
-- Upstream: `origin/codex/chongqing-stage2-analysis`
-- Branch purpose: Chongqing Stage 2 implementation, backtest fixes, practical UI cleanup, and final acceptance closeout.
-- The branch is based on `main` after the WPF log-controller state.
-- This branch continues the documentation quality cleanup that started at `48c4921 Organize documentation map and current references`.
+- Current branch: `codex/guangdong-stage2-month-preparation`
+- Upstream: to be pushed after focused validation.
+- Branch purpose: Guangdong low-risk proxy/intermediary/refund workbook month-sheet preparation plus third-province WPF capability cleanup.
+- The branch is based on local `main` after the completed Chongqing Stage 2 branch was fast-forwarded. Chongqing closeout commit `6be47aa` is already pushed on `origin/codex/chongqing-stage2-analysis`; pushing updated `main` is pending a stable GitHub connection.
 - Do not merge to `main`, tag, or publish a release without explicit user authorization.
 
 - No formal release tag has been cut after `v1.0.1`.
 - Completed milestone history is summarized in `docs/CHANGELOG.md`.
 
 ## Current Packages
+
+Latest local WPF test package with Guangdong month-sheet preparation:
+
+- `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260710-123600.zip`
+- Unpacked directory: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260710-123600`
 
 Latest local WPF test package built after the Chongqing Stage 2 practical UI/summary-format fixes:
 
@@ -143,6 +148,15 @@ Chongqing Stage 2:
 - Final backtest still returns `ReviewRequired` for expected manual/history differences: date display text, formula text style, refund C-column formula style, and 3月 historical manual deduction/actual-payment values. Do not hardcode these without user confirmation.
 - Keep this work in Win10/11 WPF plus Core/Excel shared layers; do not add WinForms parity unless the user explicitly reopens Win7/8 support.
 
+Guangdong:
+
+- Current first slice is only proxy/intermediary/refund workbook month-sheet preparation; it does not read a ledger, calculate settlement amounts, or generate a summary workbook.
+- Standard month sheet names are exact numeric text. Non-standard sheets are preserved but ignored for source selection.
+- Existing target-month sheets are preserved and normalized; missing target months are copied only from the exact previous numeric month sheet.
+- Detail C-F power contents are cleared, total formulas remain, deterministic period/date updates are applied, and uncertain structures are skipped with a report.
+- WPF shows Guangdong as a third province with only the three optional split-workbook directories and a month-preparation action. Switching province clears the previous province's input paths.
+- Current module rules and validation live in `docs/dev-notes/guangdong-stage2-month-preparation-2026-07-10.md`.
+
 WinForms:
 
 - Win7/8 WinForms is frozen as a historical compatibility entry.
@@ -212,12 +226,15 @@ Most recent documentation validation:
 - Multi-province code-quality ninth slice on 2026-07-09: WPF `MainWindowChongqingStage1WorkflowController` now owns Chongqing Stage 1 clean-power and ledger-update orchestration; `MainWindow.xaml.cs` no longer contains those workflow methods and is down to 637 lines; Core tests passed (26), Excel tests passed (27), WPF Debug build passed, and WPF Release build passed.
 - Chongqing Stage 2 backtest-fix pass on 2026-07-09: fixed target-month split/payment-party sheet preservation, preserved existing payment-party hidden columns, synced C-G power for safe refund extra-block rows, and added WPF post-run review popup for warnings/audit issues. Final real 3/4/5月回测 completed with 0 failures and 0 decision blockers; Stage 1 power diffs remained 0; Stage 2 hidden-column diffs cleared; refund extra-block C-G numeric diffs cleared. Excel tests passed (30), Core tests passed (26), WPF Debug build passed, WPF Release build passed, and WPF package script created `HainanSettlementTool-Win10-11-Release-20260709-113859.zip`. Remaining `ReviewRequired` items are non-blocking date/formula text differences and 3月 historical manual deduction/actual-payment differences.
 - Chongqing Stage 2 practical UI/summary-format pass on 2026-07-09: optimized the WPF review popup, moved target-month `清能/清辉` sheets after `汇总表`, merged target sheet first-row titles, made startup province blank, changed Chongqing main tab to `代理费结算`, reserved disabled重庆 `员工电量奖励`, and compacted the main function area. Excel tests passed (30), Core tests passed (26), WPF Debug build passed, WPF Release/package build passed, and WPF package script created `HainanSettlementTool-Win10-11-Release-20260709-150129.zip`.
+- Chongqing Stage 2 acceptance closeout on 2026-07-10: user reported current data validation had no significant issue; Core tests passed (26), Excel tests passed (30), build portability passed, and full Debug/Release solution builds passed before fast-forwarding local `main`.
+- Guangdong month-sheet preparation focused validation on 2026-07-10: Core tests passed (29), Excel tests passed (35), and WPF Debug build passed. Authorized proxy-folder Analyze found 41 workbooks: 27 create, 14 already prepared, 0 skipped. Temporary-output smoke generated 41/41 successfully; repeat Analyze classified all 41 as already prepared, then the temporary real-data copies were deleted.
+- Guangdong final validation on 2026-07-10: build portability passed; full Debug and Release solution builds passed; WPF package script passed and created `HainanSettlementTool-Win10-11-Release-20260710-123600.zip`. Package inspection found the executable, config, 17 DLLs and 20 total entries.
 
 For new code changes, rerun focused tests and builds. For pure documentation changes, run at least `git diff --check` plus targeted stale-wording/link scans.
 
 ## Next Steps
 
-1. Finish the Chongqing documentation/validation closeout, then fast-forward the completed branch into `main`.
-2. Start Guangdong from a new branch based on the updated `main`; keep the first slice limited to proxy/intermediary/refund workbook month-sheet preparation and do not implement Guangdong amount settlement yet.
-3. If later Chongqing months expose repeatable settlement issues, pause lower-priority refactors and fix them with focused regression tests. Do not hardcode isolated customer exceptions.
-4. Do not publish a formal release unless the user asks; the latest pre-Guangdong WPF test package remains `HainanSettlementTool-Win10-11-Release-20260709-150129.zip`.
+1. Ask the user to test `dist\HainanSettlementTool-Win10-11-Release-20260710-123600.zip`.
+2. Guangdong test focus: province-specific input visibility, preflight counts, output folder tree, strict standard sheet selection, C-F clearing, date update and report readability.
+3. Keep Guangdong amount calculation, ledger integration and summary workbook generation out of this first slice.
+4. Retry pushing updated `main` and the Guangdong branch when the GitHub connection is stable. Do not publish a formal release unless the user asks.

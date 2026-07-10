@@ -5,7 +5,7 @@ using HainanSettlementTool.Core.Services;
 
 namespace HainanSettlementTool.Excel
 {
-    public sealed class ClosedXmlSettlementExcelGateway : IHainanStage1ExcelGateway, IHainanStage2ExcelGateway, IHainanEmployeePowerRewardExcelGateway, IProvinceStage1ExcelGateway, IChongqingStage2ExcelGateway
+    public sealed class ClosedXmlSettlementExcelGateway : IHainanStage1ExcelGateway, IHainanStage2ExcelGateway, IHainanEmployeePowerRewardExcelGateway, IProvinceStage1ExcelGateway, IChongqingStage2ExcelGateway, IGuangdongStage2MonthPreparationExcelGateway
     {
         private readonly HainanPowerWorkbookReader _hainanPowerWorkbookReader = new HainanPowerWorkbookReader();
         private readonly HainanRawDetailReader _hainanRawDetailReader = new HainanRawDetailReader();
@@ -13,6 +13,7 @@ namespace HainanSettlementTool.Excel
         private readonly HainanStage1LedgerUpdater _hainanStage1LedgerUpdater = new HainanStage1LedgerUpdater();
         private readonly HainanStage2SettlementGenerator _hainanStage2Generator = new HainanStage2SettlementGenerator();
         private readonly ChongqingStage2SettlementGenerator _chongqingStage2Generator = new ChongqingStage2SettlementGenerator();
+        private readonly GuangdongStage2MonthPreparationGenerator _guangdongStage2MonthPreparationGenerator = new GuangdongStage2MonthPreparationGenerator();
         private readonly HainanEmployeePowerRewardGenerator _hainanEmployeePowerRewardGenerator = new HainanEmployeePowerRewardGenerator();
         private readonly Dictionary<ProvinceCode, IProvinceStage1Adapter> _provinceStage1Adapters;
 
@@ -93,6 +94,16 @@ namespace HainanSettlementTool.Excel
         public ChongqingStage2PreflightReport AnalyzeSettlement(ChongqingStage2Options options)
         {
             return _chongqingStage2Generator.Analyze(options);
+        }
+
+        public GuangdongStage2PreflightReport AnalyzeMonthPreparation(GuangdongStage2MonthPreparationOptions options)
+        {
+            return _guangdongStage2MonthPreparationGenerator.Analyze(options);
+        }
+
+        public GuangdongStage2MonthPreparationReport GenerateMonthPreparation(GuangdongStage2MonthPreparationOptions options)
+        {
+            return _guangdongStage2MonthPreparationGenerator.Generate(options);
         }
 
         public IList<HainanEmployeePowerRewardLedgerRow> ReadLedgerRows(HainanEmployeePowerRewardOptions options)

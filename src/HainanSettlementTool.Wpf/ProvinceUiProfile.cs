@@ -25,10 +25,26 @@ namespace HainanSettlementTool.Wpf
             "选择原始零售侧明细",
             supportsStage1LedgerUpdate: true,
             supportsStage1CleanPower: true,
-            supportsStage2: true,
             supportsEmployeeReward: true,
+            showEmployeeRewardPlaceholder: false,
             showsExistingPowerInput: true,
-            showsReferenceLedgerInput: true);
+            showsReferenceLedgerInput: true,
+            stageTwo: new ProvinceStage2UiProfile(
+                "阶段二：生成分表和汇总表",
+                "生成代理/居间分表和汇总表，输出结算结果",
+                "开始 执行阶段二",
+                "人工整理后的台账（必填）",
+                "上月代理分表文件夹",
+                "上月居间分表文件夹",
+                "退补分表文件夹",
+                "上月/修正版汇总表（必填）",
+                "汇总表",
+                showsCompletedLedger: true,
+                showsProxyDirectory: true,
+                showsIntermediaryDirectory: true,
+                showsRefundDirectory: false,
+                showsSummaryTemplate: true,
+                showsAllowMissingOwner: true));
 
         private static readonly ProvinceUiProfile ChongqingProfile = new ProvinceUiProfile(
             ProvinceCode.Chongqing,
@@ -48,10 +64,65 @@ namespace HainanSettlementTool.Wpf
             "选择重庆交易中心电量确认结算单",
             supportsStage1LedgerUpdate: true,
             supportsStage1CleanPower: true,
-            supportsStage2: true,
             supportsEmployeeReward: false,
+            showEmployeeRewardPlaceholder: true,
             showsExistingPowerInput: false,
-            showsReferenceLedgerInput: false);
+            showsReferenceLedgerInput: false,
+            stageTwo: new ProvinceStage2UiProfile(
+                "阶段二：重庆结算生成",
+                "生成代理/居间/退补分表和汇总表，生成前先确认预检项目",
+                "开始 重庆阶段二",
+                "人工整理后的台账（必填）",
+                "上月代理分表文件夹",
+                "上月居间分表文件夹",
+                "退补分表文件夹",
+                "上月/修正版汇总表（必填）",
+                "汇总表",
+                showsCompletedLedger: true,
+                showsProxyDirectory: true,
+                showsIntermediaryDirectory: true,
+                showsRefundDirectory: true,
+                showsSummaryTemplate: true,
+                showsAllowMissingOwner: false));
+
+        private static readonly ProvinceUiProfile GuangdongProfile = new ProvinceUiProfile(
+            ProvinceCode.Guangdong,
+            "广东",
+            "分表月份初始化",
+            "阶段一：暂未开放",
+            "广东当前先处理低风险的分表月份初始化。",
+            "台账",
+            "电量处理表",
+            "电量文件",
+            "参考台账",
+            "暂未开放",
+            "暂未开放",
+            "广东当前只初始化代理/居间/退补分表的新月份 sheet，不计算结算金额",
+            "阶段一",
+            "选择台账",
+            "选择电量文件",
+            supportsStage1LedgerUpdate: false,
+            supportsStage1CleanPower: false,
+            supportsEmployeeReward: false,
+            showEmployeeRewardPlaceholder: false,
+            showsExistingPowerInput: false,
+            showsReferenceLedgerInput: false,
+            stageTwo: new ProvinceStage2UiProfile(
+                "广东分表月份初始化",
+                "复制标准上月 sheet，或整理已有目标月 sheet，并清空 C-F 电量",
+                "开始 初始化分表",
+                "台账",
+                "代理分表文件夹（可选）",
+                "居间分表文件夹（可选）",
+                "退补分表文件夹（可选）",
+                "汇总表",
+                "退补分表",
+                showsCompletedLedger: false,
+                showsProxyDirectory: true,
+                showsIntermediaryDirectory: true,
+                showsRefundDirectory: true,
+                showsSummaryTemplate: false,
+                showsAllowMissingOwner: false));
 
         private ProvinceUiProfile(
             ProvinceCode province,
@@ -71,10 +142,11 @@ namespace HainanSettlementTool.Wpf
             string rawDetailDialogTitle,
             bool supportsStage1LedgerUpdate,
             bool supportsStage1CleanPower,
-            bool supportsStage2,
             bool supportsEmployeeReward,
+            bool showEmployeeRewardPlaceholder,
             bool showsExistingPowerInput,
-            bool showsReferenceLedgerInput)
+            bool showsReferenceLedgerInput,
+            ProvinceStage2UiProfile stageTwo)
         {
             Province = province;
             DisplayName = displayName;
@@ -93,10 +165,11 @@ namespace HainanSettlementTool.Wpf
             RawDetailDialogTitle = rawDetailDialogTitle;
             SupportsStage1LedgerUpdate = supportsStage1LedgerUpdate;
             SupportsStage1CleanPower = supportsStage1CleanPower;
-            SupportsStage2 = supportsStage2;
             SupportsEmployeeReward = supportsEmployeeReward;
+            ShowEmployeeRewardPlaceholder = showEmployeeRewardPlaceholder;
             ShowsExistingPowerInput = showsExistingPowerInput;
             ShowsReferenceLedgerInput = showsReferenceLedgerInput;
+            StageTwo = stageTwo;
         }
 
         public ProvinceCode Province { get; }
@@ -133,16 +206,20 @@ namespace HainanSettlementTool.Wpf
 
         public bool SupportsStage1CleanPower { get; }
 
-        public bool SupportsStage2 { get; }
+        public bool SupportsStage2 => StageTwo != null;
 
         public bool SupportsEmployeeReward { get; }
+
+        public bool ShowEmployeeRewardPlaceholder { get; }
 
         public bool ShowsExistingPowerInput { get; }
 
         public bool ShowsReferenceLedgerInput { get; }
 
+        public ProvinceStage2UiProfile StageTwo { get; }
+
         public static IReadOnlyList<ProvinceUiProfile> Supported { get; } =
-            new[] { HainanProfile, ChongqingProfile };
+            new[] { HainanProfile, ChongqingProfile, GuangdongProfile };
 
         public static ProvinceUiProfile For(ProvinceCode province)
         {

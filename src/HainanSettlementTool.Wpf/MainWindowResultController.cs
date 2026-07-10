@@ -27,6 +27,7 @@ namespace HainanSettlementTool.Wpf
         private readonly TextBlock _intermediaryResultStatus;
         private readonly TextBlock _intermediaryResultCount;
         private readonly Grid _summaryResultRow;
+        private readonly TextBlock _summaryResultLabel;
         private readonly TextBlock _summaryResultStatus;
         private readonly TextBlock _summaryResultCount;
         private readonly Grid _employeeRewardResultRow;
@@ -56,6 +57,7 @@ namespace HainanSettlementTool.Wpf
             TextBlock intermediaryResultStatus,
             TextBlock intermediaryResultCount,
             Grid summaryResultRow,
+            TextBlock summaryResultLabel,
             TextBlock summaryResultStatus,
             TextBlock summaryResultCount,
             Grid employeeRewardResultRow,
@@ -84,6 +86,7 @@ namespace HainanSettlementTool.Wpf
             _intermediaryResultStatus = intermediaryResultStatus;
             _intermediaryResultCount = intermediaryResultCount;
             _summaryResultRow = summaryResultRow;
+            _summaryResultLabel = summaryResultLabel;
             _summaryResultStatus = summaryResultStatus;
             _summaryResultCount = summaryResultCount;
             _employeeRewardResultRow = employeeRewardResultRow;
@@ -104,7 +107,10 @@ namespace HainanSettlementTool.Wpf
             var employeeRewardVisibility = hasProvince && profile.SupportsEmployeeReward ? Visibility.Visible : Visibility.Collapsed;
 
             _noProvinceResultHint.Visibility = hasProvince ? Visibility.Collapsed : Visibility.Visible;
-            _stage1ResultRow.Visibility = hasProvince ? Visibility.Visible : Visibility.Collapsed;
+            _stage1ResultRow.Visibility = hasProvince
+                && (profile.SupportsStage1LedgerUpdate || profile.SupportsStage1CleanPower)
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
             _proxyResultRow.Visibility = stageTwoVisibility;
             _intermediaryResultRow.Visibility = stageTwoVisibility;
             _summaryResultRow.Visibility = stageTwoVisibility;
@@ -112,6 +118,9 @@ namespace HainanSettlementTool.Wpf
             _finishedAtRow.Visibility = hasProvince ? Visibility.Visible : Visibility.Collapsed;
 
             _stage1ResultLabel.Text = hasProvince ? profile.StageOneResultLabel : "阶段输出";
+            _summaryResultLabel.Text = hasProvince && profile.StageTwo != null
+                ? profile.StageTwo.ThirdResultLabel
+                : "汇总表";
             _completionOutputLabel.Text = "输出文件夹";
         }
 

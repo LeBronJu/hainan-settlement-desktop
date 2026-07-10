@@ -26,6 +26,7 @@ namespace HainanSettlementTool.Wpf
         private readonly MainWindowHainanEmployeePowerRewardWorkflowController _hainanEmployeePowerRewardWorkflowController;
         private bool _isBusy;
         private bool _loadingInputs;
+        private ProvinceCode? _activeInputProvince;
         private string _themeMode = ThemeService.SystemMode;
 
         public MainWindow()
@@ -104,6 +105,7 @@ namespace HainanSettlementTool.Wpf
                 IntermediaryResultStatus,
                 IntermediaryResultCount,
                 SummaryResultRow,
+                SummaryResultLabel,
                 SummaryResultStatus,
                 SummaryResultCount,
                 EmployeeRewardResultRow,
@@ -137,8 +139,16 @@ namespace HainanSettlementTool.Wpf
                 CleanPowerButton,
                 Stage2TitleText,
                 Stage2CaptionText,
+                CompletedLedgerLabel,
+                CompletedLedgerRow,
+                ProxyTemplateDirLabel,
+                ProxyTemplateDirRow,
+                IntermediaryTemplateDirLabel,
+                IntermediaryTemplateDirRow,
                 RefundTemplateDirLabel,
                 RefundTemplateDirRow,
+                SummaryTemplateLabel,
+                SummaryTemplateRow,
                 AllowMissingOwnerCheckBox,
                 RunStage2Button,
                 RunStage2ButtonText,
@@ -187,6 +197,7 @@ namespace HainanSettlementTool.Wpf
             ResetResults();
             AddLog("工具已就绪，等待操作。", "信息");
             LoadSavedInputs(snapshot);
+            _activeInputProvince = ParseProvince(snapshot.ProvinceCode);
             UpdateSharedSettingsState();
             ResetResults();
             SystemEvents.UserPreferenceChanged += SystemEvents_UserPreferenceChanged;
@@ -270,6 +281,18 @@ namespace HainanSettlementTool.Wpf
                 return;
             }
 
+            var selectedProvince = _inputController.SelectedProvinceOrNull();
+            if (_activeInputProvince.HasValue
+                && selectedProvince.HasValue
+                && _activeInputProvince.Value != selectedProvince.Value)
+            {
+                _inputController.ClearStage1();
+                _inputController.ClearStage2();
+                _inputController.ClearEmployeeReward();
+                AddLog("已切换结算省份，原省份专用输入路径已清空。", "提示");
+            }
+
+            _activeInputProvince = selectedProvince;
             UpdateProvinceUi();
             ResetResults();
             SaveInputs();
@@ -325,12 +348,12 @@ namespace HainanSettlementTool.Wpf
 
         private void BrowseProxyTemplateDir_Click(object sender, RoutedEventArgs e)
         {
-            BrowseFolder(ProxyTemplateDirBox, "选择上月代理分表文件夹");
+            BrowseFolder(ProxyTemplateDirBox, "选择代理分表文件夹");
         }
 
         private void BrowseIntermediaryTemplateDir_Click(object sender, RoutedEventArgs e)
         {
-            BrowseFolder(IntermediaryTemplateDirBox, "选择上月居间分表文件夹");
+            BrowseFolder(IntermediaryTemplateDirBox, "选择居间分表文件夹");
         }
 
         private void BrowseRefundTemplateDir_Click(object sender, RoutedEventArgs e)
@@ -573,6 +596,14 @@ namespace HainanSettlementTool.Wpf
             {
                 AddLog("保存上次路径失败：" + ex.Message, "提示");
             }
+        }
+
+        private static ProvinceCode? ParseProvince(string value)
+        {
+            ProvinceCode province;
+            return Enum.TryParse(value, out province) && Enum.IsDefined(typeof(ProvinceCode), province)
+                ? (ProvinceCode?)province
+                : null;
         }
 
         private void AddLog(string message, string level)

@@ -230,8 +230,8 @@
                                 </Border>
 
                                 <StackPanel Grid.Row="1" Margin="16,10,16,12">
-                                    <TextBlock Text="人工整理后的台账（必填）" Style="{StaticResource FieldLabel}" Margin="0,0,0,4" />
-                                    <Grid>
+                                    <TextBlock x:Name="CompletedLedgerLabel" Text="人工整理后的台账（必填）" Style="{StaticResource FieldLabel}" Margin="0,0,0,4" />
+                                    <Grid x:Name="CompletedLedgerRow">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="82" />
@@ -240,8 +240,8 @@
                                         <Button Grid.Column="1" Content="浏览" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" Click="BrowseCompletedLedger_Click" />
                                     </Grid>
 
-                                    <TextBlock Text="上月代理分表文件夹" Style="{StaticResource FieldLabel}" />
-                                    <Grid>
+                                    <TextBlock x:Name="ProxyTemplateDirLabel" Text="上月代理分表文件夹" Style="{StaticResource FieldLabel}" />
+                                    <Grid x:Name="ProxyTemplateDirRow">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="82" />
@@ -250,8 +250,8 @@
                                         <Button Grid.Column="1" Content="浏览" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" Click="BrowseProxyTemplateDir_Click" />
                                     </Grid>
 
-                                    <TextBlock Text="上月居间分表文件夹" Style="{StaticResource FieldLabel}" />
-                                    <Grid>
+                                    <TextBlock x:Name="IntermediaryTemplateDirLabel" Text="上月居间分表文件夹" Style="{StaticResource FieldLabel}" />
+                                    <Grid x:Name="IntermediaryTemplateDirRow">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="82" />
@@ -270,8 +270,8 @@
                                         <Button Grid.Column="1" Content="浏览" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" Click="BrowseRefundTemplateDir_Click" />
                                     </Grid>
 
-                                    <TextBlock Text="上月/修正版汇总表（必填）" Style="{StaticResource FieldLabel}" />
-                                    <Grid>
+                                    <TextBlock x:Name="SummaryTemplateLabel" Text="上月/修正版汇总表（必填）" Style="{StaticResource FieldLabel}" />
+                                    <Grid x:Name="SummaryTemplateRow">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="82" />
@@ -532,7 +532,7 @@
                                             <ColumnDefinition Width="64" />
                                             <ColumnDefinition Width="74" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="汇总表" Foreground="{DynamicResource FieldTextBrush}" />
+                                        <TextBlock x:Name="SummaryResultLabel" Text="汇总表" Foreground="{DynamicResource FieldTextBrush}" />
                                         <Border Grid.Column="1" Background="{DynamicResource ResultPillBrush}" CornerRadius="11" Padding="8,2" HorizontalAlignment="Left">
                                             <TextBlock x:Name="SummaryResultStatus" Text="等待" Foreground="{DynamicResource SuccessBrush}" FontSize="12" />
                                         </Border>
