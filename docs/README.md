@@ -19,7 +19,7 @@
 
 | 文档 | 状态 | 用法 |
 | --- | --- | --- |
-| `docs/dev-notes/chongqing-stage2-analysis-2026-07-07.md` | 当前任务 note | 重庆阶段二实现前的表格结构、风险、实现边界和用户确认事项。 |
+| `docs/dev-notes/chongqing-stage2-analysis-2026-07-07.md` | 当前模块 note | 重庆阶段二结构、已实现行为、回测结论和长期人工复核边界。 |
 | `docs/dev-notes/multi-province-code-quality-2026-07-08.md` | 当前任务 note | 多省份代码质量、海南命名中性化、大类拆分和执行连续性。 |
 | `docs/dev-notes/multi-province-readiness-2026-07-07.md` | 当前架构 note | 新省份接入、WPF 省份 UI、Core/Excel 多省份 seam 工作前必须读。 |
 | `docs/dev-notes/hainan-employee-power-reward-module-2026-07-02.md` | 当前模块 note | 海南员工电量奖励模块的输入、输出、读取规则和验证记录。 |

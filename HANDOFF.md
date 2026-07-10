@@ -54,7 +54,7 @@ Historical real-data authorizations recorded for context only. They are not stan
 
 - Current branch: `codex/chongqing-stage2-analysis`
 - Upstream: `origin/codex/chongqing-stage2-analysis`
-- Branch purpose: Chongqing Stage 2 first workbook-generation slice plus documentation/current-state cleanup.
+- Branch purpose: Chongqing Stage 2 implementation, backtest fixes, practical UI cleanup, and final acceptance closeout.
 - The branch is based on `main` after the WPF log-controller state.
 - This branch continues the documentation quality cleanup that started at `48c4921 Organize documentation map and current references`.
 - Do not merge to `main`, tag, or publish a release without explicit user authorization.
@@ -135,6 +135,7 @@ Chongqing Stage 2:
 - WPF entry now runs preflight/payment-party confirmation and then calls `Generate`.
 - Real 5月 local smoke succeeded on 2026-07-08 against authorized Chongqing inputs, outputting only to `%TEMP%`; it reported proxy 19 rows/2 groups, refund 4 rows/3 groups, intermediary 0 rows/0 groups, with 0 warnings and 0 audit issues.
 - User实机测试 on 2026-07-09 reported重庆阶段二入口能完整跑完；代理/退补/居间分表基本符合人工结果，个别特殊客户仍需要手动小改；汇总表副本、清能/清辉月度 sheet、JSON 报告和校验报告正常；暂未发现金额、公式、隐藏列、少回收电能量电费或支付方选择的静默错误。
+- 2026-07-10 用户确认重庆数据验证基本没有问题。重庆阶段二当前作为首个可用生产基线进入长期观察；个别客户临时人工调整和已记录退补复核项不自动硬编码为通用规则。
 - 2026-07-09 authorized 3/4/5月 combined backtest completed for Stage 1 + Stage 2. Stage 1 target-month power columns matched the authorized latest ledger historical month blocks with 0 power diffs and 0 missing rows. Stage 2 fixed target-month sheet preservation, payment-party sheet hidden-column preservation, and refund extra-block C-G power sync.
 - Chongqing Stage 2 now pops a concise WPF completion warning when generated reports contain warning/audit items. It shows counts/categories and the validation report path rather than long per-file warning lines. Current refund extra-block warnings explicitly say C-G was synced and H onward plus summary monthly deduction/actual payment still require manual review.
 - Chongqing summary output now moves target-month `清能X月` / `清辉X月` sheets directly after `汇总表` and merges their first-row title through the current `备注` column.
@@ -168,7 +169,7 @@ Key implementation constraints:
 - Authorized Chongqing proxy/退补 template folders were rechecked on 2026-07-07; current real `.xlsx` templates are standard xlsx ZIP containers. Ignore `._*` / `~$*` noise. Template reads/copies should use shared read because users may have source workbooks open.
 - Existing summary rows should inherit template fixed fields and long-term fields.
 - New Chongqing summary subjects should not silently default to Hainan `清辉`. Recommended first implementation: WPF preflight requires payment-party selection (`清能`/`清辉`) for new summary subjects, and generated reports flag defaulted fields for manual review.
-- Current validation target is重庆 3-5月阶段一+阶段二真实回测 using `scripts/run_chongqing_backtest.ps1` after explicit current path authorization. The script must receive paths via parameters or case JSON and must write only to `dist/` or another explicit test output directory.
+- 重庆 3-5 月阶段一+阶段二真实回测已完成；`scripts/run_chongqing_backtest.ps1` 保留为后续授权月份回测入口。脚本必须通过参数或 case JSON 接收路径，并只写 `dist/` 或其它明确测试输出目录。
 
 ## Documentation Pointers
 
@@ -216,8 +217,7 @@ For new code changes, rerun focused tests and builds. For pure documentation cha
 
 ## Next Steps
 
-1. Ask the user to实机测试 `dist\HainanSettlementTool-Win10-11-Release-20260709-150129.zip`.
-2. Test focus: 重庆阶段二生成后确认复核弹窗是否可读；汇总表新目标月 `清能/清辉` sheet 是否排在 `汇总表` 后并合并首行标题；启动省份是否为空白；重庆主 tab 是否为 `代理费结算`；主功能区在常用窗口尺寸下是否基本不需要中间滚动条。
-3. If the user wants product behavior for remaining退补/manual deduction cases, triage those with the重庆负责人 before broad refactor work. Do not hardcode observed real customer exceptions without explicit confirmation.
-4. If no重庆阶段二 issue is active, continue the code-quality mainline tracked in `docs/dev-notes/multi-province-code-quality-2026-07-08.md`. Next low-risk candidates are `ProvinceStage1Service` province capability validation or later Excel-side Chongqing Stage 1 generator/updater decomposition.
-5. Do not publish a formal release unless the user asks; current user-facing重庆阶段二 test package is `HainanSettlementTool-Win10-11-Release-20260709-150129.zip`.
+1. Finish the Chongqing documentation/validation closeout, then fast-forward the completed branch into `main`.
+2. Start Guangdong from a new branch based on the updated `main`; keep the first slice limited to proxy/intermediary/refund workbook month-sheet preparation and do not implement Guangdong amount settlement yet.
+3. If later Chongqing months expose repeatable settlement issues, pause lower-priority refactors and fix them with focused regression tests. Do not hardcode isolated customer exceptions.
+4. Do not publish a formal release unless the user asks; the latest pre-Guangdong WPF test package remains `HainanSettlementTool-Win10-11-Release-20260709-150129.zip`.
