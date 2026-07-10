@@ -7,7 +7,7 @@ Last updated: 2026-07-10
 Standalone C# Win10/11 desktop tool for multi-province retail electricity settlement automation.
 
 - Repository: `D:\Document\文件处理\hainan-settlement-desktop`
-- GitHub: `https://github.com/LeBronJu/hainan-settlement-desktop`
+- GitHub: `https://github.com/LeBronJu/retail-power-settlement-desktop`
 - Historical Python reference: `D:\Document\文件处理\hainan-settlement-tool`
 - Stable Hainan reference folder: `D:\Document\文件处理\稳定参考版海南结算`
 
@@ -49,7 +49,14 @@ For the next performance/Open XML work, also read:
 - The historical implementation branch is `codex/guangdong-stage2-month-preparation`; new development should not continue on it.
 - The next development branch must be created from the updated `origin/main` with the `codex/` prefix.
 - Do not tag or publish a formal release without explicit user authorization.
-- Formal release remains `v1.0.1`.
+- Formal release is `v1.1.0`.
+
+## Latest Formal Release
+
+- Tag: `v1.1.0`.
+- Release: `https://github.com/LeBronJu/retail-power-settlement-desktop/releases/tag/v1.1.0`.
+- Asset: `RetailPowerSettlementTool-Win10-11-v1.1.0.zip`.
+- This release contains only the maintained Win10/11 WPF entry. Win7/8 WinForms remains frozen and is not packaged.
 
 ## Latest Test Package
 
@@ -116,6 +123,8 @@ Most recent code/package validation for this branch:
 - Build portability check passed.
 - Full Debug and Release solution builds passed.
 - The authorized Guangdong closeout gate reran all four checks after refreshing `origin`; all passed before the fast-forward to `main`.
+- The `v1.1.0` release gate passed full Debug solution tests, Release build, build portability, documentation guardrails, and formal Win10/11 packaging.
+- The formal package contains one neutral WPF executable, one config, 17 DLLs, and 20 ZIP entries; the executable file version is `1.1.0.0`.
 - Authorized Guangdong sample smoke generated 41/41 outputs; repeat analysis classified all 41 as already prepared; temporary copies were deleted.
 - Package inspection found the executable, config, 17 DLLs, and 20 ZIP entries.
 - User then completed the larger 600+ workbook practical run without reporting a blocking correctness issue.

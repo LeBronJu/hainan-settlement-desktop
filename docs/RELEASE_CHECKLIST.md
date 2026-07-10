@@ -7,7 +7,7 @@ Use this checklist for formal tags and GitHub Releases. It is not required for l
 - Confirm `git status --short --branch`.
 - Release from `main` after approved changes have been merged.
 - Do not include real ledgers, settlement outputs, customer data, screenshots, or finance/payment data in commits or assets.
-- Confirm the release version and tag name, for example `v1.0.1`.
+- Confirm the release version and semantic-version tag name, for example `v1.1.0`.
 
 ## Validation
 
@@ -19,7 +19,7 @@ dotnet msbuild .\HainanSettlementTool.sln /restore /p:Configuration=Release /m
 .\scripts\check_build_portability.ps1
 .\scripts\check_docs_guardrails.ps1
 git diff --check
-.\scripts\package_wpf_release.ps1
+.\scripts\package_wpf_release.ps1 -ReleaseTag <tag>
 ```
 
 Win7/8 WinForms is frozen as a historical compatibility entry. Do not run `.\scripts\package_release.ps1` for default releases unless the user explicitly reopens Win7/8 support.
@@ -48,7 +48,8 @@ Do not update unrelated documents just to satisfy the gate.
 ## Assets And Publish
 
 - GitHub Release assets use stable ASCII filenames:
-  - `HainanSettlementTool-Win10-11-<tag>.zip`
+  - `RetailPowerSettlementTool-Win10-11-<tag>.zip`
+- Confirm the packaged executable file/product version matches the release version and the package `README.txt` names the release tag.
 - Push `main` and the tag.
 - Create or update the GitHub Release with the Win10/11 WPF zip asset.
 - Final response must include:

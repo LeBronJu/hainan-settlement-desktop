@@ -1,6 +1,7 @@
 param(
     [string]$Configuration = "Release",
-    [string]$OutputRoot = ""
+    [string]$OutputRoot = "",
+    [string]$ReleaseTag = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -80,11 +81,24 @@ if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
     $OutputRoot = Join-Path $ProjectRoot "dist"
 }
 
-$stamp = Get-Date -Format "yyyyMMdd-HHmmss"
-$packageName = "HainanSettlementTool-Win10-11-$Configuration-$stamp"
+if ([string]::IsNullOrWhiteSpace($ReleaseTag)) {
+    $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
+    $packageName = "RetailPowerSettlementTool-Win10-11-$Configuration-$stamp"
+    $packageLabel = "test build"
+}
+else {
+    if ($ReleaseTag -notmatch '^v\d+\.\d+\.\d+$') {
+        throw "ReleaseTag must use semantic version tag format such as v1.1.0."
+    }
+
+    $packageName = "RetailPowerSettlementTool-Win10-11-$ReleaseTag"
+    $packageLabel = $ReleaseTag
+}
+
 $packageDir = Join-Path $OutputRoot $packageName
 $zipPath = Join-Path $OutputRoot "$packageName.zip"
 $publishSource = Join-Path $ProjectRoot "src\HainanSettlementTool.Wpf\bin\$Configuration\net472"
+$executableName = "清能电力-结算自动化工具Win10-11版.exe"
 
 Invoke-SolutionBuild
 
@@ -94,14 +108,21 @@ if (Test-Path -LiteralPath $packageDir) {
 
 New-Item -ItemType Directory -Force -Path $packageDir | Out-Null
 
-$include = @("*.exe", "*.config", "*.dll")
-foreach ($pattern in $include) {
-    Get-ChildItem -LiteralPath $publishSource -Filter $pattern -File |
-        Copy-Item -Destination $packageDir -Force
+$requiredFiles = @($executableName, "$executableName.config")
+foreach ($fileName in $requiredFiles) {
+    $sourcePath = Join-Path $publishSource $fileName
+    if (-not (Test-Path -LiteralPath $sourcePath -PathType Leaf)) {
+        throw "Required WPF package file is missing: $sourcePath"
+    }
+
+    Copy-Item -LiteralPath $sourcePath -Destination $packageDir -Force
 }
 
+Get-ChildItem -LiteralPath $publishSource -Filter "*.dll" -File |
+    Copy-Item -Destination $packageDir -Force
+
 $readme = @(
-    "Hainan Settlement Tool - Win10/11 test build",
+    "Retail Power Settlement Tool - Win10/11 $packageLabel",
     "",
     "How to run:",
     "1. Double-click the Win10/11 exe file.",

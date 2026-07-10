@@ -4,7 +4,7 @@ Issues and PRDs for this repo live as GitHub issues. Use the `gh` CLI for issue-
 
 ## Repository
 
-- GitHub repo: `LeBronJu/hainan-settlement-desktop`
+- GitHub repo: `LeBronJu/retail-power-settlement-desktop`
 
 ## Conventions
 

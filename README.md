@@ -6,17 +6,16 @@
 
 GitHub 仓库：
 
-- `https://github.com/LeBronJu/hainan-settlement-desktop`
+- `https://github.com/LeBronJu/retail-power-settlement-desktop`
 
 ## 当前版本
 
-- 最新正式版本：`v1.0.1`
-- Release 页面：`https://github.com/LeBronJu/hainan-settlement-desktop/releases/tag/v1.0.1`
+- 最新正式版本：`v1.1.0`
+- Release 页面：`https://github.com/LeBronJu/retail-power-settlement-desktop/releases/tag/v1.1.0`
 - 当前主线：`main`
-- `main` 已包含 `v1.0.1` 之后的员工电量奖励、Win10/11 WPF 主题支持、重庆阶段一和阶段二首个可用生产基线。当前广东分表月份初始化位于开发分支；这些改动尚未打新 tag 或正式发版。
+- `v1.1.0` 包含海南员工电量奖励、Win10/11 WPF 主题与现代弹窗、重庆阶段一/阶段二首个可用生产基线，以及广东分表月份初始化。
 - 当前正式包：
-  - `HainanSettlementTool-Win7-8-v1.0.1.zip`
-  - `HainanSettlementTool-Win10-11-v1.0.1.zip`
+  - `RetailPowerSettlementTool-Win10-11-v1.1.0.zip`
 
 ## 当前范围
 
@@ -113,7 +112,7 @@ git diff --check
 .\scripts\run_real_smoke.ps1 -Month 5 -RawDetailPath "<原始明细.xls>" -ExistingPowerPath "<已清洗电量表.xlsx>" -BaseLedgerPath "<基础台账.xlsx>" -ReviewedLedgerPath "<人工整理后的台账.xlsx>" -ProxyTemplateDirectory "<上月代理分表文件夹>" -IntermediaryTemplateDirectory "<上月居间分表文件夹>" -SummaryTemplatePath "<上月汇总表.xlsx>" -OutputRoot "<临时输出文件夹>"
 ```
 
-当前解决方案已编译通过。`v1.0.1` 发布前验证包含 Debug 测试、Release 构建、打包脚本、构建脚本兼容性检查，以及授权真实阶段二输出只读对比。
+当前解决方案已编译通过。`v1.1.0` 发布验证包含 Debug 测试、Release 构建、Win10/11 正式打包、构建可移植性和文档守护检查。
 
 ## 发布打包
 
@@ -125,11 +124,17 @@ git diff --check
 
 脚本会执行 Release 构建，并在 `dist/` 下生成一个干净目录和 `.zip` 压缩包。测试时请保留目录内所有 `.dll` 和 `.config` 文件，不要只单独复制 exe。
 
+生成带稳定文件名的正式发布包：
+
+```powershell
+.\scripts\package_wpf_release.ps1 -ReleaseTag v1.1.0
+```
+
 Win7/8 打包脚本仅作为历史兼容脚本保留，未来不再默认生成或发布 Win7/8 包，除非用户明确重新开启 Win7/8 支持。
 
 未来正式发布时，GitHub Release 附件使用稳定 ASCII 文件名：
 
-- `HainanSettlementTool-Win10-11-<tag>.zip`
+- `RetailPowerSettlementTool-Win10-11-<tag>.zip`
 
 历史 `v1.0.1` Release 曾同时包含 Win7/8 和 Win10/11 两个资产；该事实不代表后续继续维护 Win7/8。
 

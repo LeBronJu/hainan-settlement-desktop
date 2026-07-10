@@ -40,7 +40,7 @@ The C# version is being built as a maintainable Windows desktop app. It should e
 
 ### Issue tracker
 
-Issues and PRDs are tracked in GitHub Issues for `LeBronJu/hainan-settlement-desktop`. See `docs/agents/issue-tracker.md`.
+Issues and PRDs are tracked in GitHub Issues for `LeBronJu/retail-power-settlement-desktop`. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
