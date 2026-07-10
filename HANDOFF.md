@@ -54,9 +54,9 @@ Historical real-data authorizations recorded for context only. They are not stan
 ## Current Git State
 
 - Current branch: `codex/guangdong-stage2-month-preparation`
-- Upstream: to be pushed after focused validation.
+- Upstream: `origin/codex/guangdong-stage2-month-preparation`.
 - Branch purpose: Guangdong low-risk proxy/intermediary/refund workbook month-sheet preparation plus third-province WPF capability cleanup.
-- The branch is based on local `main` after the completed Chongqing Stage 2 branch was fast-forwarded. Chongqing closeout commit `6be47aa` is already pushed on `origin/codex/chongqing-stage2-analysis`; pushing updated `main` is pending a stable GitHub connection.
+- The branch is based on `main` after the completed Chongqing Stage 2 branch was fast-forwarded. Chongqing closeout commit `6be47aa` is present on `origin/main` and `origin/codex/chongqing-stage2-analysis`.
 - Do not merge to `main`, tag, or publish a release without explicit user authorization.
 
 - No formal release tag has been cut after `v1.0.1`.
@@ -237,4 +237,4 @@ For new code changes, rerun focused tests and builds. For pure documentation cha
 1. Ask the user to test `dist\HainanSettlementTool-Win10-11-Release-20260710-123600.zip`.
 2. Guangdong test focus: province-specific input visibility, preflight counts, output folder tree, strict standard sheet selection, C-F clearing, date update and report readability.
 3. Keep Guangdong amount calculation, ledger integration and summary workbook generation out of this first slice.
-4. Retry pushing updated `main` and the Guangdong branch when the GitHub connection is stable. Do not publish a formal release unless the user asks.
+4. Do not publish a formal release unless the user asks; the current ZIP is a user-test package only.
