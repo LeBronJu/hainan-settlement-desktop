@@ -13,6 +13,7 @@ Expected domain docs:
 - `CONTEXT.md` at the repo root, if present
 - `docs/adr/` for architectural decisions, if present
 - `docs/architecture.md` for current layering and migration boundaries
+- `docs/dev-notes/excel-performance-openxml-research-2026-07-10.md` for current Excel performance and engine-migration research
 - `docs/*-current-behavior.md` for detailed current behavior of mature modules
 - `AGENTS.md` and `HANDOFF.md` for current working rules and handoff state
 
@@ -23,6 +24,7 @@ If `CONTEXT.md` or `docs/adr/` do not exist, proceed silently. They can be creat
 - Stage 1: raw retail detail cleaning and ledger update.
 - Stage 2: manually reviewed ledger to split workbooks, summary workbook, preflight report, and validation report.
 - Excel layer: workbook reading, raw detail cleaning, template copying, and generated workbook writing.
+- Excel performance: baseline measurement, workbook lifecycle, bounded parallelism, and gradual ClosedXML/Open XML adapter evaluation.
 - Win7/8 UI: WinForms maintenance desktop entry.
 - Win10/11 UI: WPF primary desktop entry for new UI work.
 

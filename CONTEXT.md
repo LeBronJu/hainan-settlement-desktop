@@ -139,6 +139,10 @@
 - 两个 UI 入口都只负责文件选择、参数输入、确认、日志和进度展示。
 - Core 层负责业务模型、阶段服务、文件访问校验和可测试业务规则。
 - Excel 层负责 workbook 读取、raw detail 清洗、模板复制和 workbook 写入。
+- ClosedXML 是当前已验证的生产 workbook 引擎；Open XML SDK 只能按渐进 Adapter 评估，不做一次性全量重写。当前研究和验收门槛见 `docs/dev-notes/excel-performance-openxml-research-2026-07-10.md`。
+- 同一次结算运行中，同一 workbook 的业务修改应集中到一次生成阶段打开和一次保存；不能因增加建 sheet、写电量、金额或报告步骤而反复重开同一 workbook。
+- Open XML SDK 不替代 `.xls/.csv` 输入 Adapter；海南原始明细的多格式支持必须保留。
+- 海南是 Open XML 正确性和迁移流程的首个试点，但由于数量较少，不能单独作为广东大批量性能证明。
 - 新省份功能应优先使用 `Province` / 省份名 / 阶段名命名，避免把重庆、未来省份逻辑塞进海南专用类。
 - UI 不应包含 Excel 解析、客户匹配、金额计算或模板规则。
 - Core 不应引用 ClosedXML、WinForms、WPF 或文件格式实现细节。

@@ -25,12 +25,13 @@ The C# version is being built as a maintainable Windows desktop app. It should e
 - `src/HainanSettlementTool.WinForms/`: retired Win7/8 compatibility UI for the existing Hainan workflow. Keep it from blocking solution builds when practical, but do not spend feature, UX, packaging, or parity work on it unless the user explicitly reopens Win7/8 support.
 - `src/HainanSettlementTool.Wpf/`: Win10/11 WPF main UI. New province entries, new UI features, and UX improvements belong here by default.
 - `src/HainanSettlementTool.Core/`: business models, services, and interfaces.
-- `src/HainanSettlementTool.Excel/`: ClosedXML workbook reading/writing.
+- `src/HainanSettlementTool.Excel/`: workbook reading/writing. ClosedXML is the current production engine; Open XML SDK is under gradual read-side/performance evaluation.
 - `docs/README.md`: documentation map and current source-of-truth index.
 - `docs/CHANGELOG.md`: high-signal completed milestone history.
 - `docs/architecture.md`: layering and migration boundary.
 - `docs/hainan-stage2-current-behavior.md`: current Hainan Stage 2 behavior and validation summary.
 - `docs/dev-notes/guangdong-stage2-month-preparation-2026-07-10.md`: current Guangdong month-sheet preparation rules and validation boundary.
+- `docs/dev-notes/excel-performance-openxml-research-2026-07-10.md`: current Excel performance baseline and gradual Open XML SDK migration research.
 - `CONTEXT.md`: domain vocabulary and settlement rules.
 - `docs/dev-notes/`: architecture reviews, robustness priorities, and one-off technical notes.
 - `HANDOFF.md`: concise current handoff for future sessions.
@@ -55,6 +56,7 @@ This is a single-context repo. See `docs/agents/domain.md`.
 - Before changing an area, use `docs/README.md` to identify the owning document: business settlement rules require `CONTEXT.md`; module boundaries or workflow seams require `docs/architecture.md`; release/packaging requires `docs/RELEASE_CHECKLIST.md`; user-visible setup or package status requires `README.md`; current branch/task state requires `HANDOFF.md`.
 - Before new-province onboarding, WPF province UI, Core multi-province workflow, or Excel multi-province adapter work, also read `docs/dev-notes/multi-province-readiness-2026-07-07.md` and use its P0/P1/P2 readiness order.
 - Before code-quality, province naming, or large-class decomposition work, also read `docs/dev-notes/multi-province-code-quality-2026-07-08.md` and keep the active checklist there instead of expanding `HANDOFF.md`.
+- Before Excel performance work, parallel workbook processing, formula-save changes, or Open XML SDK adoption, also read `docs/dev-notes/excel-performance-openxml-research-2026-07-10.md`. Do not replace ClosedXML writers in one large migration.
 - If context was compacted, the thread was resumed after a pause, or the task direction changed, repeat the relevant reading gate before making further edits.
 - Treat long user feedback as a structured work request. Phrases such as `先看看`, `考虑`, `候选建议`, and `工作计划` mean read-only analysis and no file edits. Phrases such as `做吧`, `开始吧`, `授权你`, `我去休息了`, or `我下班了` mean proceed autonomously within the documented safety and validation gates. User real-machine test feedback or settlement-correctness concerns interrupt lower-priority refactor work.
 - Do not make development changes directly on `main` or `master`. Create a development branch first, using the `codex/` prefix unless the user requests another branch name.
@@ -82,6 +84,8 @@ The app is evolving from a Hainan-only desktop tool into a multi-province settle
 Current business scope and stage rules live in `CONTEXT.md`. Current architecture and module boundaries live in `docs/architecture.md`. Hainan Stage 2 implementation details live in `docs/hainan-stage2-current-behavior.md`. Chongqing Stage 2 analysis lives in `docs/dev-notes/chongqing-stage2-analysis-2026-07-07.md`.
 
 Guangdong month-sheet preparation details live in `docs/dev-notes/guangdong-stage2-month-preparation-2026-07-10.md`. Standard month sheets are exact numeric names; non-standard names are preserved but ignored for source selection. Existing target-month sheets are normalized in place in the output copy, while missing target months are copied only from the exact previous numeric month sheet.
+
+Excel performance and Open XML SDK research lives in `docs/dev-notes/excel-performance-openxml-research-2026-07-10.md`. The next performance pilot starts with Hainan measurement and read-only shadow adapters. Preserve current workbook behavior and keep complex template writers on ClosedXML until equivalence is demonstrated.
 
 ## Business Rules To Preserve
 
