@@ -56,6 +56,8 @@ For the next performance/Open XML work, also read:
 - Tag: `v1.1.0`.
 - Release: `https://github.com/LeBronJu/retail-power-settlement-desktop/releases/tag/v1.1.0`.
 - Asset: `RetailPowerSettlementTool-Win10-11-v1.1.0.zip`.
+- Local ZIP: `D:\Document\文件处理\hainan-settlement-desktop\dist\RetailPowerSettlementTool-Win10-11-v1.1.0.zip`.
+- SHA256: `24B03BE8A708FF0C91166170DC87EF52C5EA7FBA4F7AF7D4F926140D193B20A0`.
 - This release contains only the maintained Win10/11 WPF entry. Win7/8 WinForms remains frozen and is not packaged.
 
 ## Latest Test Package
