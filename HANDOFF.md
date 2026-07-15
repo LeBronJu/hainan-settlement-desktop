@@ -62,10 +62,11 @@ For the next performance/Open XML work, also read:
 
 ## Latest Test Package
 
-- ZIP: `D:\Document\文件处理\hainan-settlement-desktop\dist\HainanSettlementTool-Win10-11-Release-20260710-123600.zip`
-- SHA256: `70939036D93BC85DAF6069D1C536531BCB3B04F7D73330027CBB3D6BA18B3B03`
-- This is a user-test package, not a formal release asset.
-- User simple acceptance passed. A real Guangdong batch of more than 600 workbooks completed in a little over four minutes.
+- ZIP: `D:\Document\文件处理\hainan-settlement-desktop-gd-safety\dist\RetailPowerSettlementTool-Win10-11-Release-20260715-171227.zip`
+- SHA256: `414817A401D10A3A36806D7D79DA055EE3D3649C3033B3593CC66A555A2FD66A`.
+- Source: `codex/guangdong-skipped-workbook-safety` at code commit `23e79ff`.
+- This is a local Win10/11 user-test package for the Guangdong skipped-workbook safety fix, not a formal release asset.
+- Package inspection passed: one WPF executable, one config, 17 DLLs, one README, 20 ZIP entries, no workbook/report data, and the packaged executable passed a short startup smoke.
 
 ## Current Product State
 
