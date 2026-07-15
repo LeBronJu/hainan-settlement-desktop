@@ -29,6 +29,15 @@ namespace HainanSettlementTool.Excel
             var result = NewResult(plan);
             if (!plan.CanProcess)
             {
+                string preservationError;
+                if (!TryPreserveSourceWorkbook(runDirectory, plan, result, out preservationError))
+                {
+                    result.Action = GuangdongStage2PreparationActions.Failed;
+                    result.IssueKind = GuangdongStage2IssueKinds.SkippedWorkbookPreservationFailed;
+                    result.Message = "未自动处理，且原文件保留失败。原原因：" + plan.Message
+                        + "；复制失败：" + preservationError;
+                }
+
                 return result;
             }
 
@@ -66,6 +75,7 @@ namespace HainanSettlementTool.Excel
             }
             catch (Exception ex)
             {
+                string partialOutputWarning = null;
                 try
                 {
                     if (File.Exists(outputPath))
@@ -73,16 +83,49 @@ namespace HainanSettlementTool.Excel
                         File.Delete(outputPath);
                     }
                 }
-                catch
+                catch (Exception cleanupException)
                 {
-                    // Keep the original generation error; the report still identifies the failed output path.
+                    partialOutputWarning = "；不完整输出未能删除，请勿使用：" + outputPath
+                        + "（" + cleanupException.Message + "）";
                 }
 
                 result.Action = GuangdongStage2PreparationActions.Failed;
                 result.IssueKind = GuangdongStage2IssueKinds.GenerationFailed;
-                result.Message = "生成失败：" + ex.Message;
+                result.Message = "生成失败：" + ex.Message + partialOutputWarning;
                 result.OutputPath = null;
+                string preservationError;
+                if (!TryPreserveSourceWorkbook(runDirectory, plan, result, out preservationError))
+                {
+                    result.Message += "；原文件保留失败：" + preservationError;
+                }
+
                 return result;
+            }
+        }
+
+        private static bool TryPreserveSourceWorkbook(
+            string runDirectory,
+            GuangdongStage2WorkbookPlan plan,
+            GuangdongStage2WorkbookResult result,
+            out string error)
+        {
+            error = null;
+            var reviewCopyPath = Path.Combine(
+                runDirectory,
+                GuangdongStage2ExcelUtil.OutputFolderName(plan.SettlementKind),
+                GuangdongStage2ExcelUtil.ReviewFolderName,
+                plan.RelativePath);
+            try
+            {
+                GuangdongStage2ExcelUtil.CopyWorkbookShared(plan.SourcePath, reviewCopyPath);
+                result.ReviewCopyPath = reviewCopyPath;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                result.ReviewCopyPath = null;
+                error = ex.Message;
+                return false;
             }
         }
 

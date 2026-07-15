@@ -6,6 +6,7 @@ namespace HainanSettlementTool.Core.Models
         public string SourcePath { get; set; }
         public string RelativePath { get; set; }
         public string OutputPath { get; set; }
+        public string ReviewCopyPath { get; set; }
         public string Action { get; set; }
         public string IssueKind { get; set; }
         public string Message { get; set; }

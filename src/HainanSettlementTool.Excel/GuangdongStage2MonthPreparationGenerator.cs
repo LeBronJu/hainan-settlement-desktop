@@ -35,7 +35,8 @@ namespace HainanSettlementTool.Excel
             {
                 Year = options.Year,
                 Month = options.Month,
-                OutputDirectory = runDirectory
+                OutputDirectory = runDirectory,
+                InputCount = preparations.Count
             };
             report.Workbooks.AddRange(_writer.Write(runDirectory, preparations));
             _reportWriter.Write(report);

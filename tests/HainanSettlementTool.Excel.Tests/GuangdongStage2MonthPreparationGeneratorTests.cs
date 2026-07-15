@@ -162,6 +162,267 @@ namespace HainanSettlementTool.Excel.Tests
         }
 
         [TestMethod]
+        public void GeneratePreservesSkippedWorkbookForManualReviewWithoutModifyingIt()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var options = CreateOptions(root, includeAllKinds: true);
+                var sourcePath = Path.Combine(
+                    options.IntermediaryDirectory,
+                    "owner",
+                    "【异常】合成居间客户 2026 -广东.xlsx");
+                WriteWorkbook(sourcePath, "居间费用结算单", includeTarget: false, includeStandardSource: true, includeSpecialSheet: false);
+                using (var workbook = new XLWorkbook(sourcePath))
+                {
+                    workbook.Worksheet("4").Cell("L2").Value = "结算日期：2026 年 03 月 15 日";
+                    workbook.Save();
+                }
+
+                var sourceHash = FileHash(sourcePath);
+                var service = new GuangdongStage2MonthPreparationService(new ClosedXmlSettlementExcelGateway());
+                var report = service.Run(options, null);
+
+                Assert.AreEqual(1, report.SkippedCount);
+                var result = report.Workbooks.Single();
+                Assert.AreEqual(GuangdongStage2PreparationActions.Skipped, result.Action);
+                Assert.AreEqual(GuangdongStage2IssueKinds.InvalidSettlementDate, result.IssueKind);
+                Assert.IsTrue(string.IsNullOrWhiteSpace(result.OutputPath));
+                Assert.IsFalse(string.IsNullOrWhiteSpace(result.ReviewCopyPath));
+                Assert.IsTrue(File.Exists(result.ReviewCopyPath));
+                StringAssert.Contains(result.ReviewCopyPath, Path.Combine("居间", "【未处理-需人工复核】", "owner"));
+                CollectionAssert.AreEqual(sourceHash, FileHash(result.ReviewCopyPath));
+                using (var preserved = new XLWorkbook(result.ReviewCopyPath))
+                {
+                    Assert.IsTrue(preserved.TryGetWorksheet("4", out _));
+                    Assert.IsFalse(preserved.TryGetWorksheet("5", out _));
+                }
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
+        public void GenerateWritesReadablePartialCompletionReportsForSkippedWorkbook()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var options = CreateOptions(root, includeAllKinds: true);
+                var fileName = "【异常】合成居间客户 2026 -广东.xlsx";
+                var sourcePath = Path.Combine(options.IntermediaryDirectory, "owner", fileName);
+                WriteWorkbook(sourcePath, "居间费用结算单", includeTarget: false, includeStandardSource: true, includeSpecialSheet: false);
+                using (var workbook = new XLWorkbook(sourcePath))
+                {
+                    workbook.Worksheet("4").Cell("L2").Value = "结算日期：2026 年 03 月 15 日";
+                    workbook.Save();
+                }
+
+                var service = new GuangdongStage2MonthPreparationService(new ClosedXmlSettlementExcelGateway());
+                var report = service.Run(options, null);
+
+                Assert.AreEqual(1, report.InputCount);
+                Assert.AreEqual(0, report.SuccessfulCount);
+                Assert.AreEqual(1, report.PreservedSkippedCount);
+                Assert.IsTrue(report.HasReviewItems);
+                Assert.IsTrue(File.Exists(report.HtmlReportPath));
+                StringAssert.Contains(Path.GetFileName(report.HtmlReportPath), "【必须处理】1个文件未生成新月份sheet");
+
+                var validationText = File.ReadAllText(report.ValidationReportPath);
+                StringAssert.Contains(validationText, "本批次状态：部分完成，必须人工复核");
+                StringAssert.Contains(validationText, "扫描输入：1");
+                StringAssert.Contains(validationText, "正常输出：0");
+                StringAssert.Contains(validationText, "未自动处理但原文件已保留：1");
+                StringAssert.Contains(validationText, fileName);
+                StringAssert.Contains(validationText, "上月结算日期顺延后不是目标结算月份");
+                StringAssert.Contains(validationText, report.Workbooks.Single().ReviewCopyPath);
+
+                var html = File.ReadAllText(report.HtmlReportPath);
+                StringAssert.Contains(html, "部分完成");
+                StringAssert.Contains(html, "必须人工复核");
+                StringAssert.Contains(html, fileName);
+                StringAssert.Contains(html, "原文件已保留");
+
+                var json = File.ReadAllText(report.ReportPath);
+                StringAssert.Contains(json, fileName);
+                StringAssert.Contains(json, GuangdongStage2PreparationActions.Skipped);
+                StringAssert.Contains(json, "\"ReviewCopyPath\":");
+                Assert.IsFalse(json.Contains("\"ReviewCopyPath\": null"));
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
+        public void GenerateMarksBatchCriticalWhenSkippedSourceCannotBePreserved()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var options = CreateOptions(root);
+                var sourcePath = Path.Combine(options.ProxyDirectory, "locked.xlsx");
+                WriteWorkbook(
+                    sourcePath,
+                    "代理费用结算单",
+                    includeTarget: false,
+                    includeStandardSource: true,
+                    includeSpecialSheet: false);
+
+                GuangdongStage2MonthPreparationReport report;
+                using (File.Open(sourcePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+                {
+                    var service = new GuangdongStage2MonthPreparationService(new ClosedXmlSettlementExcelGateway());
+                    report = service.Run(options, null);
+                }
+
+                Assert.AreEqual(1, report.InputCount);
+                Assert.AreEqual(0, report.SuccessfulCount);
+                Assert.AreEqual(0, report.SkippedCount);
+                Assert.AreEqual(1, report.FailedCount);
+                Assert.AreEqual(0, report.PreservedReviewCopyCount);
+                Assert.IsTrue(report.IsClassificationComplete);
+                Assert.IsFalse(report.HasCompleteOutputSet);
+                Assert.IsTrue(report.HasCriticalFailures);
+                Assert.IsTrue(report.HasReviewItems);
+
+                var result = report.Workbooks.Single();
+                Assert.AreEqual(GuangdongStage2IssueKinds.SkippedWorkbookPreservationFailed, result.IssueKind);
+                Assert.IsTrue(string.IsNullOrWhiteSpace(result.OutputPath));
+                Assert.IsTrue(string.IsNullOrWhiteSpace(result.ReviewCopyPath));
+                StringAssert.Contains(result.Message, "原文件保留失败");
+
+                var validationText = File.ReadAllText(report.ValidationReportPath);
+                StringAssert.Contains(validationText, "本批次状态：执行异常，必须处理");
+                StringAssert.Contains(validationText, "输入文件保留完整：否");
+                var html = File.ReadAllText(report.HtmlReportPath);
+                StringAssert.Contains(html, "执行异常，必须处理");
+                StringAssert.Contains(html, "原文件未能保留");
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
+        public void GenerateWritesNormalHtmlReportWhenEveryWorkbookCompletes()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var options = CreateOptions(root);
+                WriteWorkbook(
+                    Path.Combine(options.ProxyDirectory, "normal.xlsx"),
+                    "代理费用结算单",
+                    includeTarget: false,
+                    includeStandardSource: true,
+                    includeSpecialSheet: false);
+
+                var service = new GuangdongStage2MonthPreparationService(new ClosedXmlSettlementExcelGateway());
+                var report = service.Run(options, null);
+
+                Assert.AreEqual(1, report.SuccessfulCount);
+                Assert.AreEqual(0, report.SkippedCount);
+                Assert.AreEqual(0, report.FailedCount);
+                Assert.IsFalse(report.HasReviewItems);
+                Assert.IsTrue(File.Exists(report.HtmlReportPath));
+                Assert.IsFalse(Path.GetFileName(report.HtmlReportPath).Contains("【必须处理】"));
+
+                var html = File.ReadAllText(report.HtmlReportPath);
+                StringAssert.Contains(html, "全部完成");
+                StringAssert.Contains(html, "没有需要人工复核的文件");
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
+        public void GenerateHtmlEncodesDynamicWorkbookNamesAndErrorMessages()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var options = CreateOptions(root);
+                var fileName = "【异常】合成&客户.xlsx";
+                var unsafeTitle = "异常<script>alert(1)</script>&标题";
+                WriteWorkbook(
+                    Path.Combine(options.ProxyDirectory, fileName),
+                    unsafeTitle,
+                    includeTarget: false,
+                    includeStandardSource: true,
+                    includeSpecialSheet: false);
+
+                var service = new GuangdongStage2MonthPreparationService(new ClosedXmlSettlementExcelGateway());
+                var report = service.Run(options, null);
+
+                Assert.AreEqual(1, report.SkippedCount);
+                Assert.IsTrue(File.Exists(report.HtmlReportPath));
+
+                var html = File.ReadAllText(report.HtmlReportPath);
+                StringAssert.Contains(html, "【异常】合成&amp;客户.xlsx");
+                StringAssert.Contains(html, "异常&lt;script&gt;alert(1)&lt;/script&gt;&amp;标题");
+                Assert.IsFalse(html.Contains(fileName));
+                Assert.IsFalse(html.Contains(unsafeTitle));
+                Assert.IsFalse(html.Contains("<script>alert(1)</script>"));
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
+        public void GenerateAccountsForEveryWorkbookInMixedSuccessfulAndSkippedBatch()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var options = CreateOptions(root);
+                WriteWorkbook(
+                    Path.Combine(options.ProxyDirectory, "normal.xlsx"),
+                    "代理费用结算单",
+                    includeTarget: false,
+                    includeStandardSource: true,
+                    includeSpecialSheet: false);
+                var skippedPath = Path.Combine(options.ProxyDirectory, "skipped.xlsx");
+                WriteWorkbook(
+                    skippedPath,
+                    "代理费用结算单",
+                    includeTarget: false,
+                    includeStandardSource: true,
+                    includeSpecialSheet: false);
+                using (var workbook = new XLWorkbook(skippedPath))
+                {
+                    workbook.Worksheet("4").Cell("L2").Value = "结算日期：2026 年 03 月 15 日";
+                    workbook.Save();
+                }
+
+                var service = new GuangdongStage2MonthPreparationService(new ClosedXmlSettlementExcelGateway());
+                var report = service.Run(options, null);
+
+                Assert.AreEqual(2, report.InputCount);
+                Assert.AreEqual(2, report.ClassifiedCount);
+                Assert.AreEqual(2, report.AvailableWorkbookCount);
+                Assert.IsTrue(report.IsClassificationComplete);
+                Assert.IsTrue(report.HasCompleteOutputSet);
+                Assert.AreEqual(1, report.SuccessfulCount);
+                Assert.AreEqual(1, report.PreservedSkippedCount);
+                Assert.AreEqual(0, report.FailedCount);
+                Assert.AreEqual(2, Directory.EnumerateFiles(report.OutputDirectory, "*.xlsx", SearchOption.AllDirectories).Count());
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
         public void GenerateRecognizesProxyIntermediaryAndRefundTitles()
         {
             var root = CreateTempRoot();

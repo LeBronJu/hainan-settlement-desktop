@@ -1,6 +1,6 @@
 # Handoff
 
-Last updated: 2026-07-10
+Last updated: 2026-07-15
 
 ## Project
 
@@ -45,9 +45,9 @@ For the next performance/Open XML work, also read:
 
 ## Git State
 
-- `main` contains Guangdong month-sheet preparation, WPF third-province support, and the current documentation/performance research closeout.
+- `main` contains the released Guangdong month-sheet preparation and WPF third-province baseline.
+- The active safety-fix branch is `codex/guangdong-skipped-workbook-safety`, created from `origin/main` in an isolated worktree.
 - The historical implementation branch is `codex/guangdong-stage2-month-preparation`; new development should not continue on it.
-- The next development branch must be created from the updated `origin/main` with the `codex/` prefix.
 - Do not tag or publish a formal release without explicit user authorization.
 - Formal release is `v1.1.0`.
 
@@ -86,6 +86,8 @@ Guangdong:
 
 - Only proxy/intermediary/refund workbook month-sheet preparation is implemented.
 - It strictly selects exact numeric month sheets, preserves non-standard sheets, normalizes an existing target month, or copies only the exact previous numeric month.
+- Conflicting or unreliable dates remain conservative skip conditions and are not automatically corrected.
+- Skipped or generation-failed input workbooks are preserved unchanged under the corresponding `【未处理-需人工复核】` directory; HTML/JSON/TXT reports and the WPF result state expose partial completion and input classification totals.
 - It does not read a ledger, write settlement power, calculate amounts, or generate a summary workbook.
 - The current feature and performance satisfy the immediate user request. Full Guangdong settlement and further performance work are paused while Hainan is studied first.
 - Current rules live in `docs/dev-notes/guangdong-stage2-month-preparation-2026-07-10.md`.
@@ -118,7 +120,7 @@ High-risk writers that must not be migrated first:
 
 ## Latest Validation
 
-Most recent code/package validation for this branch:
+Most recent completed validation for the released baseline:
 
 - Core tests: 29 passed.
 - Excel tests: 35 passed.
@@ -131,17 +133,21 @@ Most recent code/package validation for this branch:
 - Package inspection found the executable, config, 17 DLLs, and 20 ZIP entries.
 - User then completed the larger 600+ workbook practical run without reporting a blocking correctness issue.
 
-The documentation closeout after that package changes no business code. Its required validation is the docs guardrail script, stale-reference scans, and `git diff --check`.
+Current Guangdong safety-fix branch validation:
+
+- Core tests: 29/29 passed.
+- Excel tests: 41/41 passed, including 11 Guangdong month-preparation regressions using only synthetic workbooks.
+- Full Debug and Release solution builds passed; the WPF partial-completion UI compiled successfully.
+- Build portability, documentation guardrails, `git diff --check`, and debug-marker scan passed.
+- The exact user-authorized incident workbook smoke produced 0 normal / 1 preserved skip / 0 failed: the review copy was SHA-256 identical, retained sheet `4`, did not add sheet `5`, and the HTML displayed partial completion. The temporary copy and output were deleted.
+- No other real business workbook, ledger, customer data, or settlement output was read during this validation.
 
 ## Next Session
 
-1. Create `codex/hainan-excel-performance-baseline` from the updated `origin/main` before code changes; do not continue development directly on `main` or the historical Guangdong branch.
-2. Treat Hainan performance baseline/instrumentation as the next mainline. Do not begin with Open XML writer replacement.
-3. Measure Stage 1, Stage 2, and employee reward separately: scan/read, business calculation, workbook mutation, formula evaluation, save, total time, and peak memory where practical.
-4. Use synthetic workbooks unless the user provides a new explicit real-data authorization.
-5. After measurement, implement the smallest behavior-preserving removal of repeated reads or saves and rerun existing tests/builds.
-6. Only then implement one Open XML read-only shadow Adapter and compare DTO output against ClosedXML.
-7. Keep Guangdong full settlement, formal release/tagging, WinForms parity, and structural Open XML writers out of the first performance slice.
+1. Review the committed `codex/guangdong-skipped-workbook-safety` fix and integrate it only after explicit user authorization.
+2. Do not merge, tag, publish, create a test package, or create a formal release without explicit user authorization.
+3. After this safety fix is closed, resume the Hainan performance baseline: measure Stage 1, Stage 2, and employee reward separately before any Open XML writer change.
+4. Keep Guangdong full settlement, formal release/tagging, WinForms parity, and structural Open XML writers out of the first performance slice.
 
 ## Documentation Maintenance
 

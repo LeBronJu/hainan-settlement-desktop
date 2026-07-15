@@ -8,6 +8,8 @@ namespace HainanSettlementTool.Excel
 {
     internal static class GuangdongStage2ExcelUtil
     {
+        public const string ReviewFolderName = "【未处理-需人工复核】";
+
         public static XLWorkbook OpenWorkbookShared(string path)
         {
             using (var stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))

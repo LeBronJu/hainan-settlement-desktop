@@ -314,6 +314,8 @@ namespace HainanSettlementTool.Wpf
             _progressController.SetProgress(8, "扫描代理、居间和退补目录");
             _progressController.SetStepRunning(0);
             AddLog("开始扫描广东分表月份初始化条件。", "广东分表");
+            var requiresReviewAfterRun = false;
+            var criticalFailureAfterRun = false;
 
             try
             {
@@ -341,7 +343,7 @@ namespace HainanSettlementTool.Wpf
                     "确认广东分表月份初始化",
                     "已完成只读预检",
                     BuildGuangdongPreflightMessage(preflight),
-                    "开始初始化"))
+                    GuangdongConfirmationButtonText(preflight)))
                 {
                     AddLog("已取消广东分表月份初始化。", "广东分表");
                     _progressController.ResetProgress("等待执行", "已取消广东分表月份初始化");
@@ -357,47 +359,122 @@ namespace HainanSettlementTool.Wpf
                     report = service.Run(options, LogThreadSafe);
                 });
 
+                requiresReviewAfterRun = report.HasReviewItems;
+                criticalFailureAfterRun = report.HasCriticalFailures;
                 _progressController.SetStepDone(1);
                 _progressController.SetStepDone(2);
                 _progressController.SetStepDone(3);
                 _progressController.SetStepDone(4);
-                _progressController.SetProgress(100, "广东分表月份初始化完成");
-                AddLog("广东分表成功输出 " + report.SuccessfulCount + " 个；跳过 " + report.SkippedCount + " 个；失败 " + report.FailedCount + " 个。", "成功");
+                _progressController.SetProgress(
+                    100,
+                    criticalFailureAfterRun
+                        ? "广东分表月份初始化存在异常"
+                        : requiresReviewAfterRun
+                            ? "广东分表月份初始化部分完成"
+                            : "广东分表月份初始化完成");
+                AddLog(
+                    "广东分表正常输出 " + report.SuccessfulCount + " / " + report.InputCount
+                    + " 个；需人工复核 " + report.SkippedCount + " 个；失败 " + report.FailedCount + " 个。",
+                    criticalFailureAfterRun ? "错误" : requiresReviewAfterRun ? "警告" : "成功");
                 AddLog("广东分表校验报告：" + report.ValidationReportPath, "信息");
+                AddLog("广东分表可读报告：" + report.HtmlReportPath, "信息");
 
-                _resultController.SetStage2Success(
-                    report.CountFor(GuangdongStage2SettlementKinds.Proxy) + " 个文件",
-                    report.CountFor(GuangdongStage2SettlementKinds.Intermediary) + " 个文件",
-                    report.CountFor(GuangdongStage2SettlementKinds.Refund) + " 个文件");
-                _resultController.ShowCompletion(
-                    "广东分表初始化完成",
-                    "已生成目标月份分表副本和检查报告",
-                    report.OutputDirectory);
-                ShowGuangdongReviewReminder(report);
+                _resultController.SetStage2Outcome(
+                    GuangdongKindStatus(report, GuangdongStage2SettlementKinds.Proxy),
+                    GuangdongKindCount(report, GuangdongStage2SettlementKinds.Proxy),
+                    GuangdongKindStatus(report, GuangdongStage2SettlementKinds.Intermediary),
+                    GuangdongKindCount(report, GuangdongStage2SettlementKinds.Intermediary),
+                    GuangdongKindStatus(report, GuangdongStage2SettlementKinds.Refund),
+                    GuangdongKindCount(report, GuangdongStage2SettlementKinds.Refund));
+                if (!report.HasReviewItems)
+                {
+                    _resultController.ShowCompletion(
+                        "广东分表初始化完成",
+                        "已生成目标月份分表副本和检查报告",
+                        report.OutputDirectory);
+                }
+                else
+                {
+                    _resultController.ShowReviewCompletion(
+                        criticalFailureAfterRun ? "广东分表初始化存在异常" : "广东分表初始化部分完成",
+                        "正常输出 " + report.SuccessfulCount + " / " + report.InputCount
+                        + "；需人工复核 " + report.SkippedCount + "；失败 " + report.FailedCount + "。",
+                        report.OutputDirectory,
+                        criticalFailureAfterRun);
+                    ShowGuangdongReviewReminder(report);
+                }
             }
             catch (Exception ex)
             {
+                criticalFailureAfterRun = true;
                 _progressController.SetStepFailed();
                 _progressController.SetProgress(100, "执行失败");
                 AddLog(ex.Message, "错误");
+                _resultController.ShowReviewCompletion(
+                    "广东分表初始化执行失败",
+                    "本次运行未完成，请根据错误提示检查后重试。",
+                    options.OutputDirectory,
+                    true);
                 _dialogController.ShowError(ex);
             }
             finally
             {
                 _setBusy(false);
+                if (criticalFailureAfterRun)
+                {
+                    _progressController.SetStatus("执行异常", "ErrorBrush", "StatusBusyBrush");
+                }
+                else if (requiresReviewAfterRun)
+                {
+                    _progressController.SetStatus("需复核", "WarningBrush", "StatusBusyBrush");
+                }
             }
+        }
+
+        private static string GuangdongConfirmationButtonText(GuangdongStage2PreflightReport report)
+        {
+            if (report.SkippedCount == 0)
+            {
+                return "开始初始化";
+            }
+
+            return report.ProcessableCount > 0
+                ? "继续处理其余 " + report.ProcessableCount + " 个"
+                : "保存复核文件";
         }
 
         private static string BuildGuangdongPreflightMessage(GuangdongStage2PreflightReport report)
         {
             var message = new StringBuilder();
             message.AppendLine("结算月份：" + report.Year + "年" + report.Month + "月");
-            message.AppendLine("扫描 workbook：" + report.Workbooks.Count + " 个");
+            message.AppendLine("扫描文件：" + report.Workbooks.Count + " 个");
             message.AppendLine();
             message.AppendLine("- 从标准上月 sheet 创建：" + report.CreateCount + " 个");
             message.AppendLine("- 保留现有目标月并整理：" + report.NormalizeCount + " 个");
             message.AppendLine("- 现有目标月已经准备完成：" + report.AlreadyPreparedCount + " 个");
-            message.AppendLine("- 结构异常或缺少标准上月，将跳过：" + report.SkippedCount + " 个");
+            message.AppendLine("- 结构、日期或来源异常，将跳过：" + report.SkippedCount + " 个");
+            if (report.SkippedCount > 0)
+            {
+                message.AppendLine();
+                message.AppendLine("以下文件不会新增目标月份 sheet：");
+                foreach (var workbook in report.Workbooks
+                    .Where(item => item.Action == GuangdongStage2PreparationActions.Skipped)
+                    .Take(3))
+                {
+                    message.AppendLine("- [" + workbook.SettlementKind + "] " + workbook.RelativePath);
+                    message.AppendLine("  原因：" + workbook.Message);
+                }
+
+                if (report.SkippedCount > 3)
+                {
+                    message.AppendLine("- 其余 " + (report.SkippedCount - 3) + " 个请在运行报告中查看。");
+                }
+
+                message.AppendLine();
+                message.AppendLine("继续后，这些原文件会原样保留到对应类别的“【未处理-需人工复核】”目录。"
+                    + "程序不会自动修正异常日期。");
+            }
+
             message.AppendLine();
             message.AppendLine("只识别名称完全等于数字月份的标准 sheet；其它 sheet 原样保留但不参与来源选择。所有结果写入新的输出目录，不修改原文件。");
             return message.ToString();
@@ -405,21 +482,68 @@ namespace HainanSettlementTool.Wpf
 
         private void ShowGuangdongReviewReminder(GuangdongStage2MonthPreparationReport report)
         {
-            if (report.SkippedCount == 0 && report.FailedCount == 0)
+            if (!report.HasReviewItems)
             {
                 return;
             }
 
             var message = new StringBuilder();
-            message.AppendLine("跳过：" + report.SkippedCount + " 个；生成失败：" + report.FailedCount + " 个。");
-            message.AppendLine("其余 " + report.SuccessfulCount + " 个 workbook 已正常输出，不受影响。");
+            message.AppendLine("扫描输入：" + report.InputCount + " 个；正常输出：" + report.SuccessfulCount
+                + " 个；需人工复核：" + report.SkippedCount + " 个；失败：" + report.FailedCount + " 个。");
             message.AppendLine();
-            message.AppendLine("完整明细：");
-            message.AppendLine(report.ValidationReportPath);
+            message.AppendLine("需要关注的文件：");
+            foreach (var workbook in report.Workbooks
+                .Where(item => item.Action == GuangdongStage2PreparationActions.Skipped
+                    || item.Action == GuangdongStage2PreparationActions.Failed)
+                .Take(3))
+            {
+                message.AppendLine("- [" + workbook.SettlementKind + "] " + workbook.RelativePath);
+                message.AppendLine("  原因：" + workbook.Message);
+            }
+
+            var reviewCount = report.SkippedCount + report.FailedCount;
+            if (reviewCount > 3)
+            {
+                message.AppendLine("- 其余 " + (reviewCount - 3) + " 个请查看报告。");
+            }
+
+            if (report.PreservedReviewCopyCount > 0)
+            {
+                message.AppendLine();
+                message.AppendLine("未自动处理的原文件已原样保留在对应类别的“【未处理-需人工复核】”目录，未新增目标月份 sheet。");
+            }
+
+            message.AppendLine();
+            message.AppendLine("优先查看可读报告：");
+            message.AppendLine(report.HtmlReportPath);
             _dialogController.ShowWarningMessage(
-                "广东分表需要复核",
-                "部分 workbook 未自动处理",
+                report.HasCriticalFailures ? "广东分表执行异常" : "广东分表需要复核",
+                report.HasCriticalFailures ? "部分输入未形成可用输出" : "本批次尚未完整处理",
                 message.ToString());
+        }
+
+        private static string GuangdongKindStatus(
+            GuangdongStage2MonthPreparationReport report,
+            string settlementKind)
+        {
+            if (report.FailedCountFor(settlementKind) > 0)
+            {
+                return "失败";
+            }
+
+            if (!report.IsClassificationComplete || !report.HasCompleteOutputSet)
+            {
+                return "需复核";
+            }
+
+            return report.SkippedCountFor(settlementKind) > 0 ? "需复核" : "成功";
+        }
+
+        private static string GuangdongKindCount(
+            GuangdongStage2MonthPreparationReport report,
+            string settlementKind)
+        {
+            return report.CountFor(settlementKind) + " / " + report.InputCountFor(settlementKind);
         }
 
         private bool ConfirmStage2Preflight(HainanStage2PreflightReport report, HainanStage2Options options)

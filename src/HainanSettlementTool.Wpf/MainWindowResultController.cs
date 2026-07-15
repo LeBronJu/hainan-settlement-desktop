@@ -128,11 +128,11 @@ namespace HainanSettlementTool.Wpf
         {
             _stage1ResultStatus.Text = "等待";
             _stage1ResultCount.Text = "-";
-            _proxyResultStatus.Text = "等待";
+            SetResultStatus(_proxyResultStatus, "等待");
             _proxyResultCount.Text = "-";
-            _intermediaryResultStatus.Text = "等待";
+            SetResultStatus(_intermediaryResultStatus, "等待");
             _intermediaryResultCount.Text = "-";
-            _summaryResultStatus.Text = "等待";
+            SetResultStatus(_summaryResultStatus, "等待");
             _summaryResultCount.Text = "-";
             _employeeRewardResultStatus.Text = "等待";
             _employeeRewardResultCount.Text = "-";
@@ -145,6 +145,7 @@ namespace HainanSettlementTool.Wpf
         public void ShowWaiting(ProvinceCode? province)
         {
             var hasProvince = province.HasValue;
+            ResetCompletionAppearance();
             _completionIconCircle.Background = hasProvince ? _brushOf("SuccessBrush") : _brushOf("AccentBrush");
             _completionIconText.Text = hasProvince ? "\uE73E" : "\uE946";
             _completionTitleText.Text = hasProvince ? "等待生成结果" : "等待选择省份";
@@ -162,22 +163,39 @@ namespace HainanSettlementTool.Wpf
 
         public void SetStage2Success(string proxyCountText, string intermediaryCountText, string summaryCountText)
         {
-            _proxyResultStatus.Text = "成功";
+            SetStage2Outcome(
+                "成功",
+                proxyCountText,
+                "成功",
+                intermediaryCountText,
+                "成功",
+                summaryCountText);
+        }
+
+        public void SetStage2Outcome(
+            string proxyStatus,
+            string proxyCountText,
+            string intermediaryStatus,
+            string intermediaryCountText,
+            string summaryStatus,
+            string summaryCountText)
+        {
+            SetResultStatus(_proxyResultStatus, proxyStatus);
             _proxyResultCount.Text = proxyCountText;
-            _intermediaryResultStatus.Text = "成功";
+            SetResultStatus(_intermediaryResultStatus, intermediaryStatus);
             _intermediaryResultCount.Text = intermediaryCountText;
-            _summaryResultStatus.Text = "成功";
+            SetResultStatus(_summaryResultStatus, summaryStatus);
             _summaryResultCount.Text = summaryCountText;
             SetFinishedNow();
         }
 
         public void SetStage2PreflightSuccess()
         {
-            _proxyResultStatus.Text = "预检";
+            SetResultStatus(_proxyResultStatus, "预检");
             _proxyResultCount.Text = "未生成";
-            _intermediaryResultStatus.Text = "预检";
+            SetResultStatus(_intermediaryResultStatus, "预检");
             _intermediaryResultCount.Text = "未生成";
-            _summaryResultStatus.Text = "预检";
+            SetResultStatus(_summaryResultStatus, "预检");
             _summaryResultCount.Text = "未生成";
             SetFinishedNow();
         }
@@ -194,12 +212,57 @@ namespace HainanSettlementTool.Wpf
         public void ShowCompletion(string title, string detail, string outputDirectory)
         {
             LastOutputDirectory = outputDirectory;
+            ResetCompletionAppearance();
             _completionIconCircle.Background = _brushOf("SuccessBrush");
             _completionIconText.Text = "\uE73E";
             _completionTitleText.Text = title;
             _completionDetailText.Text = detail;
             _completionOutputText.Text = outputDirectory;
             _completionCard.Visibility = Visibility.Visible;
+        }
+
+        public void ShowReviewCompletion(
+            string title,
+            string detail,
+            string outputDirectory,
+            bool critical)
+        {
+            LastOutputDirectory = outputDirectory;
+            _completionCard.SetResourceReference(Border.BackgroundProperty, "StatusBusyBrush");
+            _completionCard.SetResourceReference(
+                Border.BorderBrushProperty,
+                critical ? "ErrorBrush" : "WarningBrush");
+            _completionIconCircle.SetResourceReference(
+                Border.BackgroundProperty,
+                critical ? "ErrorBrush" : "WarningBrush");
+            _completionIconText.Text = critical ? "\uE783" : "\uE7BA";
+            _completionTitleText.Text = title;
+            _completionDetailText.Text = detail;
+            _completionOutputText.Text = outputDirectory;
+            _completionCard.Visibility = Visibility.Visible;
+        }
+
+        private void SetResultStatus(TextBlock statusText, string status)
+        {
+            var failed = string.Equals(status, "失败", StringComparison.Ordinal);
+            var needsReview = failed || string.Equals(status, "需复核", StringComparison.Ordinal);
+            statusText.Text = status;
+            statusText.SetResourceReference(
+                TextBlock.ForegroundProperty,
+                failed ? "ErrorBrush" : needsReview ? "WarningBrush" : "SuccessBrush");
+            var pill = statusText.Parent as Border;
+            if (pill != null)
+            {
+                pill.SetResourceReference(
+                    Border.BackgroundProperty,
+                    needsReview ? "StatusBusyBrush" : "ResultPillBrush");
+            }
+        }
+
+        private void ResetCompletionAppearance()
+        {
+            _completionCard.SetResourceReference(Border.BackgroundProperty, "CompletionBrush");
+            _completionCard.SetResourceReference(Border.BorderBrushProperty, "CompletionBorderBrush");
         }
 
         private void SetFinishedNow()

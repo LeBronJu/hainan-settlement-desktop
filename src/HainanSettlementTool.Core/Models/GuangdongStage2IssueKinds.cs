@@ -13,6 +13,7 @@ namespace HainanSettlementTool.Core.Models
         public const string InvalidSettlementDate = "InvalidSettlementDate";
         public const string ProtectedWorksheet = "ProtectedWorksheet";
         public const string UnreadableWorkbook = "UnreadableWorkbook";
+        public const string SkippedWorkbookPreservationFailed = "SkippedWorkbookPreservationFailed";
         public const string GenerationFailed = "GenerationFailed";
     }
 }

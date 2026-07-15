@@ -61,7 +61,13 @@ namespace HainanSettlementTool.Wpf
 
         public void RefreshStatusBrushes()
         {
-            if (_statusText.Text == "待确认" || _statusText.Text == "运行中")
+            if (_statusText.Text == "执行异常")
+            {
+                SetStatus(_statusText.Text, "ErrorBrush", "StatusBusyBrush");
+            }
+            else if (_statusText.Text == "待确认"
+                || _statusText.Text == "运行中"
+                || _statusText.Text == "需复核")
             {
                 SetStatus(_statusText.Text, "WarningBrush", "StatusBusyBrush");
             }
