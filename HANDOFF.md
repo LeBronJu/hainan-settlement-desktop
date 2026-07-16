@@ -1,6 +1,6 @@
 # Handoff
 
-Last updated: 2026-07-15
+Last updated: 2026-07-16
 
 ## Project
 
@@ -45,8 +45,7 @@ For the next performance/Open XML work, also read:
 
 ## Git State
 
-- `main` contains the released Guangdong month-sheet preparation and WPF third-province baseline.
-- The active safety-fix branch is `codex/guangdong-skipped-workbook-safety`, created from `origin/main` in an isolated worktree.
+- Local `main` now contains the Guangdong skipped-workbook safety fix and is ahead of `origin/main`; the remote still points to the released `v1.1.0` baseline until a later explicit push/release decision.
 - The historical implementation branch is `codex/guangdong-stage2-month-preparation`; new development should not continue on it.
 - Do not tag or publish a formal release without explicit user authorization.
 - Formal release is `v1.1.0`.
@@ -62,9 +61,9 @@ For the next performance/Open XML work, also read:
 
 ## Latest Test Package
 
-- ZIP: `D:\Document\文件处理\hainan-settlement-desktop-gd-safety\dist\RetailPowerSettlementTool-Win10-11-Release-20260715-171227.zip`
+- ZIP: `D:\Document\文件处理\hainan-settlement-desktop\dist\RetailPowerSettlementTool-Win10-11-Release-20260715-171227.zip`
 - SHA256: `414817A401D10A3A36806D7D79DA055EE3D3649C3033B3593CC66A555A2FD66A`.
-- Source: `codex/guangdong-skipped-workbook-safety` at code commit `23e79ff`.
+- Source: local `main` at code commit `23e79ff`.
 - This is a local Win10/11 user-test package for the Guangdong skipped-workbook safety fix, not a formal release asset.
 - Package inspection passed: one WPF executable, one config, 17 DLLs, one README, 20 ZIP entries, no workbook/report data, and the packaged executable passed a short startup smoke.
 
@@ -134,7 +133,7 @@ Most recent completed validation for the released baseline:
 - Package inspection found the executable, config, 17 DLLs, and 20 ZIP entries.
 - User then completed the larger 600+ workbook practical run without reporting a blocking correctness issue.
 
-Current Guangdong safety-fix branch validation:
+Current Guangdong safety-fix validation on local `main`:
 
 - Core tests: 29/29 passed.
 - Excel tests: 41/41 passed, including 11 Guangdong month-preparation regressions using only synthetic workbooks.
@@ -145,10 +144,11 @@ Current Guangdong safety-fix branch validation:
 
 ## Next Session
 
-1. Review the committed `codex/guangdong-skipped-workbook-safety` fix and integrate it only after explicit user authorization.
-2. Do not merge, tag, publish, create a test package, or create a formal release without explicit user authorization.
-3. After this safety fix is closed, resume the Hainan performance baseline: measure Stage 1, Stage 2, and employee reward separately before any Open XML writer change.
-4. Keep Guangdong full settlement, formal release/tagging, WinForms parity, and structural Open XML writers out of the first performance slice.
+1. Complete user practical testing with the latest Guangdong safety-fix test package.
+2. If practical testing passes, decide separately whether to push local `main` and prepare a formal patch release; do not tag or publish without explicit authorization.
+3. If testing finds another issue, create a new `codex/` branch from local `main` instead of editing `main` directly.
+4. After this safety fix is closed, resume the Hainan performance baseline: measure Stage 1, Stage 2, and employee reward separately before any Open XML writer change.
+5. Keep Guangdong full settlement, WinForms parity, and structural Open XML writers out of the first performance slice.
 
 ## Documentation Maintenance
 
