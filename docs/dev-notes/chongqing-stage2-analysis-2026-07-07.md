@@ -227,9 +227,11 @@
 
 2026-07-09 新增参数化真实回测入口：
 
+> 2026-07-22 状态：新的阶段二 `Run` 强制校验预检签名和输入指纹，本节两个回测脚本的 Analyze → Run 授权链尚未刷新。适配和使用合成 fixture 验证前，不得将它们当作可运行的当前回归入口；以下记录保留其原设计口径和输出结构。
+
 - `scripts/run_chongqing_stage2_backtest.ps1` 用于重庆阶段二 1-N 月本地回测，调用当前 Core/Excel 服务，不经过 WPF。
 - 输入路径必须通过参数或 case JSON 显式传入；脚本不硬编码真实生产路径。
-- 默认输出到 `dist/chongqing-stage2-backtest-<timestamp>`，生成每月独立输出目录和 `chongqing-stage2-backtest-summary.json`。
+- 默认输出到已由 Git 排除的 `local-validation/backtests/chongqing-stage2-backtest-<timestamp>`，生成每月独立输出目录和 `chongqing-stage2-backtest-summary.json`。
 - summary 只记录行数、组数、金额合计、warning/audit issue 数、公式错误文本扫描和 workbook 可打开性，不应记录客户明细。
 - 若预检发现新增汇总主体支付方未选择，脚本会标记该月份为 `NeedsPaymentPartyDecisions`，不自动默认 `清能` 或 `清辉`。
 
@@ -240,7 +242,7 @@
 - 阶段一先做无决策预检，再只把 case JSON 里命中当月未匹配客户的决策传给服务，避免跨月份复用 case 时因客户已精确匹配或当月不存在而失败。
 - 阶段一对比口径：只比较生成台账副本与授权最新台账里目标月份块的 `总/尖/峰/平/谷` 电量列，不比较负责人、代理关系、价格、税点等人工字段。
 - 阶段二对比口径：分表和汇总表做 workbook/sheet 级公式、显示值、隐藏列对比；数值场景下空白与 0 视为等价，避免少回收电能量电费等人工留空造成假阳性。
-- 脚本输出到 `dist/chongqing-backtest-<timestamp>`；真实 case JSON、控制台日志和 summary 可能包含真实客户名称，只能留在 ignored 输出目录，不能提交。
+- 脚本默认输出到已由 Git 排除的 `local-validation/backtests/chongqing-backtest-<timestamp>`；真实 case JSON、控制台日志和 summary 可能包含真实客户名称，只能留在该输出目录，不能提交。
 
 2026-07-09 重庆 3-5 月真实回测和本轮修复结论：
 

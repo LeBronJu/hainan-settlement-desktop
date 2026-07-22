@@ -13,7 +13,7 @@ The project now needs repeatable local validation against user-authorized real w
 ## Safety
 
 - The script does not contain real workbook paths.
-- The script writes generated files only under the caller-provided `OutputRoot`, or under `dist/` when no output root is provided.
+- The script writes generated files only under the caller-provided `OutputRoot`, or under the Git-ignored `local-validation/smoke/` directory when no output root is provided.
 - Real workbooks still require explicit user authorization before running the script.
 - Real workbooks, generated smoke outputs, and summary JSON files remain ignored by git through existing file rules.
 

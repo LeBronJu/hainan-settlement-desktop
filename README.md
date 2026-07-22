@@ -55,6 +55,8 @@ docs/
   dev-notes/                       # 鲁棒性、解耦和临时技术记录
 CONTEXT.md                         # 领域术语、业务口径和架构约束
 HANDOFF.md                         # 当前版本状态、验证记录和下一步
+dist/                              # Git 排除；仅放测试包、正式包和冻结的 Win7/8 包
+local-validation/                  # Git 排除；仅放本地回测和 smoke 产物
 ```
 
 ## 设计原则
@@ -107,13 +109,13 @@ dotnet msbuild ".\HainanSettlementTool.sln" /restore /p:Configuration=Debug /m
 git diff --check
 ```
 
-仓库保留过参数化 real smoke 脚本用于授权真实工作副本验收；该脚本目前需要随已重命名的服务/网关刷新后再作为可运行入口使用。脚本不会内置真实数据路径，输出应写到指定 `OutputRoot` 下的新目录：
+仓库保留过参数化 real smoke 脚本用于授权真实工作副本验收；该脚本目前需要随已重命名的服务/网关刷新后再作为可运行入口使用。脚本不会内置真实数据路径；显式 `OutputRoot` 优先，未指定时默认写入 Git 排除的 `local-validation/smoke/`：
 
 ```powershell
 .\scripts\run_real_smoke.ps1 -Month 5 -RawDetailPath "<原始明细.xls>" -ExistingPowerPath "<已清洗电量表.xlsx>" -BaseLedgerPath "<基础台账.xlsx>" -ReviewedLedgerPath "<人工整理后的台账.xlsx>" -ProxyTemplateDirectory "<上月代理分表文件夹>" -IntermediaryTemplateDirectory "<上月居间分表文件夹>" -SummaryTemplatePath "<上月汇总表.xlsx>" -OutputRoot "<临时输出文件夹>"
 ```
 
-当前解决方案已编译通过。2026-07-22 阶段二完整性开发分支仅使用合成 workbook 验证：Core 72/72、Excel 121/121 通过，完整解决方案 Debug/Release 构建及构建可移植性检查通过。`v1.1.0` 仍是最新正式版；本次未打包或发布新版本。
+当前解决方案已编译通过。2026-07-22 阶段二完整性开发分支仅使用合成 workbook 验证：Core 72/72、Excel 121/121 通过，完整解决方案 Debug/Release 构建及构建可移植性检查通过。当前分支已生成 Win10/11 本地测试包供实机验证；`v1.1.0` 仍是最新正式版，本次没有制作或发布新正式版。
 
 ## 发布打包
 
@@ -123,7 +125,7 @@ git diff --check
 .\scripts\package_wpf_release.ps1
 ```
 
-脚本会执行 Release 构建，并在 `dist/` 下生成一个干净目录和 `.zip` 压缩包。测试时请保留目录内所有 `.dll` 和 `.config` 文件，不要只单独复制 exe。
+脚本会执行 Release 构建，并在 `dist/test-packages/` 下生成带时间戳的干净目录和 `.zip` 压缩包。已有同名目标时会停止而不覆盖；打包后会校验目录与 ZIP 的完整内容并输出 SHA-256。测试时请保留目录内所有 `.dll` 和 `.config` 文件，不要只单独复制 exe。
 
 生成带稳定文件名的正式发布包：
 
@@ -131,7 +133,9 @@ git diff --check
 .\scripts\package_wpf_release.ps1 -ReleaseTag v1.1.0
 ```
 
-Win7/8 打包脚本仅作为历史兼容脚本保留，未来不再默认生成或发布 Win7/8 包，除非用户明确重新开启 Win7/8 支持。
+带 `ReleaseTag` 的稳定文件名包默认写入 `dist/releases/`；这只是打包行为，正式 tag、GitHub Release 和发布仍需要单独明确授权。
+
+Win7/8 打包脚本仅作为历史兼容脚本保留，默认目录为 `dist/legacy-win7-8/`；未来不再默认生成或发布 Win7/8 包，除非用户明确重新开启 Win7/8 支持。
 
 未来正式发布时，GitHub Release 附件使用稳定 ASCII 文件名：
 

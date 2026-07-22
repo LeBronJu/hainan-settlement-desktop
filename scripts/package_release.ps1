@@ -1,4 +1,5 @@
 param(
+    [ValidateSet("Debug", "Release")]
     [string]$Configuration = "Release",
     [string]$OutputRoot = ""
 )
@@ -77,7 +78,7 @@ function Invoke-SolutionBuild {
 }
 
 if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
-    $OutputRoot = Join-Path $ProjectRoot "dist"
+    $OutputRoot = Join-Path $ProjectRoot "dist\legacy-win7-8"
 }
 
 $stamp = Get-Date -Format "yyyyMMdd-HHmmss"

@@ -29,8 +29,8 @@
 | `docs/dev-notes/win7-8-maintenance-mode-2026-06-29.md` | 当前政策 note | 判断 Win7/8 WinForms 冻结/退役边界，或用户明确重新开启 Win7/8 支持时。 |
 | `docs/dev-notes/documentation-sync-gate-2026-06-25.md` | 当前流程 note | 判断文档影响、决定该更新哪些文档时。 |
 | `docs/dev-notes/real-smoke-runner-2026-06-29.md` | 历史工具 note | 记录 real smoke runner 设计意图；当前脚本引用旧服务/网关名，刷新前不要当作可直接运行入口。 |
-| `scripts/run_chongqing_backtest.ps1` | 当前回测工具 | 用户明确授权重庆真实数据路径后，参数化运行重庆阶段一+阶段二 1-N 月回测；输出到 `dist/` 或指定目录，不硬编码真实路径。 |
-| `scripts/run_chongqing_stage2_backtest.ps1` | 历史/辅助回测工具 | 仅重庆阶段二的旧回测入口；需要只跑阶段二时可参考，主线回测优先用 `scripts/run_chongqing_backtest.ps1`。 |
+| `scripts/run_chongqing_backtest.ps1` | 待适配回测工具 | 设计上用于授权后参数化运行重庆阶段一+阶段二 1-N 月回测；默认输出到 Git 排除的 `local-validation/backtests/`。当前需先适配新的阶段二预检签名/输入指纹，不要直接当作可运行回归入口。 |
+| `scripts/run_chongqing_stage2_backtest.ps1` | 历史/待适配回测工具 | 仅重庆阶段二的旧回测入口；同样需要先适配新的预检授权链，只可参考，不要直接运行。 |
 
 ## 历史记录
 

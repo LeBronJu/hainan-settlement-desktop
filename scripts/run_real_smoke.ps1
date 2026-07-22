@@ -264,7 +264,7 @@ if (-not [string]::IsNullOrWhiteSpace($ReferenceLedgerPath)) {
 }
 
 if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
-    $OutputRoot = Join-Path $ProjectRoot "dist"
+    $OutputRoot = Join-Path $ProjectRoot "local-validation\smoke"
 }
 
 if (-not $SkipBuild) {

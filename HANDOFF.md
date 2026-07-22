@@ -49,7 +49,7 @@ For the current Stage 2 integrity work, also read:
 - Current development branch: `codex/stage2-preflight-integrity`.
 - It was created from local `main` at `4baaf88` (`Integrate Guangdong safety fix into local main`).
 - Local `main` is three commits ahead of `origin/main`: `23e79ff`, `0089f58`, and `4baaf88`; none has been pushed.
-- The Stage 2 integrity implementation and documentation are currently uncommitted working-tree changes on the `codex/` branch.
+- The Stage 2 integrity implementation and documentation are committed on the `codex/` branch as `ed9452a` (`Add Stage 2 preflight and batch integrity safeguards`).
 - Preserve the Window Separation / `outputs` exclusions in this handoff and do not revert them.
 - Do not push, merge, tag, package a formal version, or publish without explicit user authorization.
 
@@ -58,7 +58,9 @@ For the current Stage 2 integrity work, also read:
 - Latest formal release remains `v1.1.0`.
 - Release: `https://github.com/LeBronJu/retail-power-settlement-desktop/releases/tag/v1.1.0`.
 - The Guangdong safety hardening package passed user practical testing, but the user explicitly decided not to publish a new version yet.
-- No package or release artifact was created for the current branch.
+- A local Win10/11 test package was created for user practical testing at `dist/test-packages/RetailPowerSettlementTool-Win10-11-Release-20260722-131724-668.zip`; SHA-256 is `6A15DA4CFDCE5A7BC6EE7CA81DCF5A5736DDDC9AA29AFD0E7E1FEEAB688FC652`.
+- This is not a formal release: no release tag, GitHub Release, push, merge, or publication was performed.
+- `dist/` now contains distributable artifacts grouped under `test-packages/`, `releases/`, and `legacy-win7-8/`; local backtests and smoke outputs belong under the Git-ignored `local-validation/` tree.
 
 ## Current Product State
 
@@ -99,20 +101,22 @@ Current branch, synthetic inputs only:
 - Build portability check passed.
 - Documentation guardrails and `git diff --check` passed.
 - Independent read-only diff review found no remaining P0/P1 in the current scope.
-- No real workbook, business directory, `outputs` material, package, or release was used or produced.
+- The Win10/11 test package build passed; its directory and readable ZIP each contain the same 20 files, no workbook/CSV/JSON/log data, and the packaged WPF executable remained running through a five-second hidden startup smoke.
+- No real workbook, business directory, or `outputs` material was read or produced, and no formal release was created.
 
 ## Known Boundary
 
 - Chongqing refund templates that contain both a standard month sheet such as `2` and a copy-style sheet such as `2 (2)` remain a documented pre-existing technical risk. The current task does not change that rule; obtain business confirmation before choosing a new policy.
 - Hainan/Chongqing intentionally remain all-or-nothing for formal Stage 2 output. A future non-payable partial draft would require a separate design and explicit authorization.
 - The program does not infer payment routing from a multi-person payee cell; cashiers continue to handle distribution agreements outside this program.
+- The Chongqing backtest scripts still need adaptation to the new required preflight signature/input fingerprint before they can be treated as runnable regression tools; their output paths are already isolated under `local-validation/backtests/`.
 
 ## Next Session
 
 1. Run the required reading gate and continue on `codex/stage2-preflight-integrity`; do not restart the implementation from `main`.
 2. Inspect the working tree and the current task note before changing anything. Preserve unrelated user edits and `outputs` exclusions.
 3. If the user wants practical workbook validation, obtain explicit current authorization for the exact read-only source and write only to a separate temporary output. Otherwise keep using synthetic fixtures.
-4. Do not create a test package, formal package, commit to `main`, push, merge, tag, or release unless the user explicitly asks.
+4. Use the recorded test package for the next practical check. Do not create a formal package, commit to `main`, push, merge, tag, or release unless the user explicitly asks.
 5. Do not resume Hainan/Chongqing performance work, add routing JSON, change the ledger format, or add partial formal summaries without a new explicit decision.
 
 ## Window Separation

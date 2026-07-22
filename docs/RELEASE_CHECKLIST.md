@@ -24,6 +24,8 @@ git diff --check
 
 Win7/8 WinForms is frozen as a historical compatibility entry. Do not run `.\scripts\package_release.ps1` for default releases unless the user explicitly reopens Win7/8 support.
 
+`package_wpf_release.ps1` writes timestamped local test packages to `dist/test-packages/` when `-ReleaseTag` is omitted, and stable versioned formal packages to `dist/releases/` when `-ReleaseTag` is supplied. An explicit `-OutputRoot` is used exactly as supplied. The script refuses to overwrite an existing package directory or zip, verifies the executable, config, Core/Excel assemblies and complete DLL set in both the directory and readable zip, and prints the zip SHA-256 hash. The frozen Win7/8 helper defaults to `dist/legacy-win7-8/`.
+
 ## Documentation Impact Gate
 
 Make a documentation impact judgment before merging release-bound changes or tagging:
@@ -44,6 +46,7 @@ Do not update unrelated documents just to satisfy the gate.
 - Run relevant tests, builds, and packaging checks, or explain why they are not needed.
 - Confirm no real ledgers, customer data, settlement outputs, screenshots, or sensitive finance data are included.
 - Confirm generated packages contain all required `.dll`, `.config`, and executable files.
+- Record the SHA-256 printed by the packaging script and confirm the formal package was created under `dist/releases/` (or the explicitly supplied output root) without replacing an existing artifact.
 
 ## Assets And Publish
 

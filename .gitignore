@@ -4,6 +4,7 @@ obj/
 packages/
 TestResults/
 dist/
+local-validation/
 
 *.user
 *.suo
