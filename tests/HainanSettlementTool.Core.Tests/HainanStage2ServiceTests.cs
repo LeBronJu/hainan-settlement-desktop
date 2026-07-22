@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using HainanSettlementTool.Core.Models;
 using HainanSettlementTool.Core.Services;
@@ -47,6 +48,75 @@ namespace HainanSettlementTool.Core.Tests
                     SettlementKind = "居间费",
                     Entity = "新增居间主体",
                     PaymentParty = HainanStage2PaymentParties.Qingneng
+                });
+
+                var report = service.Run(options, null);
+
+                Assert.AreSame(gateway.Report, report);
+                Assert.AreEqual(1, gateway.GenerateCalls);
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
+        public void RunRejectsTemplateDecisionWithMissingRequiredField()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var service = new HainanStage2Service(new FakeHainanStage2Gateway());
+                var invalidDecisions = new List<HainanStage2TemplateDecision>
+                {
+                    null,
+                    new HainanStage2TemplateDecision
+                    {
+                        Entity = "新增代理主体",
+                        TemplatePath = "C:\\templates\\a.xlsx"
+                    },
+                    new HainanStage2TemplateDecision
+                    {
+                        SettlementKind = "代理费",
+                        TemplatePath = "C:\\templates\\a.xlsx"
+                    },
+                    new HainanStage2TemplateDecision
+                    {
+                        SettlementKind = "代理费",
+                        Entity = "新增代理主体"
+                    }
+                };
+
+                foreach (var invalidDecision in invalidDecisions)
+                {
+                    var options = CreateOptions(root);
+                    options.TemplateDecisions.Add(invalidDecision);
+
+                    var ex = Assert.ThrowsException<ArgumentException>(() => service.Run(options, null));
+                    StringAssert.Contains(ex.Message, "模板选择");
+                }
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
+        public void RunAcceptsTemplateDecisionWithRequiredFields()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var gateway = new FakeHainanStage2Gateway();
+                var service = new HainanStage2Service(gateway);
+                var options = CreateOptions(root);
+                options.TemplateDecisions.Add(new HainanStage2TemplateDecision
+                {
+                    SettlementKind = "代理费",
+                    Entity = "新增代理主体",
+                    TemplatePath = "C:\\templates\\a.xlsx"
                 });
 
                 var report = service.Run(options, null);

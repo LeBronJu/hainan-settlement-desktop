@@ -53,6 +53,7 @@ namespace HainanSettlementTool.Core.Services
 
             ValidateOutputSummaryName(options.OutputSummaryName);
             ValidateSummarySubjectDecisions(options);
+            ValidateTemplateDecisions(options);
         }
 
         private static void ValidateOutputSummaryName(string outputSummaryName)
@@ -152,6 +153,32 @@ namespace HainanSettlementTool.Core.Services
             {
                 throw new InvalidOperationException(
                     province + "阶段二正式生成必须先完成本次预检，不能直接绕过预检生成。");
+            }
+        }
+
+        private static void ValidateTemplateDecisions(HainanStage2Options options)
+        {
+            foreach (var decision in options.TemplateDecisions)
+            {
+                if (decision == null)
+                {
+                    throw new ArgumentException("海南阶段二模板选择不能为空。");
+                }
+
+                if (string.IsNullOrWhiteSpace(decision.SettlementKind))
+                {
+                    throw new ArgumentException("海南阶段二模板选择缺少结算类型。");
+                }
+
+                if (string.IsNullOrWhiteSpace(decision.Entity))
+                {
+                    throw new ArgumentException("海南阶段二模板选择缺少主体名称。");
+                }
+
+                if (string.IsNullOrWhiteSpace(decision.TemplatePath))
+                {
+                    throw new ArgumentException("海南阶段二模板选择缺少模板文件路径。");
+                }
             }
         }
     }

@@ -15,5 +15,6 @@ namespace HainanSettlementTool.Core.Models
         public string ExpectedPreflightSignature { get; set; }
         public string ExpectedInputFingerprint { get; set; }
         public List<HainanStage2SummarySubjectDecision> SummarySubjectDecisions { get; } = new List<HainanStage2SummarySubjectDecision>();
+        public List<HainanStage2TemplateDecision> TemplateDecisions { get; } = new List<HainanStage2TemplateDecision>();
     }
 }

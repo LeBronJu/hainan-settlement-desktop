@@ -16,6 +16,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HainanSettlementTool.Core.T
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HainanSettlementTool.Excel.Tests", "tests\HainanSettlementTool.Excel.Tests\HainanSettlementTool.Excel.Tests.csproj", "{9D82B450-35B0-4A8A-8E92-0B08C4A82101}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HainanSettlementTool.Wpf.Tests", "tests\HainanSettlementTool.Wpf.Tests\HainanSettlementTool.Wpf.Tests.csproj", "{CE2FF700-165F-459A-A0BA-7FCE9EAC880D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -46,6 +48,10 @@ Global
 		{9D82B450-35B0-4A8A-8E92-0B08C4A82101}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9D82B450-35B0-4A8A-8E92-0B08C4A82101}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9D82B450-35B0-4A8A-8E92-0B08C4A82101}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CE2FF700-165F-459A-A0BA-7FCE9EAC880D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CE2FF700-165F-459A-A0BA-7FCE9EAC880D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CE2FF700-165F-459A-A0BA-7FCE9EAC880D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CE2FF700-165F-459A-A0BA-7FCE9EAC880D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -53,5 +59,6 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{618B35E4-9651-489E-9B54-41EAECAD2F75} = {91A5F619-6417-4818-9F7F-9F624DE65602}
 		{9D82B450-35B0-4A8A-8E92-0B08C4A82101} = {91A5F619-6417-4818-9F7F-9F624DE65602}
+		{CE2FF700-165F-459A-A0BA-7FCE9EAC880D} = {91A5F619-6417-4818-9F7F-9F624DE65602}
 	EndGlobalSection
 EndGlobal

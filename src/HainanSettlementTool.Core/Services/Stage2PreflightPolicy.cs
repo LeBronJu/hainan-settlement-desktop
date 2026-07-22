@@ -11,10 +11,21 @@ namespace HainanSettlementTool.Core.Services
             IEnumerable<IStage2PreflightIssue> issues,
             IEnumerable<IStage2PaymentPartyDecision> decisions)
         {
+            return Evaluate(issues, decisions, Enumerable.Empty<IStage2TemplateDecision>());
+        }
+
+        public static Stage2PreflightEvaluation Evaluate(
+            IEnumerable<IStage2PreflightIssue> issues,
+            IEnumerable<IStage2PaymentPartyDecision> decisions,
+            IEnumerable<IStage2TemplateDecision> templateDecisions)
+        {
             var issueList = (issues ?? Enumerable.Empty<IStage2PreflightIssue>())
                 .Where(issue => issue != null)
                 .ToList();
             var decisionList = (decisions ?? Enumerable.Empty<IStage2PaymentPartyDecision>())
+                .Where(decision => decision != null)
+                .ToList();
+            var templateDecisionList = (templateDecisions ?? Enumerable.Empty<IStage2TemplateDecision>())
                 .Where(decision => decision != null)
                 .ToList();
             var evaluation = new Stage2PreflightEvaluation();
@@ -39,15 +50,21 @@ namespace HainanSettlementTool.Core.Services
                     evaluation.InformationCount++;
                 }
 
-                if (issue.Disposition == Stage2PreflightDisposition.RequiredDecision
-                    && !issue.RequiresPaymentPartySelection)
+                if (issue.RequiresPaymentPartySelection && issue.RequiresTemplateSelection)
+                {
+                    evaluation.InvalidDefinitions.Add(
+                        "同一阶段二预检项目不能同时要求支付方和模板选择：" + issue.Code + "。");
+                }
+                else if (issue.Disposition == Stage2PreflightDisposition.RequiredDecision
+                    && !issue.RequiresPaymentPartySelection
+                    && !issue.RequiresTemplateSelection)
                 {
                     evaluation.InvalidDefinitions.Add("阶段二必选项目缺少受支持的决策类型：" + issue.Code + "。");
                 }
             }
 
             var requirements = issueList
-                .Where(issue => issue.RequiresPaymentPartySelection)
+                .Where(issue => issue.RequiresPaymentPartySelection && !issue.RequiresTemplateSelection)
                 .ToList();
             var requirementKeys = new HashSet<string>();
             foreach (var requirement in requirements)
@@ -90,6 +107,53 @@ namespace HainanSettlementTool.Core.Services
                     PaymentParty = first.PaymentParty,
                     Status = Stage2PaymentPartyDecisionStatus.Stale,
                     Message = "支付方选择没有对应的本次预检项目。"
+                });
+            }
+
+            var templateRequirements = issueList
+                .Where(issue => issue.RequiresTemplateSelection && !issue.RequiresPaymentPartySelection)
+                .ToList();
+            var templateRequirementKeys = new HashSet<string>();
+            foreach (var requirement in templateRequirements)
+            {
+                var key = DecisionKey(requirement.SettlementKind, requirement.Entity);
+                if (string.IsNullOrWhiteSpace(requirement.SettlementKind)
+                    || string.IsNullOrWhiteSpace(requirement.Entity))
+                {
+                    evaluation.InvalidDefinitions.Add("模板必选项目缺少费用类型或主体：" + requirement.Code + "。");
+                    continue;
+                }
+
+                if (requirement.TemplateOptions == null || requirement.TemplateOptions.Count == 0)
+                {
+                    evaluation.InvalidDefinitions.Add("模板必选项目没有可选模板：" + requirement.SettlementKind + " " + requirement.Entity + "。");
+                    continue;
+                }
+
+                if (!templateRequirementKeys.Add(key))
+                {
+                    evaluation.InvalidDefinitions.Add("同一汇总主体存在重复模板必选项目：" + requirement.SettlementKind + " " + requirement.Entity + "。");
+                    continue;
+                }
+
+                var matches = templateDecisionList
+                    .Where(decision => DecisionKey(decision.SettlementKind, decision.Entity) == key)
+                    .ToList();
+                evaluation.TemplateDecisionResolutions.Add(ResolveTemplate(requirement, matches));
+            }
+
+            foreach (var staleGroup in templateDecisionList
+                .GroupBy(decision => DecisionKey(decision.SettlementKind, decision.Entity))
+                .Where(group => !templateRequirementKeys.Contains(group.Key)))
+            {
+                var first = staleGroup.First();
+                evaluation.TemplateDecisionResolutions.Add(new Stage2TemplateDecisionResolution
+                {
+                    SettlementKind = first.SettlementKind,
+                    Entity = first.Entity,
+                    TemplatePath = first.TemplatePath,
+                    Status = Stage2TemplateDecisionStatus.Stale,
+                    Message = "模板选择没有对应的本次预检项目。"
                 });
             }
 
@@ -153,6 +217,63 @@ namespace HainanSettlementTool.Core.Services
                 SettlementKind = requirement.SettlementKind,
                 Entity = requirement.Entity,
                 PaymentParty = paymentParty,
+                Status = status,
+                Message = message
+            };
+        }
+
+        private static Stage2TemplateDecisionResolution ResolveTemplate(
+            IStage2PreflightIssue requirement,
+            IList<IStage2TemplateDecision> matches)
+        {
+            if (matches.Count == 0)
+            {
+                return TemplateResolution(
+                    requirement,
+                    null,
+                    Stage2TemplateDecisionStatus.Outstanding,
+                    "尚未选择借用模板。");
+            }
+
+            if (matches.Count > 1)
+            {
+                return TemplateResolution(
+                    requirement,
+                    null,
+                    Stage2TemplateDecisionStatus.Conflicting,
+                    "同一汇总主体存在多个模板选择。");
+            }
+
+            var selected = matches[0].TemplatePath;
+            if (string.IsNullOrWhiteSpace(selected)
+                || !requirement.TemplateOptions.Any(option =>
+                    string.Equals(TextUtil.S(option), TextUtil.S(selected), StringComparison.OrdinalIgnoreCase)))
+            {
+                return TemplateResolution(
+                    requirement,
+                    selected,
+                    Stage2TemplateDecisionStatus.Invalid,
+                    "选择的模板不在本次预检候选范围内。");
+            }
+
+            return TemplateResolution(
+                requirement,
+                selected,
+                Stage2TemplateDecisionStatus.Resolved,
+                "借用模板选择已完成。");
+        }
+
+        private static Stage2TemplateDecisionResolution TemplateResolution(
+            IStage2PreflightIssue requirement,
+            string templatePath,
+            Stage2TemplateDecisionStatus status,
+            string message)
+        {
+            return new Stage2TemplateDecisionResolution
+            {
+                SettlementKind = requirement.SettlementKind,
+                Entity = requirement.Entity,
+                TemplatePath = templatePath,
                 Status = status,
                 Message = message
             };

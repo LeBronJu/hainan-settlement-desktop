@@ -15,4 +15,7 @@
     <ProjectReference Include="..\HainanSettlementTool.Core\HainanSettlementTool.Core.csproj" />
     <ProjectReference Include="..\HainanSettlementTool.Excel\HainanSettlementTool.Excel.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="HainanSettlementTool.Wpf.Tests" />
+  </ItemGroup>
 </Project>

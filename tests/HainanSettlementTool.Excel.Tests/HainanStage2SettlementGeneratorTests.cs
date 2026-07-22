@@ -1332,7 +1332,7 @@ namespace HainanSettlementTool.Excel.Tests
         }
 
         [TestMethod]
-        public void GenerateSettlementStopsWhenBorrowedTemplateCandidateIsNotUnique()
+        public void AnalyzeSettlementRequiresTemplateDecisionWhenBorrowedTemplateCandidateIsNotUnique()
         {
             var root = Path.Combine(Path.GetTempPath(), "HainanSettlementToolTests", Guid.NewGuid().ToString("N"));
             var ledgerPath = Path.Combine(root, "ledger.xlsx");
@@ -1348,7 +1348,7 @@ namespace HainanSettlementTool.Excel.Tests
 
                 WriteLedgerWithSingleProxyRow(ledgerPath, 4, "测试负责人", "新增无模板代理", "存量客户");
                 WriteProxyTemplate(proxyRoot, "负责人甲", "模板代理甲");
-                WriteProxyTemplate(proxyRoot, "负责人乙", "模板代理乙");
+                WriteProxyTemplateWithExcelDateSignature(proxyRoot, "负责人乙", "模板代理乙");
                 WriteSummaryTemplate(summaryPath, "新增无模板代理", "代理费", HainanStage2PaymentParties.Qinghui);
                 var options = new HainanStage2Options
                 {
@@ -1362,13 +1362,43 @@ namespace HainanSettlementTool.Excel.Tests
 
                 var service = new HainanStage2Service(new ClosedXmlSettlementExcelGateway());
                 var preflight = service.Analyze(options);
-                Assert.IsTrue(preflight.Issues.Exists(issue =>
-                    issue.Code == Stage2PreflightIssueKinds.TemplateMissing
-                    && issue.Entity == "新增无模板代理"
-                    && issue.BlocksGeneration));
+                var templateIssue = preflight.Issues.Single(issue =>
+                    issue.Code == Stage2PreflightIssueKinds.AmbiguousBorrowTemplates
+                    && issue.Entity == "新增无模板代理");
+                Assert.AreEqual(Stage2PreflightDisposition.RequiredDecision, templateIssue.Disposition);
+                Assert.IsFalse(templateIssue.BlocksGeneration);
+                Assert.IsTrue(templateIssue.RequiresTemplateSelection);
+                Assert.AreEqual(2, templateIssue.TemplateOptions.Count);
+                StringAssert.Contains(templateIssue.Suggestion, "选择");
 
                 Assert.ThrowsException<InvalidOperationException>(() => RunAfterPreflight(service, options));
                 Assert.IsFalse(Directory.Exists(outputRoot));
+
+                var selectedTemplate = templateIssue.TemplateOptions.Single(path =>
+                    Path.GetFileName(path).Contains("模板代理乙"));
+                options.TemplateDecisions.Add(new HainanStage2TemplateDecision
+                {
+                    SettlementKind = "代理费",
+                    Entity = "新增无模板代理",
+                    TemplatePath = selectedTemplate
+                });
+
+                var report = RunAfterPreflight(service, options);
+                Assert.IsTrue(report.AuditIssues.Exists(issue =>
+                    issue.Category == "本次分表模板选择"
+                    && issue.Entity == "新增无模板代理"
+                    && issue.TemplateFile == selectedTemplate));
+                var outputPath = Path.Combine(
+                    outputRoot,
+                    "2026年代理 - 海南",
+                    "测试负责人 - 海南2026",
+                    "新增无模板代理 2026海南.xlsx");
+                using (var workbook = new XLWorkbook(outputPath))
+                {
+                    Assert.AreEqual(1, workbook.Worksheets.Count);
+                    var worksheet = workbook.Worksheet("4月");
+                    Assert.IsNotNull(FindFormattedCell(worksheet, "2026年6月8日"));
+                }
             }
             finally
             {

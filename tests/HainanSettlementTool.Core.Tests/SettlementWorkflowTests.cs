@@ -417,6 +417,41 @@ namespace HainanSettlementTool.Core.Tests
         }
 
         [TestMethod]
+        public void CompleteHainanStage2RequiresAndUsesTemplateDecision()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var gateway = new FakeGateway { AddHainanTemplateRequirement = true };
+                var workflow = CreateWorkflow(gateway);
+                var options = CreateHainanStage2Options(root);
+                var plan = workflow.PlanHainanStage2(options);
+
+                var missing = Assert.ThrowsException<InvalidOperationException>(() =>
+                    workflow.CompleteHainanStage2(plan, confirmed: true, log: null));
+                StringAssert.Contains(missing.Message, "支付方或模板选择");
+                Assert.AreEqual(0, gateway.GenerateSettlementCalls);
+
+                options.TemplateDecisions.Add(new HainanStage2TemplateDecision
+                {
+                    SettlementKind = "代理费",
+                    Entity = "新增代理主体",
+                    TemplatePath = "C:\\templates\\a.xlsx"
+                });
+
+                var result = workflow.CompleteHainanStage2(plan, confirmed: true, log: null);
+
+                Assert.IsFalse(result.WasCancelled);
+                Assert.AreSame(gateway.HainanStage2Report, result.Report);
+                Assert.AreEqual(1, gateway.GenerateSettlementCalls);
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
         public void CompleteHainanStage2RejectsPreflightThatChangedAfterConfirmation()
         {
             var root = CreateTempRoot();
@@ -641,6 +676,8 @@ namespace HainanSettlementTool.Core.Tests
 
             public bool AddBlockingHainanPreflightIssue { get; set; }
 
+            public bool AddHainanTemplateRequirement { get; set; }
+
             public bool AddChongqingPreflightIssue { get; set; }
 
             public bool AddBlockingChongqingPreflightIssue { get; set; }
@@ -798,6 +835,21 @@ namespace HainanSettlementTool.Core.Tests
                         Entity = "错误主体",
                         Message = "测试阻断项"
                     });
+                }
+
+                if (AddHainanTemplateRequirement)
+                {
+                    var issue = new HainanStage2CheckIssue
+                    {
+                        Code = Stage2PreflightIssueKinds.AmbiguousBorrowTemplates,
+                        Disposition = Stage2PreflightDisposition.RequiredDecision,
+                        SettlementKind = "代理费",
+                        Entity = "新增代理主体",
+                        RequiresTemplateSelection = true
+                    };
+                    issue.AvailableTemplateFiles.Add("C:\\templates\\a.xlsx");
+                    issue.AvailableTemplateFiles.Add("C:\\templates\\b.xlsx");
+                    report.Issues.Add(issue);
                 }
 
                 return report;

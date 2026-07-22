@@ -84,6 +84,13 @@ namespace HainanSettlementTool.Core.Services
                 Append(builder, option);
             }
 
+            Append(builder, issue.RequiresTemplateSelection ? "1" : "0");
+            foreach (var option in (issue.TemplateOptions ?? new string[0])
+                .OrderBy(value => value, StringComparer.Ordinal))
+            {
+                Append(builder, option);
+            }
+
             return builder.ToString();
         }
 

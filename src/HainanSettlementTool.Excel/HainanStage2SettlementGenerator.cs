@@ -292,6 +292,14 @@ namespace HainanSettlementTool.Excel
                     Entity = item.Entity,
                     PaymentParty = item.PaymentParty
                 }));
+            result.TemplateDecisions.AddRange(source.TemplateDecisions
+                .Where(item => item != null)
+                .Select(item => new HainanStage2TemplateDecision
+                {
+                    SettlementKind = item.SettlementKind,
+                    Entity = item.Entity,
+                    TemplatePath = item.TemplatePath
+                }));
             return result;
         }
 
@@ -320,6 +328,31 @@ namespace HainanSettlementTool.Excel
                     || issue.Disposition == Stage2PreflightDisposition.Information)
                 {
                     auditIssues.Add(issue);
+                    continue;
+                }
+
+                if (issue.RequiresTemplateSelection)
+                {
+                    var templateKey = HainanStage2ExcelUtil.SummaryKey(issue.Entity, issue.SettlementKind);
+                    var templateDecision = options.TemplateDecisions
+                        .Where(item => item != null)
+                        .Single(item => HainanStage2ExcelUtil.SummaryKey(item.Entity, item.SettlementKind) == templateKey);
+                    auditIssues.Add(new HainanStage2CheckIssue
+                    {
+                        Code = Stage2PreflightIssueKinds.AmbiguousBorrowTemplates,
+                        Disposition = Stage2PreflightDisposition.Information,
+                        Severity = "信息",
+                        Category = "本次分表模板选择",
+                        Kind = issue.Kind,
+                        SettlementKind = issue.SettlementKind,
+                        Owner = issue.Owner,
+                        Entity = issue.Entity,
+                        LedgerRow = issue.LedgerRow,
+                        TemplateFile = templateDecision.TemplatePath,
+                        CurrentValue = "本次选择：" + Path.GetFileName(templateDecision.TemplatePath),
+                        Message = "操作员已在本次阶段二预检中明确选择新主体借用的分表模板。",
+                        Suggestion = "生成后请复核新分表样式；新文件只保留本月工作表。"
+                    });
                     continue;
                 }
 
@@ -459,7 +492,7 @@ namespace HainanSettlementTool.Excel
                 if (exactCandidates.Count == 0)
                 {
                     var sameKindCandidates = templateCatalog.CandidatesForKind(group.Kind);
-                    if (sameKindCandidates.Count != 1)
+                    if (sameKindCandidates.Count == 0)
                     {
                         issues.Add(new HainanStage2CheckIssue
                         {
@@ -472,14 +505,32 @@ namespace HainanSettlementTool.Excel
                             Owner = group.Owner,
                             Entity = group.Entity,
                             LedgerRow = group.FirstLedgerRow,
-                            CurrentValue = string.Join("、", sameKindCandidates.Select(candidate => candidate.Path)),
-                            Message = sameKindCandidates.Count == 0
-                                ? group.SettlementKind + "主体“" + group.Entity + "”没有同名上月分表，且模板目录中没有可借用的同类型模板。"
-                                : group.SettlementKind + "主体“" + group.Entity + "”没有同名上月分表，但找到了多个同类型借用候选，无法可靠确定模板。",
-                            Suggestion = sameKindCandidates.Count == 0
-                                ? "请补充一个可读取的同类型分表模板后重新预检。"
-                                : "请为该主体提供唯一同名模板，或只保留一个明确可借用的同类型模板后重新预检。"
+                            CurrentValue = "0 个可借用模板",
+                            Message = group.SettlementKind + "主体“" + group.Entity + "”没有同名上月分表，且模板目录中没有可借用的同类型模板。",
+                            Suggestion = "请补充一个可读取的同类型分表模板后重新预检。"
                         });
+                    }
+                    else if (sameKindCandidates.Count > 1)
+                    {
+                        var templateIssue = new HainanStage2CheckIssue
+                        {
+                            Code = Stage2PreflightIssueKinds.AmbiguousBorrowTemplates,
+                            Disposition = Stage2PreflightDisposition.RequiredDecision,
+                            Severity = "必选",
+                            Category = "新增主体分表模板选择",
+                            Kind = group.SettlementKind,
+                            SettlementKind = group.SettlementKind,
+                            Owner = group.Owner,
+                            Entity = group.Entity,
+                            LedgerRow = group.FirstLedgerRow,
+                            CurrentValue = "找到 " + sameKindCandidates.Count + " 个可借用的同类型模板",
+                            Message = group.SettlementKind + "主体“" + group.Entity + "”是新增主体，需要选择一份同类型历史分表作为新分表的样式模板。",
+                            Suggestion = "请选择样式和版式最接近的一份历史分表；本次只借用模板，不会继承其他主体名称和历史明细。",
+                            RequiresTemplateSelection = true
+                        };
+                        templateIssue.AvailableTemplateFiles.AddRange(
+                            sameKindCandidates.Select(candidate => candidate.Path));
+                        issues.Add(templateIssue);
                     }
                     else
                     {
@@ -1165,7 +1216,10 @@ namespace HainanSettlementTool.Excel
             HainanStage2Options options,
             IList<HainanStage2CheckIssue> issues)
         {
-            var evaluation = Stage2PreflightPolicy.Evaluate(issues, options.SummarySubjectDecisions);
+            var evaluation = Stage2PreflightPolicy.Evaluate(
+                issues,
+                options.SummarySubjectDecisions,
+                options.TemplateDecisions);
             if (!evaluation.CanContinue)
             {
                 var messages = issues
@@ -1175,12 +1229,15 @@ namespace HainanSettlementTool.Excel
                     .Concat(evaluation.DecisionResolutions
                         .Where(item => item.Status != Stage2PaymentPartyDecisionStatus.Resolved)
                         .Select(item => item.SettlementKind + " " + item.Entity + "：" + item.Message))
+                    .Concat(evaluation.TemplateDecisionResolutions
+                        .Where(item => item.Status != Stage2TemplateDecisionStatus.Resolved)
+                        .Select(item => item.SettlementKind + " " + item.Entity + "：" + item.Message))
                     .Where(message => !string.IsNullOrWhiteSpace(message))
                     .Distinct()
                     .Take(10)
                     .ToList();
                 var prefix = evaluation.HasOutstandingRequiredDecisions || evaluation.HasInvalidDecisions
-                    ? "海南阶段二新增汇总主体支付方未选择或存量支付方待处理，未生成任何正式文件："
+                    ? "海南阶段二新增汇总主体支付方未选择、分表模板未选择或其他必选项无效，未生成任何正式文件："
                     : "海南阶段二预检未通过，未生成任何正式文件：";
                 throw new InvalidOperationException(prefix + string.Join("；", messages));
             }

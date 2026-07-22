@@ -36,6 +36,35 @@ namespace HainanSettlementTool.Core.Tests
             Assert.IsFalse(Stage2PreflightSignature.Matches(null, baseline));
         }
 
+        [TestMethod]
+        public void TemplateOptionsAreSignedIndependentOfCandidateOrder()
+        {
+            var leftIssue = Issue(Stage2PreflightIssueKinds.AmbiguousBorrowTemplates, "新增主体", null);
+            leftIssue.Disposition = Stage2PreflightDisposition.RequiredDecision;
+            leftIssue.RequiresTemplateSelection = true;
+            leftIssue.AvailableTemplateFiles.Add("C:\\templates\\b.xlsx");
+            leftIssue.AvailableTemplateFiles.Add("C:\\templates\\a.xlsx");
+            var rightIssue = Issue(Stage2PreflightIssueKinds.AmbiguousBorrowTemplates, "新增主体", null);
+            rightIssue.Disposition = Stage2PreflightDisposition.RequiredDecision;
+            rightIssue.RequiresTemplateSelection = true;
+            rightIssue.AvailableTemplateFiles.Add("C:\\templates\\a.xlsx");
+            rightIssue.AvailableTemplateFiles.Add("C:\\templates\\b.xlsx");
+
+            var left = Stage2PreflightSignature.Create(5, 1, new[] { leftIssue });
+            var right = Stage2PreflightSignature.Create(5, 1, new[] { rightIssue });
+
+            Assert.IsTrue(Stage2PreflightSignature.Matches(left, right));
+
+            rightIssue.AvailableTemplateFiles.Add("C:\\templates\\c.xlsx");
+            var changedCandidates = Stage2PreflightSignature.Create(5, 1, new[] { rightIssue });
+            rightIssue.AvailableTemplateFiles.RemoveAt(rightIssue.AvailableTemplateFiles.Count - 1);
+            rightIssue.RequiresTemplateSelection = false;
+            var changedRequirement = Stage2PreflightSignature.Create(5, 1, new[] { rightIssue });
+
+            Assert.IsFalse(Stage2PreflightSignature.Matches(left, changedCandidates));
+            Assert.IsFalse(Stage2PreflightSignature.Matches(left, changedRequirement));
+        }
+
         private static HainanStage2CheckIssue Issue(string code, string entity, string customer)
         {
             return new HainanStage2CheckIssue

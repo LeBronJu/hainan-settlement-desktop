@@ -10,6 +10,7 @@ namespace HainanSettlementTool.Core.Models
         public int InformationCount { get; set; }
         public List<string> InvalidDefinitions { get; } = new List<string>();
         public List<Stage2PaymentPartyDecisionResolution> DecisionResolutions { get; } = new List<Stage2PaymentPartyDecisionResolution>();
+        public List<Stage2TemplateDecisionResolution> TemplateDecisionResolutions { get; } = new List<Stage2TemplateDecisionResolution>();
 
         public bool HasBlockingIssues
         {
@@ -20,7 +21,8 @@ namespace HainanSettlementTool.Core.Models
         {
             get
             {
-                return DecisionResolutions.Any(item => item.Status == Stage2PaymentPartyDecisionStatus.Outstanding);
+                return DecisionResolutions.Any(item => item.Status == Stage2PaymentPartyDecisionStatus.Outstanding)
+                    || TemplateDecisionResolutions.Any(item => item.Status == Stage2TemplateDecisionStatus.Outstanding);
             }
         }
 
@@ -31,7 +33,11 @@ namespace HainanSettlementTool.Core.Models
                 return DecisionResolutions.Any(item =>
                     item.Status == Stage2PaymentPartyDecisionStatus.Invalid
                     || item.Status == Stage2PaymentPartyDecisionStatus.Conflicting
-                    || item.Status == Stage2PaymentPartyDecisionStatus.Stale);
+                    || item.Status == Stage2PaymentPartyDecisionStatus.Stale)
+                    || TemplateDecisionResolutions.Any(item =>
+                        item.Status == Stage2TemplateDecisionStatus.Invalid
+                        || item.Status == Stage2TemplateDecisionStatus.Conflicting
+                        || item.Status == Stage2TemplateDecisionStatus.Stale);
             }
         }
 

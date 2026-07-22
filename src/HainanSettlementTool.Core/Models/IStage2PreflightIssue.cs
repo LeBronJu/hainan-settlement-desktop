@@ -10,5 +10,7 @@ namespace HainanSettlementTool.Core.Models
         string Entity { get; }
         bool RequiresPaymentPartySelection { get; }
         IReadOnlyList<string> PaymentPartyOptions { get; }
+        bool RequiresTemplateSelection { get; }
+        IReadOnlyList<string> TemplateOptions { get; }
     }
 }

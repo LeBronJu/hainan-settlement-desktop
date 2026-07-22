@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using HainanSettlementTool.Core.Models;
+using HainanSettlementTool.Core.Services;
 
 namespace HainanSettlementTool.Wpf
 {
@@ -23,7 +24,7 @@ namespace HainanSettlementTool.Wpf
                 {
                     Title = "海南阶段二预检确认",
                     Heading = "海南阶段二预检",
-                    IntroText = "请先处理红色阻断项；新增主体或存量支付方缺失时必须完成选择。复核和信息项会随本次生成写入校验报告。",
+                    IntroText = "每个主体已集中显示需要你完成的选择和程序将自动填写的内容。请先处理红色阻断项，并完成所有必选项。",
                     ConfirmButtonText = "继续生成并写报告"
                 },
                 report.Month,
@@ -46,7 +47,7 @@ namespace HainanSettlementTool.Wpf
                 {
                     Title = "重庆阶段二预检确认",
                     Heading = "重庆阶段二预检",
-                    IntroText = "请先处理红色阻断项；新增主体或存量支付方缺失时必须完成选择。复核和信息项会随本次生成写入校验报告。",
+                    IntroText = "每个主体已集中显示需要你完成的选择和程序将自动填写的内容。请先处理红色阻断项，并完成所有必选项。",
                     ConfirmButtonText = "确认并生成"
                 },
                 report.Month,
@@ -75,43 +76,42 @@ namespace HainanSettlementTool.Wpf
             issueRows.AddRange(diagnosticRows);
 
             var groups = issueRows
-                .GroupBy(row => row.Category)
-                .Select(group => new Stage2PreflightIssueGroupViewModel
-                {
-                    Category = group.Key,
-                    Issues = group
-                        .OrderBy(row => DispositionOrder(row.Disposition))
-                        .ThenBy(row => row.PrimaryText, StringComparer.CurrentCulture)
-                        .ToList()
-                })
-                .OrderBy(group => group.Issues.Min(row => DispositionOrder(row.Disposition)))
-                .ThenBy(group => group.Category, StringComparer.CurrentCulture)
+                .GroupBy(BuildCardKey)
+                .Select(BuildIssueGroup)
+                .OrderBy(group => DispositionOrder(group.Disposition))
+                .ThenBy(group => group.Heading, StringComparer.CurrentCulture)
                 .ToList();
             foreach (var group in groups)
             {
-                group.CountText = group.Issues.Count + " 条";
+                group.CountText = group.Issues.Count + " 项";
             }
 
-            var effectiveBlockerCount = issueRows.Count(row =>
-                row.Disposition == Stage2PreflightDisposition.Blocker);
-            var requiredDecisionCount = issueRows.Count(row =>
-                row.Disposition == Stage2PreflightDisposition.RequiredDecision);
-            var reviewCount = issueRows.Count(row =>
-                row.Disposition == Stage2PreflightDisposition.Review);
-            var informationCount = issueRows.Count(row =>
-                row.Disposition == Stage2PreflightDisposition.Information);
+            var effectiveBlockerCount = groups.Count(group =>
+                group.Disposition == Stage2PreflightDisposition.Blocker);
+            var requiredDecisionCount = groups.Count(group =>
+                group.Disposition == Stage2PreflightDisposition.RequiredDecision);
+            var reviewCount = groups.Count(group =>
+                group.Disposition == Stage2PreflightDisposition.Review);
+            var informationCount = groups.Count(group =>
+                group.Disposition == Stage2PreflightDisposition.Information);
+            var subjectCardCount = groups.Count(group => group.IsSubjectGroup);
+            var generalCardCount = groups.Count - subjectCardCount;
             return new Stage2PreflightDialogViewModel
             {
                 Title = profile.Title,
                 Heading = profile.Heading,
                 IntroText = profile.IntroText,
                 ConfirmButtonText = profile.ConfirmButtonText,
-                SummaryText = "结算月份：2026年" + month + "月；本月应生成主体 " + subjectCount
-                    + " 个；共发现 " + issueRows.Count + " 条预检项目。",
+                SummaryText = BuildSummaryText(
+                    month,
+                    subjectCount,
+                    subjectCardCount,
+                    generalCardCount,
+                    issueRows.Count),
                 BlockerCountText = "阻断 " + effectiveBlockerCount,
-                RequiredDecisionCountText = "必选 " + requiredDecisionCount,
-                ReviewCountText = "复核 " + reviewCount,
-                InformationCountText = "信息 " + informationCount,
+                RequiredDecisionCountText = "必选主体 " + requiredDecisionCount,
+                ReviewCountText = "仅复核 " + reviewCount,
+                InformationCountText = "仅信息 " + informationCount,
                 BlockingMessage = effectiveBlockerCount > 0
                     ? "存在 " + effectiveBlockerCount + " 个阻断项。请按红色项目提示修正后重新预检，当前不能继续生成。"
                     : string.Empty,
@@ -127,34 +127,174 @@ namespace HainanSettlementTool.Wpf
             Stage2PreflightEvaluation evaluation)
         {
             var settlementKind = issue.SettlementKind;
+            var issueDecisionKey = DecisionKey(settlementKind, issue.Entity);
             var resolvedDecision = evaluation.DecisionResolutions.FirstOrDefault(item =>
                 item.Status == Stage2PaymentPartyDecisionStatus.Resolved
-                && string.Equals(item.SettlementKind, settlementKind, StringComparison.Ordinal)
-                && string.Equals(item.Entity, issue.Entity, StringComparison.Ordinal));
-            var category = string.IsNullOrWhiteSpace(issue.Category) ? "其他预检项目" : issue.Category;
+                && DecisionKey(item.SettlementKind, item.Entity) == issueDecisionKey);
+            var resolvedTemplateDecision = evaluation.TemplateDecisionResolutions.FirstOrDefault(item =>
+                item.Status == Stage2TemplateDecisionStatus.Resolved
+                && DecisionKey(item.SettlementKind, item.Entity) == issueDecisionKey);
+            var category = DisplayCategory(issue);
             var contextText = BuildContextText(issue);
+            var technicalDetailsText = BuildTechnicalDetailsText(issue);
             return new Stage2PreflightIssueItemViewModel
             {
                 Category = category,
                 Disposition = issue.Disposition,
                 StatusText = DispositionText(issue.Disposition),
                 PrimaryText = string.IsNullOrWhiteSpace(issue.Message) ? category : issue.Message,
-                FileText = BuildFileText(issue),
-                FileTextVisibility = string.IsNullOrWhiteSpace(issue.TemplateFile)
-                    ? Visibility.Collapsed
-                    : Visibility.Visible,
+                Kind = issue.Kind,
                 HandlingText = BuildHandlingText(issue),
                 ContextText = contextText,
                 ContextTextVisibility = string.IsNullOrWhiteSpace(contextText) ? Visibility.Collapsed : Visibility.Visible,
+                TechnicalDetailsText = technicalDetailsText,
+                TechnicalDetailsVisibility = string.IsNullOrWhiteSpace(technicalDetailsText)
+                    ? Visibility.Collapsed
+                    : Visibility.Visible,
                 SettlementKind = settlementKind,
                 Entity = issue.Entity,
+                Owner = issue.Owner,
+                LedgerRow = issue.LedgerRow,
                 RequiresPaymentPartySelection = issue.RequiresPaymentPartySelection,
                 PaymentSelectionVisibility = issue.RequiresPaymentPartySelection
                     ? Visibility.Visible
                     : Visibility.Collapsed,
                 PaymentPartyOptions = (issue.PaymentPartyOptions ?? new string[0]).ToList(),
-                SelectedPaymentParty = resolvedDecision == null ? null : resolvedDecision.PaymentParty
+                SelectedPaymentParty = resolvedDecision == null ? null : resolvedDecision.PaymentParty,
+                RequiresTemplateSelection = issue.RequiresTemplateSelection,
+                TemplateSelectionVisibility = issue.RequiresTemplateSelection
+                    ? Visibility.Visible
+                    : Visibility.Collapsed,
+                TemplateOptions = BuildTemplateOptions(issue),
+                SelectedTemplatePath = resolvedTemplateDecision == null
+                    ? null
+                    : resolvedTemplateDecision.TemplatePath
             };
+        }
+
+        private static string DisplayCategory(Stage2PreflightIssue issue)
+        {
+            if (issue.RequiresTemplateSelection)
+            {
+                return "需要你选择：新分表模板";
+            }
+
+            if (issue.RequiresPaymentPartySelection)
+            {
+                return "需要你选择：支付方";
+            }
+
+            if (issue.Code == Stage2PreflightIssueKinds.NewSummarySubject)
+            {
+                return "程序将填写：新增主体默认资料";
+            }
+
+            if (issue.Code == Stage2PreflightIssueKinds.BorrowedTemplate)
+            {
+                return "程序将使用：同类型分表模板";
+            }
+
+            return string.IsNullOrWhiteSpace(issue.Category) ? "其他预检项目" : issue.Category;
+        }
+
+        private static string BuildCardKey(Stage2PreflightIssueItemViewModel row)
+        {
+            if (HasSubjectIdentity(row))
+            {
+                return "subject\u001f" + DecisionKey(EffectiveSettlementKind(row), row.Entity);
+            }
+
+            return "category\u001f" + row.Category;
+        }
+
+        private static string DecisionKey(string settlementKind, string entity)
+        {
+            return TextUtil.S(settlementKind) + "\u001f" + TextUtil.CustomerKey(entity);
+        }
+
+        private static Stage2PreflightIssueGroupViewModel BuildIssueGroup(
+            IGrouping<string, Stage2PreflightIssueItemViewModel> source)
+        {
+            var issues = source
+                .OrderBy(row => DispositionOrder(row.Disposition))
+                .ThenBy(row => row.Category, StringComparer.CurrentCulture)
+                .ThenBy(row => row.PrimaryText, StringComparer.CurrentCulture)
+                .ToList();
+            var first = issues[0];
+            var isSubjectGroup = HasSubjectIdentity(first);
+            var disposition = issues
+                .OrderBy(row => DispositionOrder(row.Disposition))
+                .First()
+                .Disposition;
+            return new Stage2PreflightIssueGroupViewModel
+            {
+                Heading = isSubjectGroup
+                    ? EffectiveSettlementKind(first) + " · " + first.Entity
+                    : first.Category,
+                SupportingText = isSubjectGroup ? BuildGroupSupportingText(issues) : string.Empty,
+                SupportingTextVisibility = isSubjectGroup ? Visibility.Visible : Visibility.Collapsed,
+                IsSubjectGroup = isSubjectGroup,
+                Disposition = disposition,
+                StatusText = DispositionText(disposition),
+                Issues = issues
+            };
+        }
+
+        private static string BuildGroupSupportingText(
+            IEnumerable<Stage2PreflightIssueItemViewModel> issues)
+        {
+            var rows = issues.ToList();
+            var owners = rows
+                .Select(row => row.Owner)
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Distinct(StringComparer.CurrentCulture)
+                .ToList();
+            var ledgerRows = rows
+                .Select(row => row.LedgerRow)
+                .Where(value => value > 0)
+                .Distinct()
+                .OrderBy(value => value)
+                .ToList();
+            var parts = new List<string>();
+            if (owners.Count > 0)
+            {
+                parts.Add("负责人：" + string.Join("、", owners));
+            }
+
+            if (ledgerRows.Count > 0)
+            {
+                parts.Add("台账行：" + string.Join("、", ledgerRows));
+            }
+
+            return string.Join("   ", parts);
+        }
+
+        private static bool HasSubjectIdentity(Stage2PreflightIssueItemViewModel row)
+        {
+            return !string.IsNullOrWhiteSpace(row.Entity)
+                && !string.IsNullOrWhiteSpace(EffectiveSettlementKind(row));
+        }
+
+        private static string EffectiveSettlementKind(Stage2PreflightIssueItemViewModel row)
+        {
+            return string.IsNullOrWhiteSpace(row.SettlementKind) ? row.Kind : row.SettlementKind;
+        }
+
+        private static string BuildSummaryText(
+            int month,
+            int subjectCount,
+            int subjectCardCount,
+            int generalCardCount,
+            int issueCount)
+        {
+            var scope = subjectCardCount + " 个主体";
+            if (generalCardCount > 0)
+            {
+                scope += "、" + generalCardCount + " 个通用问题组";
+            }
+
+            return "结算月份：2026年" + month + "月；本月应生成主体 " + subjectCount
+                + " 个；预检涉及 " + scope + "，共 " + issueCount + " 项检查。";
         }
 
         private static List<Stage2PreflightIssueItemViewModel> BuildBlockingDiagnosticRows(
@@ -170,6 +310,15 @@ namespace HainanSettlementTool.Wpf
                     || item.Status == Stage2PaymentPartyDecisionStatus.Stale)
                 .Select(item => BuildDiagnosticRow(
                     "支付方选择异常",
+                    item.Message,
+                    item.SettlementKind,
+                    item.Entity)));
+            rows.AddRange(evaluation.TemplateDecisionResolutions
+                .Where(item => item.Status == Stage2TemplateDecisionStatus.Invalid
+                    || item.Status == Stage2TemplateDecisionStatus.Conflicting
+                    || item.Status == Stage2TemplateDecisionStatus.Stale)
+                .Select(item => BuildDiagnosticRow(
+                    "分表模板选择异常",
                     item.Message,
                     item.SettlementKind,
                     item.Entity)));
@@ -199,26 +348,84 @@ namespace HainanSettlementTool.Wpf
                 Disposition = Stage2PreflightDisposition.Blocker,
                 StatusText = "阻断",
                 PrimaryText = string.IsNullOrWhiteSpace(message) ? "阶段二预检数据不完整。" : message,
-                FileText = string.Empty,
-                FileTextVisibility = Visibility.Collapsed,
                 HandlingText = "处理方式：请修正输入或预检定义后重新预检；程序不会在当前状态下继续生成。",
                 ContextText = string.Join("；", context),
                 ContextTextVisibility = context.Count > 0 ? Visibility.Visible : Visibility.Collapsed,
+                TechnicalDetailsVisibility = Visibility.Collapsed,
                 SettlementKind = settlementKind,
                 Entity = entity,
                 PaymentSelectionVisibility = Visibility.Collapsed,
-                PaymentPartyOptions = new List<string>()
+                PaymentPartyOptions = new List<string>(),
+                TemplateSelectionVisibility = Visibility.Collapsed,
+                TemplateOptions = new List<Stage2PreflightTemplateOptionViewModel>()
             };
         }
 
-        private static string BuildFileText(Stage2PreflightIssue issue)
+        private static List<Stage2PreflightTemplateOptionViewModel> BuildTemplateOptions(
+            Stage2PreflightIssue issue)
         {
-            if (string.IsNullOrWhiteSpace(issue.TemplateFile))
+            IEnumerable<string> paths = issue.TemplateOptions == null
+                ? Enumerable.Empty<string>()
+                : (IEnumerable<string>)issue.TemplateOptions;
+            return paths
+                .Where(path => !string.IsNullOrWhiteSpace(path))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Select(path => new Stage2PreflightTemplateOptionViewModel
+                {
+                    Path = path,
+                    DisplayText = BuildTemplateOptionDisplayText(path)
+                })
+                .OrderBy(option => option.DisplayText, StringComparer.CurrentCulture)
+                .ToList();
+        }
+
+        private static string BuildTemplateOptionDisplayText(string path)
+        {
+            var fileName = SafeFileName(path);
+            var subject = Path.GetFileNameWithoutExtension(fileName) ?? string.Empty;
+            var yearMarker = subject.LastIndexOf(" 20", StringComparison.Ordinal);
+            if (yearMarker > 0 && subject.EndsWith("海南", StringComparison.Ordinal))
             {
-                return string.Empty;
+                subject = subject.Substring(0, yearMarker).Trim();
             }
 
-            return "相关文件：" + Path.GetFileName(issue.TemplateFile);
+            var owner = string.Empty;
+            try
+            {
+                var directory = Path.GetDirectoryName(path);
+                owner = string.IsNullOrWhiteSpace(directory)
+                    ? string.Empty
+                    : new DirectoryInfo(directory).Name;
+            }
+            catch
+            {
+                owner = string.Empty;
+            }
+
+            var ownerMarker = owner.IndexOf(" - 海南", StringComparison.Ordinal);
+            if (ownerMarker > 0)
+            {
+                owner = owner.Substring(0, ownerMarker).Trim();
+            }
+
+            var parts = new[] { subject, owner, fileName }
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Distinct(StringComparer.CurrentCulture)
+                .ToList();
+            return parts.Count == 0 ? path : string.Join(" / ", parts);
+        }
+
+        private static string SafeFileName(string path)
+        {
+            try
+            {
+                var fileName = Path.GetFileName(path);
+                return string.IsNullOrWhiteSpace(fileName) ? path : fileName;
+            }
+            catch
+            {
+                return path;
+            }
         }
 
         private static string BuildHandlingText(Stage2PreflightIssue issue)
@@ -231,24 +438,11 @@ namespace HainanSettlementTool.Wpf
         private static string BuildContextText(Stage2PreflightIssue issue)
         {
             var parts = new List<string>();
-            if (!string.IsNullOrWhiteSpace(issue.SettlementKind))
-            {
-                parts.Add("结算类型：" + issue.SettlementKind);
-            }
-            else if (!string.IsNullOrWhiteSpace(issue.Kind))
-            {
-                parts.Add("类型：" + issue.Kind);
-            }
-
             if (!string.IsNullOrWhiteSpace(issue.Kind)
+                && !string.IsNullOrWhiteSpace(issue.SettlementKind)
                 && !string.Equals(issue.Kind, issue.SettlementKind, StringComparison.Ordinal))
             {
                 parts.Add("问题：" + issue.Kind);
-            }
-
-            if (!string.IsNullOrWhiteSpace(issue.Owner) || !string.IsNullOrWhiteSpace(issue.Entity))
-            {
-                parts.Add("负责人/主体：" + TextOrDash(issue.Owner) + " / " + TextOrDash(issue.Entity));
             }
 
             if (!string.IsNullOrWhiteSpace(issue.Customer))
@@ -256,14 +450,22 @@ namespace HainanSettlementTool.Wpf
                 parts.Add("客户/明细：" + issue.Customer);
             }
 
-            if (issue.LedgerRow > 0)
+            if ((!string.IsNullOrWhiteSpace(issue.PreviousValue)
+                    && !LooksLikeFilePathList(issue.PreviousValue))
+                || (!string.IsNullOrWhiteSpace(issue.CurrentValue)
+                    && !LooksLikeFilePathList(issue.CurrentValue)))
             {
-                parts.Add("台账行：" + issue.LedgerRow);
-            }
+                if (!string.IsNullOrWhiteSpace(issue.PreviousValue)
+                    && !LooksLikeFilePathList(issue.PreviousValue))
+                {
+                    parts.Add("原值：" + issue.PreviousValue);
+                }
 
-            if (!string.IsNullOrWhiteSpace(issue.PreviousValue) || !string.IsNullOrWhiteSpace(issue.CurrentValue))
-            {
-                parts.Add("对比：" + TextOrDash(issue.PreviousValue) + "；" + TextOrDash(issue.CurrentValue));
+                if (!string.IsNullOrWhiteSpace(issue.CurrentValue)
+                    && !LooksLikeFilePathList(issue.CurrentValue))
+                {
+                    parts.Add("当前/将写入：" + issue.CurrentValue);
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(issue.SheetName))
@@ -271,17 +473,74 @@ namespace HainanSettlementTool.Wpf
                 parts.Add("工作表：" + issue.SheetName);
             }
 
-            if (!string.IsNullOrWhiteSpace(issue.TemplateFile))
-            {
-                parts.Add("完整路径：" + issue.TemplateFile);
-            }
-
             return string.Join("；", parts);
         }
 
-        private static string TextOrDash(string value)
+        private static string BuildTechnicalDetailsText(Stage2PreflightIssue issue)
         {
-            return string.IsNullOrWhiteSpace(value) ? "-" : value;
+            var parts = new List<string>();
+            if (!string.IsNullOrWhiteSpace(issue.TemplateFile))
+            {
+                parts.Add("文件名：" + SafeFileName(issue.TemplateFile));
+                parts.Add("完整路径：" + issue.TemplateFile);
+            }
+
+            IEnumerable<string> templateOptions = issue.TemplateOptions == null
+                ? Enumerable.Empty<string>()
+                : (IEnumerable<string>)issue.TemplateOptions;
+            var candidates = templateOptions
+                .Where(path => !string.IsNullOrWhiteSpace(path))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            if (candidates.Count == 0 && LooksLikeFilePathList(issue.CurrentValue))
+            {
+                candidates = SplitPathList(issue.CurrentValue);
+            }
+
+            if (candidates.Count > 0)
+            {
+                parts.Add("候选摘要：共 " + candidates.Count + " 个工作簿，仅用于选择新分表的版式来源。");
+                parts.Add("候选文件：" + string.Join("、", candidates.Select(SafeFileName)));
+                parts.Add("候选完整路径：" + Environment.NewLine
+                    + string.Join(Environment.NewLine, candidates));
+            }
+            else
+            {
+                if (LooksLikeFilePathList(issue.PreviousValue))
+                {
+                    parts.Add("原始路径：" + issue.PreviousValue);
+                }
+
+                if (LooksLikeFilePathList(issue.CurrentValue))
+                {
+                    parts.Add("当前路径：" + issue.CurrentValue);
+                }
+            }
+
+            return string.Join(Environment.NewLine, parts);
+        }
+
+        private static bool LooksLikeFilePathList(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return false;
+            }
+
+            return value.IndexOf(":\\", StringComparison.Ordinal) >= 0
+                || value.StartsWith("\\\\", StringComparison.Ordinal)
+                || value.IndexOf(".xlsx", StringComparison.OrdinalIgnoreCase) >= 0
+                || value.IndexOf(".xls", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static List<string> SplitPathList(string value)
+        {
+            return (value ?? string.Empty)
+                .Split(new[] { '、', '；', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(item => item.Trim())
+                .Where(item => !string.IsNullOrWhiteSpace(item))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
         }
 
         private static string DispositionText(Stage2PreflightDisposition disposition)
@@ -343,7 +602,12 @@ namespace HainanSettlementTool.Wpf
 
     internal sealed class Stage2PreflightIssueGroupViewModel
     {
-        public string Category { get; set; }
+        public string Heading { get; set; }
+        public string SupportingText { get; set; }
+        public Visibility SupportingTextVisibility { get; set; }
+        public bool IsSubjectGroup { get; set; }
+        public Stage2PreflightDisposition Disposition { get; set; }
+        public string StatusText { get; set; }
         public string CountText { get; set; }
         public List<Stage2PreflightIssueItemViewModel> Issues { get; set; }
     }
@@ -354,17 +618,30 @@ namespace HainanSettlementTool.Wpf
         public Stage2PreflightDisposition Disposition { get; set; }
         public string StatusText { get; set; }
         public string PrimaryText { get; set; }
-        public string FileText { get; set; }
-        public Visibility FileTextVisibility { get; set; }
+        public string Kind { get; set; }
         public string HandlingText { get; set; }
         public string ContextText { get; set; }
         public Visibility ContextTextVisibility { get; set; }
+        public string TechnicalDetailsText { get; set; }
+        public Visibility TechnicalDetailsVisibility { get; set; }
         public string SettlementKind { get; set; }
         public string Entity { get; set; }
+        public string Owner { get; set; }
+        public int LedgerRow { get; set; }
         public bool RequiresPaymentPartySelection { get; set; }
         public Visibility PaymentSelectionVisibility { get; set; }
         public List<string> PaymentPartyOptions { get; set; }
         public string SelectedPaymentParty { get; set; }
+        public bool RequiresTemplateSelection { get; set; }
+        public Visibility TemplateSelectionVisibility { get; set; }
+        public List<Stage2PreflightTemplateOptionViewModel> TemplateOptions { get; set; }
+        public string SelectedTemplatePath { get; set; }
+    }
+
+    internal sealed class Stage2PreflightTemplateOptionViewModel
+    {
+        public string DisplayText { get; set; }
+        public string Path { get; set; }
     }
 
     internal sealed class Stage2PreflightPaymentDecision
@@ -372,5 +649,12 @@ namespace HainanSettlementTool.Wpf
         public string SettlementKind { get; set; }
         public string Entity { get; set; }
         public string PaymentParty { get; set; }
+    }
+
+    internal sealed class Stage2PreflightTemplateDecision
+    {
+        public string SettlementKind { get; set; }
+        public string Entity { get; set; }
+        public string TemplatePath { get; set; }
     }
 }

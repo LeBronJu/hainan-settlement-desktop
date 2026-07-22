@@ -22,10 +22,17 @@ namespace HainanSettlementTool.Core.Models
         public string Suggestion { get; set; }
         public bool RequiresPaymentPartySelection { get; set; }
         public List<string> AvailablePaymentParties { get; } = new List<string>();
+        public bool RequiresTemplateSelection { get; set; }
+        public List<string> AvailableTemplateFiles { get; } = new List<string>();
 
         public IReadOnlyList<string> PaymentPartyOptions
         {
             get { return AvailablePaymentParties; }
+        }
+
+        public IReadOnlyList<string> TemplateOptions
+        {
+            get { return AvailableTemplateFiles; }
         }
 
         public bool BlocksGeneration
@@ -38,7 +45,8 @@ namespace HainanSettlementTool.Core.Models
             get
             {
                 return Disposition == Stage2PreflightDisposition.RequiredDecision
-                    || RequiresPaymentPartySelection;
+                    || RequiresPaymentPartySelection
+                    || RequiresTemplateSelection;
             }
         }
     }

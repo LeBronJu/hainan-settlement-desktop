@@ -206,15 +206,59 @@ namespace HainanSettlementTool.Excel
                 return newTarget;
             }
 
-            var candidate = templateCatalog.UniqueForKind(kind);
-            if (candidate == null)
-            {
-                throw new InvalidOperationException("没有唯一可用的" + kind + "分表模板。");
-            }
+            var candidate = ResolveBorrowTemplate(
+                templateCatalog,
+                options,
+                kind,
+                entity);
 
             File.Copy(candidate.Path, newTarget, false);
             matchedTemplate = false;
             return newTarget;
+        }
+
+        private static HainanStage2TemplateCandidate ResolveBorrowTemplate(
+            HainanStage2TemplateCatalog templateCatalog,
+            HainanStage2Options options,
+            string kind,
+            string entity)
+        {
+            var candidates = templateCatalog.CandidatesForKind(kind);
+            if (candidates.Count == 0)
+            {
+                throw new InvalidOperationException("没有可用的" + kind + "分表模板。");
+            }
+
+            if (candidates.Count == 1)
+            {
+                return candidates[0];
+            }
+
+            var settlementKind = kind + "费";
+            var key = HainanStage2ExcelUtil.SummaryKey(entity, settlementKind);
+            var decisions = options.TemplateDecisions
+                .Where(item => item != null
+                    && HainanStage2ExcelUtil.SummaryKey(item.Entity, item.SettlementKind) == key)
+                .ToList();
+            if (decisions.Count != 1)
+            {
+                throw new InvalidOperationException(
+                    settlementKind + "主体“" + entity + "”没有唯一的本次分表模板选择。");
+            }
+
+            var selectedPath = Path.GetFullPath(decisions[0].TemplatePath);
+            var selected = candidates.SingleOrDefault(candidate =>
+                string.Equals(
+                    Path.GetFullPath(candidate.Path),
+                    selectedPath,
+                    StringComparison.OrdinalIgnoreCase));
+            if (selected == null)
+            {
+                throw new InvalidOperationException(
+                    settlementKind + "主体“" + entity + "”选择的分表模板不在本次预检候选范围内。");
+            }
+
+            return selected;
         }
 
         private static IXLWorksheet PrepareMonthSheet(XLWorkbook workbook, int month)

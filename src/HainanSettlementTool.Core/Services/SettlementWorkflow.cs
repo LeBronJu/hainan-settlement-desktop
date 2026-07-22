@@ -171,7 +171,7 @@ namespace HainanSettlementTool.Core.Services
 
             if (!evaluation.CanContinue)
             {
-                throw new InvalidOperationException("海南阶段二仍有未完成或无效的必选项，请完成支付方选择后再生成。");
+                throw new InvalidOperationException("海南阶段二仍有未完成或无效的必选项，请完成支付方或模板选择后再生成。");
             }
 
             if (!evaluation.CanGenerate(confirmed))
