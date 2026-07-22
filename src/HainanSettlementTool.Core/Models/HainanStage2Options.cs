@@ -12,6 +12,8 @@ namespace HainanSettlementTool.Core.Models
         public string OutputDirectory { get; set; }
         public string OutputSummaryName { get; set; }
         public bool AllowMissingOwner { get; set; }
+        public string ExpectedPreflightSignature { get; set; }
+        public string ExpectedInputFingerprint { get; set; }
         public List<HainanStage2SummarySubjectDecision> SummarySubjectDecisions { get; } = new List<HainanStage2SummarySubjectDecision>();
     }
 }

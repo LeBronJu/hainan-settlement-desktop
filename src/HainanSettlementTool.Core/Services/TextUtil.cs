@@ -56,7 +56,23 @@ namespace HainanSettlementTool.Core.Services
         public static string SafeFileName(string value)
         {
             var invalid = new string(System.IO.Path.GetInvalidFileNameChars());
-            return Regex.Replace(S(value), "[" + Regex.Escape(invalid) + "]", "_");
+            var result = Regex.Replace(S(value), "[" + Regex.Escape(invalid) + "]", "_")
+                .TrimEnd(' ', '.');
+            if (string.IsNullOrWhiteSpace(result) || result == "." || result == "..")
+            {
+                return "_";
+            }
+
+            var stem = result.Split('.')[0];
+            if (Regex.IsMatch(
+                stem,
+                "^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$",
+                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+            {
+                return "_" + result;
+            }
+
+            return result;
         }
     }
 }

@@ -9,6 +9,13 @@ namespace HainanSettlementTool.Excel
 {
     internal static class ChongqingStage2ExcelUtil
     {
+        public const double TaxRateTolerance = 0.0000000001d;
+
+        public static bool TaxRatesEqual(double left, double right)
+        {
+            return Math.Abs(left - right) <= TaxRateTolerance;
+        }
+
         public static double GetNumeric(IXLWorksheet worksheet, int row, int column)
         {
             return ClosedXmlUtil.CellNumber(worksheet.Cell(row, column));

@@ -60,6 +60,31 @@ namespace HainanSettlementTool.Core.Tests
             }
         }
 
+        [TestMethod]
+        public void AnalyzeDoesNotAuthorizeDirectGeneration()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var gateway = new FakeHainanStage2Gateway();
+                var service = new HainanStage2Service(gateway);
+                var options = CreateOptions(root);
+                options.ExpectedPreflightSignature = null;
+                options.ExpectedInputFingerprint = null;
+
+                service.Analyze(options);
+
+                Assert.IsNull(options.ExpectedPreflightSignature);
+                Assert.IsNull(options.ExpectedInputFingerprint);
+                Assert.ThrowsException<InvalidOperationException>(() => service.Run(options, null));
+                Assert.AreEqual(0, gateway.GenerateCalls);
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
         private static HainanStage2Options CreateOptions(string root)
         {
             var proxyDir = Path.Combine(root, "proxy");
@@ -74,7 +99,9 @@ namespace HainanSettlementTool.Core.Tests
                 ProxyTemplateDirectory = proxyDir,
                 IntermediaryTemplateDirectory = intermediaryDir,
                 SummaryTemplatePath = CreateFile(root, "summary.xlsx"),
-                OutputDirectory = Path.Combine(root, "out")
+                OutputDirectory = Path.Combine(root, "out"),
+                ExpectedPreflightSignature = "confirmed-preflight",
+                ExpectedInputFingerprint = "confirmed-input"
             };
         }
 
@@ -111,7 +138,12 @@ namespace HainanSettlementTool.Core.Tests
 
             public HainanStage2PreflightReport AnalyzeSettlement(HainanStage2Options options)
             {
-                return new HainanStage2PreflightReport { Month = options.Month };
+                return new HainanStage2PreflightReport
+                {
+                    Month = options.Month,
+                    PreflightSignature = "preflight",
+                    InputFingerprint = "input"
+                };
             }
 
             public HainanStage2Report GenerateSettlement(HainanStage2Options options)

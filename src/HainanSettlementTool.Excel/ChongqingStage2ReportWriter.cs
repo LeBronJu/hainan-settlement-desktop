@@ -34,6 +34,8 @@ namespace HainanSettlementTool.Excel
                 Summary = summaryPath,
                 ReportPath = Path.Combine(options.OutputDirectory, options.Month + "月重庆阶段二生成报告.json"),
                 ValidationReportPath = Path.Combine(options.OutputDirectory, "重庆阶段二校验报告.txt"),
+                PreflightSignature = options.ExpectedPreflightSignature,
+                InputFingerprint = options.ExpectedInputFingerprint,
                 ProxyRows = details.Count(detail => detail.Kind == ChongqingStage2SettlementKinds.Proxy),
                 IntermediaryRows = details.Count(detail => detail.Kind == ChongqingStage2SettlementKinds.Intermediary),
                 RefundRows = details.Count(detail => detail.Kind == ChongqingStage2SettlementKinds.Refund),
@@ -52,11 +54,19 @@ namespace HainanSettlementTool.Excel
 
         public static void Write(ChongqingStage2Report report)
         {
-            File.WriteAllText(report.ReportPath, JsonConvert.SerializeObject(report, Formatting.Indented), Encoding.UTF8);
-            WriteValidationReport(report);
+            Write(report, report.ReportPath, report.ValidationReportPath);
         }
 
-        private static void WriteValidationReport(ChongqingStage2Report report)
+        public static void Write(
+            ChongqingStage2Report report,
+            string physicalReportPath,
+            string physicalValidationReportPath)
+        {
+            File.WriteAllText(physicalReportPath, JsonConvert.SerializeObject(report, Formatting.Indented), Encoding.UTF8);
+            WriteValidationReport(report, physicalValidationReportPath);
+        }
+
+        private static void WriteValidationReport(ChongqingStage2Report report, string physicalPath)
         {
             var lines = new List<string>
             {
@@ -100,7 +110,7 @@ namespace HainanSettlementTool.Excel
                 }
             }
 
-            File.WriteAllLines(report.ValidationReportPath, lines, Encoding.UTF8);
+            File.WriteAllLines(physicalPath, lines, Encoding.UTF8);
         }
     }
 }

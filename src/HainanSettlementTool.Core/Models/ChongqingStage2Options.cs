@@ -12,6 +12,8 @@ namespace HainanSettlementTool.Core.Models
         public string SummaryTemplatePath { get; set; }
         public string OutputDirectory { get; set; }
         public string OutputSummaryName { get; set; }
+        public string ExpectedPreflightSignature { get; set; }
+        public string ExpectedInputFingerprint { get; set; }
         public List<ChongqingStage2SummarySubjectDecision> SummarySubjectDecisions { get; } = new List<ChongqingStage2SummarySubjectDecision>();
     }
 }

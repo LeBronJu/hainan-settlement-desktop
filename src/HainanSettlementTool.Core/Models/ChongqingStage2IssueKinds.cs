@@ -13,5 +13,6 @@ namespace HainanSettlementTool.Core.Models
         public const string SummarySubjectMissing = "SummarySubjectMissing";
         public const string NewSummarySubjectPaymentPartyRequired = "NewSummarySubjectPaymentPartyRequired";
         public const string TargetMonthAlreadyExists = "TargetMonthAlreadyExists";
+        public const string RefundExtraPowerRows = "RefundExtraPowerRows";
     }
 }

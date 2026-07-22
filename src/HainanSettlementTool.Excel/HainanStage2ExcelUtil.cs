@@ -13,6 +13,7 @@ namespace HainanSettlementTool.Excel
     {
         internal const int DataStartRow = 5;
         internal const int Year = 2026;
+        internal const int TaxRatePrecision = 10;
         private static readonly Dictionary<string, Tuple<int, string>> PaymentPartyOverrides =
             new Dictionary<string, Tuple<int, string>>
             {
@@ -43,6 +44,16 @@ namespace HainanSettlementTool.Excel
             }
 
             return ClosedXmlUtil.CellNumber(worksheet.Cell(targetRow, targetColumn));
+        }
+
+        internal static double NormalizeTaxRate(double value)
+        {
+            return Math.Round(value, TaxRatePrecision);
+        }
+
+        internal static bool TaxRatesEqual(double left, double right)
+        {
+            return NormalizeTaxRate(left) == NormalizeTaxRate(right);
         }
 
         internal static IXLWorksheet LastMonthSheet(XLWorkbook workbook)
@@ -98,6 +109,11 @@ namespace HainanSettlementTool.Excel
         internal static string TemplateKey(string kind, string owner, string entity)
         {
             return kind + "|" + NormalizeName(owner) + "|" + NormalizeName(entity);
+        }
+
+        internal static string TemplateSubjectKey(string kind, string entity)
+        {
+            return TextUtil.S(kind) + "|" + NormalizeName(entity);
         }
 
         internal static string SummaryKey(string entity, string kind)

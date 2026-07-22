@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using HainanSettlementTool.Core.Models;
 
 namespace HainanSettlementTool.Core.Services
@@ -25,9 +26,30 @@ namespace HainanSettlementTool.Core.Services
 
         public ChongqingStage2PreflightReport Preflight { get; }
 
+        public Stage2PreflightEvaluation Evaluation
+        {
+            get { return Stage2PreflightPolicy.Evaluate(Preflight.Issues, Options.SummarySubjectDecisions); }
+        }
+
+        public bool IsBlocked
+        {
+            get { return Evaluation.HasBlockingIssues || Evaluation.HasInvalidDecisions; }
+        }
+
+        public bool CanContinue
+        {
+            get { return Evaluation.CanContinue; }
+        }
+
         public bool RequiresConfirmation
         {
-            get { return Preflight.HasIssues; }
+            get
+            {
+                var evaluation = Evaluation;
+                return evaluation.HasBlockingIssues
+                    || evaluation.HasInvalidDecisions
+                    || Preflight.Issues.Any(issue => issue.Disposition != Stage2PreflightDisposition.Information);
+            }
         }
     }
 }

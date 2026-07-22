@@ -30,6 +30,10 @@ namespace HainanSettlementTool.Excel
                 OutputDirectory = options.OutputDirectory,
                 Summary = summaryPath,
                 ReportPath = reportPath,
+                ValidationReportPath = Path.Combine(options.OutputDirectory, "阶段二校验报告.txt"),
+                GeneratedSummaryReviewPath = Path.Combine(options.OutputDirectory, "自动生成汇总提示.txt"),
+                PreflightSignature = options.ExpectedPreflightSignature,
+                InputFingerprint = options.ExpectedInputFingerprint,
                 ProxyRows = proxyRows.Count,
                 IntermediaryRows = interRows.Count,
                 ProxyGroups = totals.Count(total => total.Kind == "代理费"),
@@ -46,31 +50,56 @@ namespace HainanSettlementTool.Excel
 
         internal static void WriteReport(HainanStage2Options options, HainanStage2Report report)
         {
-            File.WriteAllText(report.ReportPath, JsonConvert.SerializeObject(report, Formatting.Indented), System.Text.Encoding.UTF8);
+            WriteReport(report, report.ReportPath);
+        }
+
+        internal static void WriteReport(HainanStage2Report report, string physicalPath)
+        {
+            File.WriteAllText(physicalPath, JsonConvert.SerializeObject(report, Formatting.Indented), System.Text.Encoding.UTF8);
         }
 
         internal static void WriteWarnings(HainanStage2Options options, IList<string> warnings)
         {
             var path = Path.Combine(options.OutputDirectory, "自动生成汇总提示.txt");
+            WriteWarnings(warnings, path);
+        }
+
+        internal static void WriteWarnings(IList<string> warnings, string physicalPath)
+        {
             if (warnings.Count > 0)
             {
-                File.WriteAllLines(path, warnings, System.Text.Encoding.UTF8);
+                File.WriteAllLines(physicalPath, warnings, System.Text.Encoding.UTF8);
             }
-            else if (File.Exists(path))
+            else
             {
-                File.Delete(path);
+                File.WriteAllText(physicalPath, "本批无自动生成汇总提示。", System.Text.Encoding.UTF8);
             }
         }
 
         internal static void WriteAuditReport(HainanStage2Options options, HainanStage2Report report)
         {
-            var path = Path.Combine(options.OutputDirectory, "阶段二校验报告.txt");
+            var path = string.IsNullOrWhiteSpace(report.ValidationReportPath)
+                ? Path.Combine(options.OutputDirectory, "阶段二校验报告.txt")
+                : report.ValidationReportPath;
+            WriteAuditReport(options, report, path);
+        }
+
+        internal static void WriteAuditReport(
+            HainanStage2Options options,
+            HainanStage2Report report,
+            string physicalPath)
+        {
             if (report.AuditIssues.Count == 0 && report.Warnings.Count == 0 && report.MissingOwners.Count == 0)
             {
-                if (File.Exists(path))
-                {
-                    File.Delete(path);
-                }
+                File.WriteAllLines(
+                    physicalPath,
+                    new[]
+                    {
+                        "阶段二校验报告",
+                        "结算月份：2026年" + options.Month + "月",
+                        "本批无需复核的校验项。"
+                    },
+                    System.Text.Encoding.UTF8);
                 return;
             }
 
@@ -149,7 +178,7 @@ namespace HainanSettlementTool.Excel
                 }
             }
 
-            File.WriteAllLines(path, lines, System.Text.Encoding.UTF8);
+            File.WriteAllLines(physicalPath, lines, System.Text.Encoding.UTF8);
         }
     }
 }
