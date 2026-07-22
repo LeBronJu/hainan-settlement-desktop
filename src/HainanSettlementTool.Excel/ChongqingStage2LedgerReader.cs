@@ -76,16 +76,30 @@ namespace HainanSettlementTool.Excel
 
                 if (isSelfOperated)
                 {
-                    ValidateSelfOperatedProxyFieldsEmpty(
+                    // 重庆自营客户仍可保留项目开发人作为内部归属信息，
+                    // 但不得产生代理费或居间费结算关系。
+                    ValidateSelfOperatedExternalSettlementFieldsEmpty(
                         snapshot,
                         worksheet,
                         row,
                         customer,
                         owner,
-                        proxyEntity,
+                        string.Empty,
+                        ChongqingStage2SettlementKinds.Proxy,
                         map.ProxyRatioColumn,
                         map.ProxyUnitPriceColumn,
                         map.ProxyTaxRateColumn);
+                    ValidateSelfOperatedExternalSettlementFieldsEmpty(
+                        snapshot,
+                        worksheet,
+                        row,
+                        customer,
+                        owner,
+                        intermediaryEntity,
+                        ChongqingStage2SettlementKinds.Intermediary,
+                        map.IntermediaryRatioColumn,
+                        map.IntermediaryUnitPriceColumn,
+                        map.IntermediaryTaxRateColumn);
                 }
                 else
                 {
@@ -101,20 +115,19 @@ namespace HainanSettlementTool.Excel
                         map.ProxyRatioColumn,
                         map.ProxyUnitPriceColumn,
                         map.ProxyTaxRateColumn);
+                    ValidateProxyLikeRelationship(
+                        snapshot,
+                        occurrences,
+                        worksheet,
+                        row,
+                        customer,
+                        owner,
+                        intermediaryEntity,
+                        ChongqingStage2SettlementKinds.Intermediary,
+                        map.IntermediaryRatioColumn,
+                        map.IntermediaryUnitPriceColumn,
+                        map.IntermediaryTaxRateColumn);
                 }
-
-                ValidateProxyLikeRelationship(
-                    snapshot,
-                    occurrences,
-                    worksheet,
-                    row,
-                    customer,
-                    owner,
-                    intermediaryEntity,
-                    ChongqingStage2SettlementKinds.Intermediary,
-                    map.IntermediaryRatioColumn,
-                    map.IntermediaryUnitPriceColumn,
-                    map.IntermediaryTaxRateColumn);
 
                 AddRefundOccurrence(
                     occurrences,
@@ -133,8 +146,10 @@ namespace HainanSettlementTool.Excel
                     !isSelfOperated);
                 AddDetailIfNeeded(
                     snapshot.Details,
-                    CreateProxyLikeDetail(worksheet, map, row, customer, owner, intermediaryEntity, ChongqingStage2SettlementKinds.Intermediary, map.IntermediaryRatioColumn, map.IntermediaryUnitPriceColumn, map.IntermediaryTaxRateColumn, map.IntermediaryNetColumn, 0),
-                    true);
+                    isSelfOperated
+                        ? null
+                        : CreateProxyLikeDetail(worksheet, map, row, customer, owner, intermediaryEntity, ChongqingStage2SettlementKinds.Intermediary, map.IntermediaryRatioColumn, map.IntermediaryUnitPriceColumn, map.IntermediaryTaxRateColumn, map.IntermediaryNetColumn, 0),
+                    !isSelfOperated);
                 AddDetailIfNeeded(
                     snapshot.Details,
                     CreateRefundDetail(worksheet, map, row, customer, owner, refundEntity),
@@ -145,13 +160,14 @@ namespace HainanSettlementTool.Excel
             return snapshot;
         }
 
-        private static void ValidateSelfOperatedProxyFieldsEmpty(
+        private static void ValidateSelfOperatedExternalSettlementFieldsEmpty(
             ChongqingStage2LedgerSnapshot snapshot,
             IXLWorksheet worksheet,
             int row,
             string customer,
             string owner,
             string entity,
+            string settlementKind,
             int ratioColumn,
             int unitPriceColumn,
             int taxRateColumn)
@@ -170,7 +186,7 @@ namespace HainanSettlementTool.Excel
             var residuals = new List<string>();
             if (!string.IsNullOrWhiteSpace(entity))
             {
-                residuals.Add("代理主体：" + entity);
+                residuals.Add(settlementKind + "主体：" + entity);
             }
 
             AddResidualParameter(residuals, "比例", ratio);
@@ -181,16 +197,18 @@ namespace HainanSettlementTool.Excel
                 Code = Stage2PreflightIssueKinds.RelationshipParametersInvalid,
                 Disposition = Stage2PreflightDisposition.Blocker,
                 Severity = "阻断",
-                Category = "自营行残留代理关系字段",
+                Category = "自营行残留" + settlementKind + "关系字段",
                 Kind = Stage2PreflightIssueKinds.RelationshipParametersInvalid,
-                SettlementKind = ChongqingStage2SettlementKinds.Proxy,
+                SettlementKind = settlementKind,
                 Customer = customer,
                 Owner = owner,
                 Entity = entity,
                 LedgerRow = row,
                 CurrentValue = string.Join("；", residuals),
-                Message = "重庆台账第" + row + "行为自营，但仍填写了代理主体或代理参数。",
-                Suggestion = "自营行的代理主体、比例、单价和税率必须全部空白；请清理残留内容后重新预检。"
+                Message = "重庆台账第" + row + "行为自营，但仍填写了" + settlementKind + "主体或参数。",
+                Suggestion = settlementKind == ChongqingStage2SettlementKinds.Proxy
+                    ? "自营行可以保留项目开发人，但不参与代理费结算；代理比例、单价和税率必须全部空白。"
+                    : "自营行不参与居间费结算；居间人、比例、单价和税率必须全部空白。"
             });
         }
 

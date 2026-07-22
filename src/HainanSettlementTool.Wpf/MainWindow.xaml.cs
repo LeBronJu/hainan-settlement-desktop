@@ -93,6 +93,7 @@ namespace HainanSettlementTool.Wpf
                 CompletionDetailText,
                 CompletionOutputLabel,
                 CompletionOutputText,
+                OpenReadableReportButton,
                 NoProvinceResultHint,
                 Stage1ResultRow,
                 Stage1ResultLabel,
@@ -655,6 +656,15 @@ namespace HainanSettlementTool.Wpf
                 ? _resultController.LastOutputDirectory
                 : OutputDirBox.Text.Trim();
             if (Directory.Exists(path))
+            {
+                Process.Start(path);
+            }
+        }
+
+        private void OpenReadableReport_Click(object sender, RoutedEventArgs e)
+        {
+            var path = _resultController.LastReadableReportPath;
+            if (File.Exists(path))
             {
                 Process.Start(path);
             }

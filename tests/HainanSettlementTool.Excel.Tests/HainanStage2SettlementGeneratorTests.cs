@@ -1427,6 +1427,12 @@ namespace HainanSettlementTool.Excel.Tests
 
                 WriteLedgerWithProxyRows(ledgerPath, "测试负责人", "测试代理", "存量客户", "新增客户");
                 WriteProxyTemplate(proxyRoot, "测试负责人", "测试代理");
+                var templatePath = Directory.GetFiles(proxyRoot, "*.xlsx", SearchOption.AllDirectories).Single();
+                using (var workbook = new XLWorkbook(templatePath))
+                {
+                    workbook.Worksheet("3月").Cell("P6").CreateComment().AddText("本主体需要保留的人工批注");
+                    workbook.Save();
+                }
                 WriteSummaryTemplate(summaryPath, "测试代理", "代理费", "清辉");
 
                 var options = new HainanStage2Options
@@ -1454,6 +1460,7 @@ namespace HainanSettlementTool.Excel.Tests
                     Assert.AreEqual("日期：2026年05月08日", FindSignatureDateText(worksheet));
                     AssertStyleMatches(workbook.Worksheet("2月").Cell(6, 3), worksheet.Cell(7, 3));
                     AssertStyleMatches(worksheet.Cell(5, 2), worksheet.Cell(6, 2));
+                    Assert.IsTrue(worksheet.CellsUsed(XLCellsUsedOptions.Comments).Any(cell => cell.HasComment));
                 }
             }
             finally
@@ -1738,7 +1745,7 @@ namespace HainanSettlementTool.Excel.Tests
         }
 
         [TestMethod]
-        public void GenerateSettlementDoesNotKeepBorrowedTemplateHistoryForNewSubject()
+        public void GenerateSettlementDoesNotKeepBorrowedTemplateHistoryOrCommentsForNewSubject()
         {
             var root = Path.Combine(Path.GetTempPath(), "HainanSettlementToolTests", Guid.NewGuid().ToString("N"));
             var ledgerPath = Path.Combine(root, "ledger.xlsx");
@@ -1755,6 +1762,12 @@ namespace HainanSettlementTool.Excel.Tests
 
                 WriteLedgerWithProxyEntities(ledgerPath, "测试负责人", "模板代理", "新增代理");
                 WriteProxyTemplate(proxyRoot, "测试负责人", "模板代理");
+                var templatePath = Directory.GetFiles(proxyRoot, "*.xlsx", SearchOption.AllDirectories).Single();
+                using (var workbook = new XLWorkbook(templatePath))
+                {
+                    workbook.Worksheet("3月").Cell("P6").CreateComment().AddText("模板主体的人工批注");
+                    workbook.Save();
+                }
                 WriteSummaryTemplate(summaryPath, "模板代理", "代理费", "清辉");
 
                 var options = new HainanStage2Options
@@ -1785,6 +1798,12 @@ namespace HainanSettlementTool.Excel.Tests
                     Assert.AreEqual(1, workbook.Worksheets.Count);
                     Assert.IsTrue(workbook.Worksheets.Contains("4月"));
                     Assert.AreEqual("代理名称:新增代理", workbook.Worksheet("4月").Cell("A2").GetFormattedString());
+                    var commentedCells = workbook.Worksheet("4月")
+                        .CellsUsed(XLCellsUsedOptions.Comments)
+                        .Where(cell => cell.HasComment)
+                        .Select(cell => cell.Address.ToString())
+                        .ToList();
+                    Assert.AreEqual(0, commentedCells.Count, string.Join(", ", commentedCells));
                 }
             }
             finally
@@ -2408,6 +2427,7 @@ namespace HainanSettlementTool.Excel.Tests
                 Assert.IsTrue(File.Exists(report.Summary));
                 Assert.IsTrue(File.Exists(report.ReportPath));
                 Assert.IsTrue(File.Exists(report.ValidationReportPath));
+                Assert.IsTrue(File.Exists(report.HtmlReportPath));
                 Assert.IsTrue(report.Groups.All(group =>
                     File.Exists(group.OutputFile)
                     && Path.GetFullPath(group.OutputFile).StartsWith(outputPrefix, StringComparison.OrdinalIgnoreCase)));
@@ -2421,7 +2441,13 @@ namespace HainanSettlementTool.Excel.Tests
                 var reportJson = File.ReadAllText(report.ReportPath);
                 StringAssert.Contains(reportJson, preflight.PreflightSignature);
                 StringAssert.Contains(reportJson, preflight.InputFingerprint);
+                StringAssert.Contains(reportJson, Path.GetFileName(report.HtmlReportPath));
                 Assert.IsFalse(reportJson.Contains(Stage2BatchWorkspace.StagingDirectoryPrefix));
+                var readableReport = File.ReadAllText(report.HtmlReportPath);
+                StringAssert.Contains(readableReport, "海南4月阶段二结算报告");
+                StringAssert.Contains(readableReport, "发布代理");
+                StringAssert.Contains(readableReport, "生成完成，但需要人工复核");
+                Assert.IsFalse(readableReport.Contains(Stage2BatchWorkspace.StagingDirectoryPrefix));
             }
             finally
             {
@@ -2475,6 +2501,7 @@ namespace HainanSettlementTool.Excel.Tests
                 Assert.AreEqual("formal-sentinel", File.ReadAllText(finalSummaryPath));
                 Assert.IsTrue(Directory.Exists(collidingSplitPath));
                 Assert.IsFalse(File.Exists(Path.Combine(outputRoot, "4月结算生成总报告.json")));
+                Assert.IsFalse(File.Exists(Path.Combine(outputRoot, "海南4月阶段二结算报告.html")));
                 var failedDirectories = Directory.GetDirectories(
                     outputRoot,
                     Stage2BatchWorkspace.FailedDirectoryPrefix + "*",

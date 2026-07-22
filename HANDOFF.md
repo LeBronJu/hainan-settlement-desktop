@@ -51,15 +51,17 @@ For the current Stage 2 integrity work, also read:
 - Local `main` is three commits ahead of `origin/main`: `23e79ff`, `0089f58`, and `4baaf88`; none has been pushed.
 - The Stage 2 integrity implementation and documentation are committed on the `codex/` branch as `ed9452a` (`Add Stage 2 preflight and batch integrity safeguards`).
 - Artifact organization is committed as `8b2de9b` (`Organize package and local validation artifacts`). The Hainan new-subject preflight UX/template-choice follow-up and its selected-template display fix are committed on the current branch.
+- The borrowed-template comment cleanup, shared readable HTML renderer, Hainan/Chongqing HTML batch reports, WPF report button, Chongqing self-operated regression fix, tests, and documentation are the final validated scope of this branch.
+- On 2026-07-22 the user confirmed practical testing across all provinces found no further issue and explicitly authorized commit, merge to `main`, push, tag, and formal release.
 - Preserve the Window Separation / `outputs` exclusions in this handoff and do not revert them.
-- Do not push, merge, tag, package a formal version, or publish without explicit user authorization.
+- Future push, merge, tag, package, or publication again requires a new explicit authorization after this release closes.
 
 ## Release State
 
 - Latest formal release remains `v1.1.0`.
 - Release: `https://github.com/LeBronJu/retail-power-settlement-desktop/releases/tag/v1.1.0`.
 - The Guangdong safety hardening package passed user practical testing, but the user explicitly decided not to publish a new version yet.
-- The latest local Win10/11 test package for user retesting is `dist/test-packages/RetailPowerSettlementTool-Win10-11-Release-20260722-161252-785.zip`; SHA-256 is `CAAED0557E8A34A566F279B56D54F2759D017020C00A4DD0B7B101066C09134F`. It supersedes the earlier `155344-666` package and includes both the template-choice display fix and the Hainan loan fixes.
+- The latest local Win10/11 test package for user retesting is `dist/test-packages/RetailPowerSettlementTool-Win10-11-Release-20260722-172921-704.zip`; SHA-256 is `273477D21A1F97AE5CB1AC88BEF83429B0AD60A076A7042B36D97954934E6798`. It includes the Chongqing self-operated regression fix, borrowed-template comment cleanup, and shared Hainan/Chongqing/Guangdong readable-report work in addition to the earlier template-choice and Hainan loan fixes.
 - This is not a formal release: no release tag, GitHub Release, push, merge, or publication was performed.
 - `dist/` now contains distributable artifacts grouped under `test-packages/`, `releases/`, and `legacy-win7-8/`; local backtests and smoke outputs belong under the Git-ignored `local-validation/` tree.
 
@@ -76,17 +78,20 @@ Hainan / Chongqing Stage 2:
 - Hainan and Chongqing use a shared four-level WPF preflight presentation, while province-specific workbook rules remain in separate Excel adapters. The window groups all issues for one `(settlement kind, subject)` into one card and folds full paths into technical details.
 - Hainan new subjects with several non-exact same-kind split templates now require an explicit template choice in the same card as the Qingneng/Qinghui choice; zero candidates and duplicate exact historical templates still block. The chosen template only supplies layout, and the new output keeps only the target-month sheet. Chongqing has not opted into this province rule and keeps its prior blocker behavior.
 - The shared WPF ComboBox template now forwards `ItemTemplateSelector`; selected template options therefore keep their friendly subject/owner/file label instead of falling back to the ViewModel type name.
+- Hainan borrowed-template output for a new subject keeps only the target-month sheet and removes legacy cell comments copied from the source subject. Exact matched templates for existing subjects keep their own comments.
 - Hainan loan remaining is written as `MAX(0, loan - deducted)`; when the program-owned current-month deduction first clears a positive balance and the completion month is blank, the concrete target settlement month is written as a date value and displayed as `yyyy年m月` (for example, a June 2026 run writes `2026年6月`). Existing completion months are preserved and historical missing months are not guessed.
 - Analyze is read-only. A plan freezes preflight signature and file/output-state fingerprint; changes after confirmation force a new preflight.
 - All workbooks and reports are generated in one staging workspace, strongly verified, then published as one batch. Failed staging is retained under `【未完成-禁止付款】`.
 - There is no payment-routing JSON and no partial formal summary generation for Hainan/Chongqing.
+- Hainan and Chongqing now publish a self-contained readable HTML report inside the same all-or-nothing batch as workbooks and JSON/TXT reports. The WPF completion card opens it directly. Guangdong uses the same escaped responsive renderer, while each province keeps its own report facts, status mapping, and publish semantics.
+- Chongqing self-operated rows keep project developer/owner as internal attribution but produce no proxy/intermediary settlement. The integrity regression that treated project developer as a residual proxy subject is fixed; only real monthly proxy parameters or intermediary fields block. Refund settlement remains independent.
 
 Guangdong:
 
 - Proxy/intermediary/refund month-sheet preparation and its safety hardening passed user practical testing.
 - Full Guangdong settlement remains paused.
 - Guangdong's independent-workbook partial-completion behavior must not be generalized to Hainan/Chongqing formal settlement.
-- A read-only design review recommends extending Guangdong's self-contained readable HTML through a shared escaped HTML presentation renderer while keeping each workflow's status/business mapping and publish semantics province-specific. This has not been implemented yet.
+- Guangdong's existing readable HTML now uses the shared escaped responsive renderer without changing its independent-workbook partial-completion semantics.
 
 Performance / UI support:
 
@@ -98,17 +103,18 @@ Performance / UI support:
 Current branch, synthetic inputs only:
 
 - Core tests: 80/80 passed.
-- Excel tests: 125/125 passed.
-- WPF presentation/control tests: 3/3 passed.
+- Excel tests: 126/126 passed.
+- WPF presentation/control tests: 4/4 passed.
 - Focused Hainan Stage 2 tests: 57/57 passed.
-- Focused Chongqing Stage 2 tests: 39/39 passed.
+- Focused Chongqing Stage 2 tests: 40/40 passed.
 - Full Debug and Release solution builds passed.
 - WPF Debug build passed with 0 warnings / 0 errors.
 - Build portability check passed.
 - Documentation guardrails and `git diff --check` passed.
 - Independent read-only diff review found no remaining P0/P1 in the current scope; its two P2 findings (card-count wording and whitespace-normalized subject keys) were addressed.
-- The latest Win10/11 test package build passed; its directory and readable ZIP each contain the same 20 files, no workbook/CSV/JSON/log data, and the packaged WPF executable remained running through a five-second hidden startup smoke.
-- One user-authorized generated Hainan summary workbook was inspected read-only for the reported loan-balance row; automated tests remained synthetic. No other real workbook/business directory or `outputs` material was read or produced, and no formal release was created.
+- The latest `172921-704` Win10/11 test package build passed; its directory and ZIP each contain the same 20 files, no workbook/CSV/JSON/log data, and the packaged WPF executable remained running through a five-second hidden startup smoke.
+- One user-authorized generated Hainan summary workbook was inspected read-only for the reported loan-balance row. The later exact user-authorized new-agent split workbook was inspected read-only and contained one legacy comment at `6月!P6`; no surrounding business directory was scanned and the source workbook was not modified. Automated tests remained synthetic. No `outputs` material was read or produced, and no formal release was created.
+- For the later Chongqing self-operated regression, the user explicitly authorized one exact historical ledger. It was inspected and replayed read-only: all seven reported rows had project developer/owner attribution but no monthly proxy/intermediary parameters; the fixed reader reports zero self-operated blockers. No surrounding directory was scanned and the workbook was not modified.
 
 ## Known Boundary
 
@@ -123,7 +129,7 @@ Current branch, synthetic inputs only:
 1. Run the required reading gate and continue on `codex/stage2-preflight-integrity`; do not restart the implementation from `main`.
 2. Inspect the working tree and the current task note before changing anything. Preserve unrelated user edits and `outputs` exclusions.
 3. If the user wants practical workbook validation, obtain explicit current authorization for the exact read-only source and write only to a separate temporary output. Otherwise keep using synthetic fixtures.
-4. Use the latest `161252-785` test package for the next practical check. Confirm that the selected split-template option keeps its friendly label, then replay the June Hainan output and verify a just-cleared loan shows remaining 0 and fills `2026年6月` as the completion month. Do not create a formal package, commit to `main`, push, merge, tag, or release unless the user explicitly asks.
+4. Use the latest `172921-704` local test package for the next practical check. First rerun the provided Chongqing ledger and confirm the seven self-operated rows no longer block; then continue the Hainan borrowed-comment and readable-report checks. Do not commit to `main`, push, merge, tag, or release unless the user explicitly asks.
 5. Do not resume Hainan/Chongqing performance work, add routing JSON, change the ledger format, or add partial formal summaries without a new explicit decision.
 
 ## Window Separation

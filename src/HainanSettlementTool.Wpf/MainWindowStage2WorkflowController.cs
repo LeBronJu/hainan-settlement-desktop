@@ -147,6 +147,7 @@ namespace HainanSettlementTool.Wpf
                 var needsReview = HainanStage2NeedsReview(result.Report);
                 _progressController.SetProgress(100, needsReview ? "阶段二完成但需要复核" : "阶段二执行完成");
                 LogSummary(result.SummaryLines);
+                AddLog("海南阶段二可读报告：" + result.Report.HtmlReportPath, "信息");
 
                 var status = needsReview ? "需复核" : "成功";
                 _resultController.SetStage2Outcome(
@@ -161,14 +162,19 @@ namespace HainanSettlementTool.Wpf
                     _progressController.SetStatus("需复核", "WarningBrush", "StatusBusyBrush");
                     _resultController.ShowReviewCompletion(
                         "阶段二生成完成但需要复核",
-                        "正式分表和汇总表已完整生成；付款前请查看阶段二校验报告。",
+                        "正式分表和汇总表已完整生成；付款前请查看可读报告。",
                         options.OutputDirectory,
-                        false);
+                        false,
+                        result.Report.HtmlReportPath);
                     ShowHainanStage2ReviewReminder(result.Report);
                 }
                 else
                 {
-                    _resultController.ShowCompletion("阶段二执行完成", "分表和汇总表已生成", options.OutputDirectory);
+                    _resultController.ShowCompletion(
+                        "阶段二执行完成",
+                        "分表和汇总表已生成",
+                        options.OutputDirectory,
+                        result.Report.HtmlReportPath);
                 }
             }
             catch (Exception ex)
@@ -263,6 +269,7 @@ namespace HainanSettlementTool.Wpf
                 var needsReview = ChongqingStage2NeedsReview(result.Report);
                 _progressController.SetProgress(100, needsReview ? "重庆阶段二完成但需要复核" : "重庆阶段二执行完成");
                 LogSummary(result.Completed.SummaryLines);
+                AddLog("重庆阶段二可读报告：" + result.Report.HtmlReportPath, "信息");
 
                 var status = needsReview ? "需复核" : "成功";
                 _resultController.SetStage2Outcome(
@@ -277,9 +284,10 @@ namespace HainanSettlementTool.Wpf
                     _progressController.SetStatus("需复核", "WarningBrush", "StatusBusyBrush");
                     _resultController.ShowReviewCompletion(
                         "重庆阶段二生成完成但需要复核",
-                        "正式分表和汇总表已完整生成；付款前请查看重庆阶段二校验报告。",
+                        "正式分表和汇总表已完整生成；付款前请查看可读报告。",
                         options.OutputDirectory,
-                        false);
+                        false,
+                        result.Report.HtmlReportPath);
                     ShowChongqingStage2ReviewReminder(result.Report);
                 }
                 else
@@ -287,7 +295,8 @@ namespace HainanSettlementTool.Wpf
                     _resultController.ShowCompletion(
                         "重庆阶段二执行完成",
                         "分表、退补表和汇总表已生成",
-                        options.OutputDirectory);
+                        options.OutputDirectory,
+                        result.Report.HtmlReportPath);
                 }
             }
             catch (Exception ex)
@@ -410,7 +419,8 @@ namespace HainanSettlementTool.Wpf
                     _resultController.ShowCompletion(
                         "广东分表初始化完成",
                         "已生成目标月份分表副本和检查报告",
-                        report.OutputDirectory);
+                        report.OutputDirectory,
+                        report.HtmlReportPath);
                 }
                 else
                 {
@@ -419,7 +429,8 @@ namespace HainanSettlementTool.Wpf
                         "正常输出 " + report.SuccessfulCount + " / " + report.InputCount
                         + "；需人工复核 " + report.SkippedCount + "；失败 " + report.FailedCount + "。",
                         report.OutputDirectory,
-                        criticalFailureAfterRun);
+                        criticalFailureAfterRun,
+                        report.HtmlReportPath);
                     ShowGuangdongReviewReminder(report);
                 }
             }
@@ -633,8 +644,8 @@ namespace HainanSettlementTool.Wpf
             }
 
             message.AppendLine();
-            message.AppendLine("完整明细：");
-            message.AppendLine(report.ValidationReportPath);
+            message.AppendLine("优先查看可读报告：");
+            message.AppendLine(report.HtmlReportPath);
             _dialogController.ShowWarningMessage(
                 "海南阶段二需要复核",
                 "生成完成，但有项目需要人工确认",
@@ -707,8 +718,8 @@ namespace HainanSettlementTool.Wpf
             }
 
             message.AppendLine();
-            message.AppendLine("完整明细：");
-            message.AppendLine(report.ValidationReportPath);
+            message.AppendLine("优先查看可读报告：");
+            message.AppendLine(report.HtmlReportPath);
             return message.ToString();
         }
 

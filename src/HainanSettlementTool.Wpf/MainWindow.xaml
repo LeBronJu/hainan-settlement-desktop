@@ -557,7 +557,23 @@
                                 </StackPanel>
                             </Border>
 
-                            <Button Grid.Row="4" Content="打开文件夹" Style="{StaticResource SecondaryButton}" Click="OpenOutputDir_Click" />
+                            <Grid Grid.Row="4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Button x:Name="OpenReadableReportButton"
+                                        Grid.Column="0"
+                                        Margin="0,0,8,0"
+                                        Content="查看可读报告"
+                                        Style="{StaticResource PrimaryButton}"
+                                        Visibility="Collapsed"
+                                        Click="OpenReadableReport_Click" />
+                                <Button Grid.Column="1"
+                                        Content="打开文件夹"
+                                        Style="{StaticResource SecondaryButton}"
+                                        Click="OpenOutputDir_Click" />
+                            </Grid>
                         </Grid>
                     </Border>
                     </ScrollViewer>

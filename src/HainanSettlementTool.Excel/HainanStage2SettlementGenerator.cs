@@ -113,15 +113,18 @@ namespace HainanSettlementTool.Excel
                 var stagedReportPath = workspace.GetStagingPath(Path.GetFileName(report.ReportPath));
                 var stagedWarningsPath = workspace.GetStagingPath(Path.GetFileName(report.GeneratedSummaryReviewPath));
                 var stagedValidationPath = workspace.GetStagingPath(Path.GetFileName(report.ValidationReportPath));
+                var stagedHtmlPath = workspace.GetStagingPath(Path.GetFileName(report.HtmlReportPath));
                 HainanStage2ReportWriter.WriteReport(report, stagedReportPath);
                 HainanStage2ReportWriter.WriteWarnings(warnings, stagedWarningsPath);
                 HainanStage2ReportWriter.WriteAuditReport(finalOptions, report, stagedValidationPath);
+                HainanStage2ReportWriter.WriteHtmlReport(report, stagedHtmlPath);
 
                 var reportPaths = new List<string>
                 {
                     stagedReportPath,
                     stagedWarningsPath,
-                    stagedValidationPath
+                    stagedValidationPath,
+                    stagedHtmlPath
                 };
 
                 Stage2BatchIntegrityVerifier.VerifyFiles(

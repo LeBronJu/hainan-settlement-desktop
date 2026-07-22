@@ -520,6 +520,7 @@ namespace HainanSettlementTool.Excel.Tests
                 Assert.AreEqual(1, report.RefundRows);
                 Assert.IsTrue(File.Exists(report.Summary));
                 Assert.IsTrue(File.Exists(report.ReportPath));
+                Assert.IsTrue(File.Exists(report.HtmlReportPath));
                 Assert.IsTrue(Directory.Exists(report.ProxyOutputDirectory));
                 Assert.IsTrue(Directory.Exists(report.RefundOutputDirectory));
                 Assert.AreEqual(options.ExpectedPreflightSignature, report.PreflightSignature);
@@ -527,6 +528,11 @@ namespace HainanSettlementTool.Excel.Tests
                 var reportJson = File.ReadAllText(report.ReportPath);
                 StringAssert.Contains(reportJson, options.ExpectedPreflightSignature);
                 StringAssert.Contains(reportJson, options.ExpectedInputFingerprint);
+                StringAssert.Contains(reportJson, Path.GetFileName(report.HtmlReportPath));
+                var readableReport = File.ReadAllText(report.HtmlReportPath);
+                StringAssert.Contains(readableReport, "重庆5月阶段二结算报告");
+                StringAssert.Contains(readableReport, "新增代理");
+                StringAssert.Contains(readableReport, "新增退补");
 
                 var proxyGroup = report.Groups.Single(group => group.Kind == ChongqingStage2SettlementKinds.Proxy);
                 var refundGroup = report.Groups.Single(group => group.Kind == ChongqingStage2SettlementKinds.Refund);
@@ -815,6 +821,12 @@ namespace HainanSettlementTool.Excel.Tests
             {
                 var options = CreateOptions(root);
                 WriteChongqingStage2Ledger(options.LedgerPath, includeIntermediary: false);
+                using (var workbook = new XLWorkbook(options.LedgerPath))
+                {
+                    var selfOperatedRow = workbook.Worksheet("重庆台账").Row(7);
+                    selfOperatedRow.Cell(7).Value = "内部项目开发人";
+                    workbook.Save();
+                }
                 WriteSummaryTemplate(options.SummaryTemplatePath);
 
                 var report = new ChongqingStage2Service(new ClosedXmlSettlementExcelGateway()).Analyze(options);
@@ -840,7 +852,7 @@ namespace HainanSettlementTool.Excel.Tests
                 WriteChongqingStage2Ledger(options.LedgerPath, includeIntermediary: false);
                 using (var workbook = new XLWorkbook(options.LedgerPath))
                 {
-                    workbook.Worksheet("重庆台账").Cell(7, 7).Value = "残留代理主体";
+                    workbook.Worksheet("重庆台账").Cell(7, 12 + 22).Value = 0.5;
                     workbook.Save();
                 }
                 WriteSummaryTemplate(options.SummaryTemplatePath);
@@ -849,6 +861,37 @@ namespace HainanSettlementTool.Excel.Tests
 
                 Assert.IsTrue(report.Issues.Any(issue =>
                     issue.LedgerRow == 7
+                    && issue.Code == Stage2PreflightIssueKinds.RelationshipParametersInvalid
+                    && issue.Disposition == Stage2PreflightDisposition.Blocker
+                    && issue.Message.Contains("自营")));
+                Assert.AreEqual(2, report.SubjectCount);
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
+        public void AnalyzeSettlementBlocksIntermediaryFieldsOnSelfOperatedRowWithoutCreatingSubject()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var options = CreateOptions(root);
+                WriteChongqingStage2Ledger(options.LedgerPath, includeIntermediary: false);
+                using (var workbook = new XLWorkbook(options.LedgerPath))
+                {
+                    workbook.Worksheet("重庆台账").Cell(7, 10).Value = "残留居间人";
+                    workbook.Save();
+                }
+                WriteSummaryTemplate(options.SummaryTemplatePath);
+
+                var report = new ChongqingStage2Service(new ClosedXmlSettlementExcelGateway()).Analyze(options);
+
+                Assert.IsTrue(report.Issues.Any(issue =>
+                    issue.LedgerRow == 7
+                    && issue.SettlementKind == ChongqingStage2SettlementKinds.Intermediary
                     && issue.Code == Stage2PreflightIssueKinds.RelationshipParametersInvalid
                     && issue.Disposition == Stage2PreflightDisposition.Blocker
                     && issue.Message.Contains("自营")));

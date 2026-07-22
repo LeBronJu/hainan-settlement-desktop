@@ -127,6 +127,12 @@ namespace HainanSettlementTool.Excel
                     if (!matchedTemplate)
                     {
                         KeepOnlyCurrentMonthSheet(workbook, worksheet);
+                        foreach (var cell in worksheet.CellsUsed(XLCellsUsedOptions.Comments)
+                            .Where(cell => cell.HasComment)
+                            .ToList())
+                        {
+                            cell.GetComment().Delete();
+                        }
                     }
 
                     HainanStage2ExcelUtil.SaveWorkbook(workbook, outputPath);

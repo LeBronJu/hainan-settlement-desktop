@@ -130,13 +130,14 @@ namespace HainanSettlementTool.Excel
                     auditIssues);
                 var stagedReportPath = workspace.GetStagingPath(Path.GetFileName(report.ReportPath));
                 var stagedValidationPath = workspace.GetStagingPath(Path.GetFileName(report.ValidationReportPath));
-                ChongqingStage2ReportWriter.Write(report, stagedReportPath, stagedValidationPath);
+                var stagedHtmlPath = workspace.GetStagingPath(Path.GetFileName(report.HtmlReportPath));
+                ChongqingStage2ReportWriter.Write(report, stagedReportPath, stagedValidationPath, stagedHtmlPath);
 
                 Stage2BatchIntegrityVerifier.VerifyFiles(
                     workspace,
                     stagedSplitPaths,
                     stagedSummaryPath,
-                    new[] { stagedReportPath, stagedValidationPath });
+                    new[] { stagedReportPath, stagedValidationPath, stagedHtmlPath });
                 ChongqingStage2SplitWorkbookWriter.EnsureManagedOutputStillSafe(
                     options,
                     managedOutputPlan);
