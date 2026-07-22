@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using HainanSettlementTool.Core.Models;
 using HainanSettlementTool.Core.Services;
@@ -60,6 +61,100 @@ namespace HainanSettlementTool.Core.Tests
             }
         }
 
+        [TestMethod]
+        public void RunRejectsTemplateDecisionWithMissingRequiredField()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var service = new HainanStage2Service(new FakeHainanStage2Gateway());
+                var invalidDecisions = new List<HainanStage2TemplateDecision>
+                {
+                    null,
+                    new HainanStage2TemplateDecision
+                    {
+                        Entity = "新增代理主体",
+                        TemplatePath = "C:\\templates\\a.xlsx"
+                    },
+                    new HainanStage2TemplateDecision
+                    {
+                        SettlementKind = "代理费",
+                        TemplatePath = "C:\\templates\\a.xlsx"
+                    },
+                    new HainanStage2TemplateDecision
+                    {
+                        SettlementKind = "代理费",
+                        Entity = "新增代理主体"
+                    }
+                };
+
+                foreach (var invalidDecision in invalidDecisions)
+                {
+                    var options = CreateOptions(root);
+                    options.TemplateDecisions.Add(invalidDecision);
+
+                    var ex = Assert.ThrowsException<ArgumentException>(() => service.Run(options, null));
+                    StringAssert.Contains(ex.Message, "模板选择");
+                }
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
+        public void RunAcceptsTemplateDecisionWithRequiredFields()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var gateway = new FakeHainanStage2Gateway();
+                var service = new HainanStage2Service(gateway);
+                var options = CreateOptions(root);
+                options.TemplateDecisions.Add(new HainanStage2TemplateDecision
+                {
+                    SettlementKind = "代理费",
+                    Entity = "新增代理主体",
+                    TemplatePath = "C:\\templates\\a.xlsx"
+                });
+
+                var report = service.Run(options, null);
+
+                Assert.AreSame(gateway.Report, report);
+                Assert.AreEqual(1, gateway.GenerateCalls);
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
+        public void AnalyzeDoesNotAuthorizeDirectGeneration()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var gateway = new FakeHainanStage2Gateway();
+                var service = new HainanStage2Service(gateway);
+                var options = CreateOptions(root);
+                options.ExpectedPreflightSignature = null;
+                options.ExpectedInputFingerprint = null;
+
+                service.Analyze(options);
+
+                Assert.IsNull(options.ExpectedPreflightSignature);
+                Assert.IsNull(options.ExpectedInputFingerprint);
+                Assert.ThrowsException<InvalidOperationException>(() => service.Run(options, null));
+                Assert.AreEqual(0, gateway.GenerateCalls);
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
         private static HainanStage2Options CreateOptions(string root)
         {
             var proxyDir = Path.Combine(root, "proxy");
@@ -74,7 +169,9 @@ namespace HainanSettlementTool.Core.Tests
                 ProxyTemplateDirectory = proxyDir,
                 IntermediaryTemplateDirectory = intermediaryDir,
                 SummaryTemplatePath = CreateFile(root, "summary.xlsx"),
-                OutputDirectory = Path.Combine(root, "out")
+                OutputDirectory = Path.Combine(root, "out"),
+                ExpectedPreflightSignature = "confirmed-preflight",
+                ExpectedInputFingerprint = "confirmed-input"
             };
         }
 
@@ -111,7 +208,12 @@ namespace HainanSettlementTool.Core.Tests
 
             public HainanStage2PreflightReport AnalyzeSettlement(HainanStage2Options options)
             {
-                return new HainanStage2PreflightReport { Month = options.Month };
+                return new HainanStage2PreflightReport
+                {
+                    Month = options.Month,
+                    PreflightSignature = "preflight",
+                    InputFingerprint = "input"
+                };
             }
 
             public HainanStage2Report GenerateSettlement(HainanStage2Options options)

@@ -162,6 +162,8 @@ namespace HainanSettlementTool.Core.Tests
                 var gateway = new FakeGateway();
                 var workflow = CreateWorkflow(gateway);
                 var options = CreateHainanStage2Options(root);
+                options.ExpectedPreflightSignature = gateway.HainanPreflightSignature;
+                options.ExpectedInputFingerprint = gateway.HainanInputFingerprint;
 
                 var result = workflow.RunHainanStage2(options, null);
 
@@ -192,6 +194,8 @@ namespace HainanSettlementTool.Core.Tests
                 var gateway = new FakeGateway();
                 var workflow = CreateWorkflowWithChongqingStage2(gateway);
                 var options = CreateChongqingStage2Options(root);
+                options.ExpectedPreflightSignature = gateway.ChongqingPreflightSignature;
+                options.ExpectedInputFingerprint = gateway.ChongqingInputFingerprint;
 
                 var result = workflow.RunChongqingStage2(options, null);
 
@@ -250,6 +254,12 @@ namespace HainanSettlementTool.Core.Tests
                 var options = CreateChongqingStage2Options(root);
 
                 var plan = workflow.PlanChongqingStage2(options);
+                options.SummarySubjectDecisions.Add(new ChongqingStage2SummarySubjectDecision
+                {
+                    SettlementKind = ChongqingStage2SettlementKinds.Proxy,
+                    Entity = "新增代理主体",
+                    PaymentParty = ChongqingStage2PaymentParties.Qingneng
+                });
                 var result = workflow.CompleteChongqingStage2(plan, confirmed: true, log: null);
 
                 Assert.IsTrue(plan.RequiresConfirmation);
@@ -367,6 +377,201 @@ namespace HainanSettlementTool.Core.Tests
             }
         }
 
+        [TestMethod]
+        public void RunHainanStage2CannotBypassPreflightPlan()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var gateway = new FakeGateway();
+                var workflow = CreateWorkflow(gateway);
+
+                Assert.ThrowsException<InvalidOperationException>(() =>
+                    workflow.RunHainanStage2(CreateHainanStage2Options(root), null));
+                Assert.AreEqual(0, gateway.GenerateSettlementCalls);
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
+        public void CompleteHainanStage2CannotBypassBlockingIssueWithConfirmation()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var gateway = new FakeGateway { AddBlockingHainanPreflightIssue = true };
+                var workflow = CreateWorkflow(gateway);
+                var plan = workflow.PlanHainanStage2(CreateHainanStage2Options(root));
+
+                Assert.ThrowsException<InvalidOperationException>(() =>
+                    workflow.CompleteHainanStage2(plan, confirmed: true, log: null));
+                Assert.AreEqual(0, gateway.GenerateSettlementCalls);
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
+        public void CompleteHainanStage2RequiresAndUsesTemplateDecision()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var gateway = new FakeGateway { AddHainanTemplateRequirement = true };
+                var workflow = CreateWorkflow(gateway);
+                var options = CreateHainanStage2Options(root);
+                var plan = workflow.PlanHainanStage2(options);
+
+                var missing = Assert.ThrowsException<InvalidOperationException>(() =>
+                    workflow.CompleteHainanStage2(plan, confirmed: true, log: null));
+                StringAssert.Contains(missing.Message, "支付方或模板选择");
+                Assert.AreEqual(0, gateway.GenerateSettlementCalls);
+
+                options.TemplateDecisions.Add(new HainanStage2TemplateDecision
+                {
+                    SettlementKind = "代理费",
+                    Entity = "新增代理主体",
+                    TemplatePath = "C:\\templates\\a.xlsx"
+                });
+
+                var result = workflow.CompleteHainanStage2(plan, confirmed: true, log: null);
+
+                Assert.IsFalse(result.WasCancelled);
+                Assert.AreSame(gateway.HainanStage2Report, result.Report);
+                Assert.AreEqual(1, gateway.GenerateSettlementCalls);
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
+        public void CompleteHainanStage2RejectsPreflightThatChangedAfterConfirmation()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var gateway = new FakeGateway
+                {
+                    HainanPreflightSignature = "preflight-a",
+                    HainanInputFingerprint = "input-a"
+                };
+                var workflow = CreateWorkflow(gateway);
+                var plan = workflow.PlanHainanStage2(CreateHainanStage2Options(root));
+                var expectedPreflight = plan.Options.ExpectedPreflightSignature;
+                var expectedInput = plan.Options.ExpectedInputFingerprint;
+                gateway.HainanPreflightSignature = "preflight-b";
+
+                var exception = Assert.ThrowsException<InvalidOperationException>(() =>
+                    workflow.CompleteHainanStage2(plan, confirmed: true, log: null));
+
+                StringAssert.Contains(exception.Message, "请重新打开预检");
+                Assert.AreEqual(expectedPreflight, plan.Options.ExpectedPreflightSignature);
+                Assert.AreEqual(expectedInput, plan.Options.ExpectedInputFingerprint);
+                Assert.AreEqual(0, gateway.GenerateSettlementCalls);
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
+        public void CompleteChongqingStage2CannotBypassBlockingIssueWithConfirmation()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var gateway = new FakeGateway { AddBlockingChongqingPreflightIssue = true };
+                var workflow = CreateWorkflowWithChongqingStage2(gateway);
+                var plan = workflow.PlanChongqingStage2(CreateChongqingStage2Options(root));
+
+                Assert.ThrowsException<InvalidOperationException>(() =>
+                    workflow.CompleteChongqingStage2(plan, confirmed: true, log: null));
+                Assert.AreEqual(0, gateway.GenerateChongqingSettlementCalls);
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
+        public void RunChongqingStage2CannotBypassPreflightPlan()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var gateway = new FakeGateway();
+                var workflow = CreateWorkflowWithChongqingStage2(gateway);
+
+                Assert.ThrowsException<InvalidOperationException>(() =>
+                    workflow.RunChongqingStage2(CreateChongqingStage2Options(root), null));
+                Assert.AreEqual(0, gateway.GenerateChongqingSettlementCalls);
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
+        public void CompleteChongqingStage2RejectsUnresolvedRequiredDecisionWhenConfirmed()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var gateway = new FakeGateway { AddChongqingPreflightIssue = true };
+                var workflow = CreateWorkflowWithChongqingStage2(gateway);
+                var plan = workflow.PlanChongqingStage2(CreateChongqingStage2Options(root));
+
+                Assert.ThrowsException<InvalidOperationException>(() =>
+                    workflow.CompleteChongqingStage2(plan, confirmed: true, log: null));
+                Assert.AreEqual(0, gateway.GenerateChongqingSettlementCalls);
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
+        public void CompleteChongqingStage2RejectsInputThatChangedAfterConfirmation()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var gateway = new FakeGateway
+                {
+                    ChongqingPreflightSignature = "preflight-a",
+                    ChongqingInputFingerprint = "input-a"
+                };
+                var workflow = CreateWorkflowWithChongqingStage2(gateway);
+                var plan = workflow.PlanChongqingStage2(CreateChongqingStage2Options(root));
+                var expectedPreflight = plan.Options.ExpectedPreflightSignature;
+                var expectedInput = plan.Options.ExpectedInputFingerprint;
+                gateway.ChongqingInputFingerprint = "input-b";
+
+                var exception = Assert.ThrowsException<InvalidOperationException>(() =>
+                    workflow.CompleteChongqingStage2(plan, confirmed: true, log: null));
+
+                StringAssert.Contains(exception.Message, "请重新打开预检");
+                Assert.AreEqual(expectedPreflight, plan.Options.ExpectedPreflightSignature);
+                Assert.AreEqual(expectedInput, plan.Options.ExpectedInputFingerprint);
+                Assert.AreEqual(0, gateway.GenerateChongqingSettlementCalls);
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
         private static SettlementWorkflow CreateWorkflow(FakeGateway gateway)
         {
             return new SettlementWorkflow(
@@ -469,7 +674,21 @@ namespace HainanSettlementTool.Core.Tests
         {
             public bool AddPreflightIssue { get; set; }
 
+            public bool AddBlockingHainanPreflightIssue { get; set; }
+
+            public bool AddHainanTemplateRequirement { get; set; }
+
             public bool AddChongqingPreflightIssue { get; set; }
+
+            public bool AddBlockingChongqingPreflightIssue { get; set; }
+
+            public string HainanPreflightSignature { get; set; } = "hainan-preflight";
+
+            public string HainanInputFingerprint { get; set; } = "hainan-input";
+
+            public string ChongqingPreflightSignature { get; set; } = "chongqing-preflight";
+
+            public string ChongqingInputFingerprint { get; set; } = "chongqing-input";
 
             public int GenerateSettlementCalls { get; private set; }
 
@@ -588,14 +807,49 @@ namespace HainanSettlementTool.Core.Tests
 
             public HainanStage2PreflightReport AnalyzeSettlement(HainanStage2Options options)
             {
-                var report = new HainanStage2PreflightReport();
+                var report = new HainanStage2PreflightReport
+                {
+                    PreflightSignature = HainanPreflightSignature,
+                    InputFingerprint = HainanInputFingerprint
+                };
                 if (AddPreflightIssue)
                 {
                     report.Issues.Add(new HainanStage2CheckIssue
                     {
+                        Code = Stage2PreflightIssueKinds.NewCustomer,
+                        Disposition = Stage2PreflightDisposition.Review,
                         Severity = "提示",
-                        Category = "测试预检"
+                        Category = "测试预检",
+                        SettlementKind = "代理费",
+                        Entity = "测试主体"
                     });
+                }
+
+                if (AddBlockingHainanPreflightIssue)
+                {
+                    report.Issues.Add(new HainanStage2CheckIssue
+                    {
+                        Code = Stage2PreflightIssueKinds.RelationshipParametersInvalid,
+                        Disposition = Stage2PreflightDisposition.Blocker,
+                        SettlementKind = "代理费",
+                        Entity = "错误主体",
+                        Message = "测试阻断项"
+                    });
+                }
+
+                if (AddHainanTemplateRequirement)
+                {
+                    var issue = new HainanStage2CheckIssue
+                    {
+                        Code = Stage2PreflightIssueKinds.AmbiguousBorrowTemplates,
+                        Disposition = Stage2PreflightDisposition.RequiredDecision,
+                        SettlementKind = "代理费",
+                        Entity = "新增代理主体",
+                        RequiresTemplateSelection = true
+                    };
+                    issue.AvailableTemplateFiles.Add("C:\\templates\\a.xlsx");
+                    issue.AvailableTemplateFiles.Add("C:\\templates\\b.xlsx");
+                    report.Issues.Add(issue);
                 }
 
                 return report;
@@ -609,11 +863,18 @@ namespace HainanSettlementTool.Core.Tests
 
             public ChongqingStage2PreflightReport AnalyzeSettlement(ChongqingStage2Options options)
             {
-                var report = new ChongqingStage2PreflightReport { Month = options.Month };
+                var report = new ChongqingStage2PreflightReport
+                {
+                    Month = options.Month,
+                    PreflightSignature = ChongqingPreflightSignature,
+                    InputFingerprint = ChongqingInputFingerprint
+                };
                 if (AddChongqingPreflightIssue)
                 {
                     var issue = new ChongqingStage2CheckIssue
                     {
+                        Code = ChongqingStage2IssueKinds.NewSummarySubjectPaymentPartyRequired,
+                        Disposition = Stage2PreflightDisposition.RequiredDecision,
                         Severity = "需确认",
                         Category = "新增汇总主体",
                         Kind = ChongqingStage2IssueKinds.NewSummarySubjectPaymentPartyRequired,
@@ -623,6 +884,20 @@ namespace HainanSettlementTool.Core.Tests
                     };
                     issue.AvailablePaymentParties.AddRange(ChongqingStage2PaymentParties.Supported);
                     report.Issues.Add(issue);
+                }
+
+
+                if (AddBlockingChongqingPreflightIssue)
+                {
+                    report.Issues.Add(new ChongqingStage2CheckIssue
+                    {
+                        Code = Stage2PreflightIssueKinds.ConflictingTaxRates,
+                        Disposition = Stage2PreflightDisposition.Blocker,
+                        Kind = Stage2PreflightIssueKinds.ConflictingTaxRates,
+                        SettlementKind = ChongqingStage2SettlementKinds.Proxy,
+                        Entity = "错误主体",
+                        Message = "测试阻断项"
+                    });
                 }
 
                 return report;

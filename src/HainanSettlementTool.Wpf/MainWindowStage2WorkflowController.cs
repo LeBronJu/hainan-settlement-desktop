@@ -75,10 +75,6 @@ namespace HainanSettlementTool.Wpf
             {
                 options = _inputController.CreateHainanStage2Options();
                 _saveInputs();
-                if (!_dialogController.ConfirmRun("阶段二：生成分表和汇总表", options.Month, options.OutputDirectory))
-                {
-                    return;
-                }
             }
             catch (Exception ex)
             {
@@ -111,7 +107,7 @@ namespace HainanSettlementTool.Wpf
                     _progressController.SetStatus("待确认", "WarningBrush", "StatusBusyBrush");
                     _progressController.SetStepNeedsConfirmation(0);
                     AddLog("阶段二预检发现 " + preflight.Issues.Count + " 条需要确认的变化。", "阶段二");
-                    confirmed = ConfirmStage2Preflight(preflight, options);
+                    confirmed = ConfirmHainanStage2Preflight(preflight, plan.Evaluation, options);
                     if (confirmed)
                     {
                         _progressController.SetStatus("运行中", "WarningBrush", "StatusBusyBrush");
@@ -124,13 +120,9 @@ namespace HainanSettlementTool.Wpf
 
                 if (!confirmed)
                 {
-                    var cancelled = workflow.CompleteHainanStage2(plan, confirmed, LogThreadSafe);
-                    if (cancelled.WasCancelled)
-                    {
-                        AddLog("已取消阶段二生成。", "阶段二");
-                        _progressController.ResetProgress("等待执行", "已取消阶段二");
-                        return;
-                    }
+                    AddLog("已取消阶段二生成。", "阶段二");
+                    _progressController.ResetProgress("等待执行", "已取消阶段二");
+                    return;
                 }
 
                 _progressController.SetStepDone(0);
@@ -152,11 +144,38 @@ namespace HainanSettlementTool.Wpf
                 _progressController.SetStepDone(2);
                 _progressController.SetStepDone(3);
                 _progressController.SetStepDone(4);
-                _progressController.SetProgress(100, "阶段二执行完成");
+                var needsReview = HainanStage2NeedsReview(result.Report);
+                _progressController.SetProgress(100, needsReview ? "阶段二完成但需要复核" : "阶段二执行完成");
                 LogSummary(result.SummaryLines);
+                AddLog("海南阶段二可读报告：" + result.Report.HtmlReportPath, "信息");
 
-                _resultController.SetStage2Success(result.Report.ProxyGroups + " 个文件", result.Report.IntermediaryGroups + " 个文件", "1 个文件");
-                _resultController.ShowCompletion("阶段二执行完成", "分表和汇总表已生成", options.OutputDirectory);
+                var status = needsReview ? "需复核" : "成功";
+                _resultController.SetStage2Outcome(
+                    status,
+                    result.Report.ProxyGroups + " 个文件",
+                    status,
+                    result.Report.IntermediaryGroups + " 个文件",
+                    status,
+                    "1 个文件");
+                if (needsReview)
+                {
+                    _progressController.SetStatus("需复核", "WarningBrush", "StatusBusyBrush");
+                    _resultController.ShowReviewCompletion(
+                        "阶段二生成完成但需要复核",
+                        "正式分表和汇总表已完整生成；付款前请查看可读报告。",
+                        options.OutputDirectory,
+                        false,
+                        result.Report.HtmlReportPath);
+                    ShowHainanStage2ReviewReminder(result.Report);
+                }
+                else
+                {
+                    _resultController.ShowCompletion(
+                        "阶段二执行完成",
+                        "分表和汇总表已生成",
+                        options.OutputDirectory,
+                        result.Report.HtmlReportPath);
+                }
             }
             catch (Exception ex)
             {
@@ -178,16 +197,6 @@ namespace HainanSettlementTool.Wpf
             {
                 options = _inputController.CreateChongqingStage2Options();
                 _saveInputs();
-                var message = new StringBuilder();
-                message.AppendLine("结算月份：2026年" + options.Month + "月");
-                message.AppendLine("输出文件夹：");
-                message.AppendLine(options.OutputDirectory);
-                message.AppendLine();
-                message.AppendLine("将先读取重庆台账、代理/居间/退补模板和汇总表进行预检；确认后生成输出分表、退补表和汇总表副本。");
-                if (!_dialogController.ConfirmAction("确认重庆阶段二生成", "即将执行重庆阶段二生成", message.ToString(), "开始生成"))
-                {
-                    return;
-                }
             }
             catch (Exception ex)
             {
@@ -220,7 +229,7 @@ namespace HainanSettlementTool.Wpf
                     _progressController.SetStatus("待确认", "WarningBrush", "StatusBusyBrush");
                     _progressController.SetStepNeedsConfirmation(0);
                     AddLog("重庆阶段二预检发现 " + preflight.Issues.Count + " 条需要确认的变化。", "重庆阶段二");
-                    confirmed = ConfirmChongqingStage2Preflight(preflight, options);
+                    confirmed = ConfirmChongqingStage2Preflight(preflight, plan.Evaluation, options);
                     if (confirmed)
                     {
                         _progressController.SetStatus("运行中", "WarningBrush", "StatusBusyBrush");
@@ -233,13 +242,9 @@ namespace HainanSettlementTool.Wpf
 
                 if (!confirmed)
                 {
-                    var cancelled = workflow.CompleteChongqingStage2(plan, confirmed, LogThreadSafe);
-                    if (cancelled.WasCancelled)
-                    {
-                        AddLog("已取消重庆阶段二生成。", "重庆阶段二");
-                        _progressController.ResetProgress("等待执行", "已取消重庆阶段二");
-                        return;
-                    }
+                    AddLog("已取消重庆阶段二生成。", "重庆阶段二");
+                    _progressController.ResetProgress("等待执行", "已取消重庆阶段二");
+                    return;
                 }
 
                 _progressController.SetStepDone(0);
@@ -261,15 +266,38 @@ namespace HainanSettlementTool.Wpf
                 _progressController.SetStepDone(2);
                 _progressController.SetStepDone(3);
                 _progressController.SetStepDone(4);
-                _progressController.SetProgress(100, "重庆阶段二执行完成");
+                var needsReview = ChongqingStage2NeedsReview(result.Report);
+                _progressController.SetProgress(100, needsReview ? "重庆阶段二完成但需要复核" : "重庆阶段二执行完成");
                 LogSummary(result.Completed.SummaryLines);
+                AddLog("重庆阶段二可读报告：" + result.Report.HtmlReportPath, "信息");
 
-                _resultController.SetStage2Success(
+                var status = needsReview ? "需复核" : "成功";
+                _resultController.SetStage2Outcome(
+                    status,
                     result.Report.ProxyGroups + " 个文件",
+                    status,
                     "居间" + result.Report.IntermediaryGroups + "/退补" + result.Report.RefundGroups,
+                    status,
                     "1 个文件");
-                _resultController.ShowCompletion("重庆阶段二执行完成", "分表、退补表和汇总表已生成", options.OutputDirectory);
-                ShowChongqingStage2ReviewReminder(result.Report);
+                if (needsReview)
+                {
+                    _progressController.SetStatus("需复核", "WarningBrush", "StatusBusyBrush");
+                    _resultController.ShowReviewCompletion(
+                        "重庆阶段二生成完成但需要复核",
+                        "正式分表和汇总表已完整生成；付款前请查看可读报告。",
+                        options.OutputDirectory,
+                        false,
+                        result.Report.HtmlReportPath);
+                    ShowChongqingStage2ReviewReminder(result.Report);
+                }
+                else
+                {
+                    _resultController.ShowCompletion(
+                        "重庆阶段二执行完成",
+                        "分表、退补表和汇总表已生成",
+                        options.OutputDirectory,
+                        result.Report.HtmlReportPath);
+                }
             }
             catch (Exception ex)
             {
@@ -391,7 +419,8 @@ namespace HainanSettlementTool.Wpf
                     _resultController.ShowCompletion(
                         "广东分表初始化完成",
                         "已生成目标月份分表副本和检查报告",
-                        report.OutputDirectory);
+                        report.OutputDirectory,
+                        report.HtmlReportPath);
                 }
                 else
                 {
@@ -400,7 +429,8 @@ namespace HainanSettlementTool.Wpf
                         "正常输出 " + report.SuccessfulCount + " / " + report.InputCount
                         + "；需人工复核 " + report.SkippedCount + "；失败 " + report.FailedCount + "。",
                         report.OutputDirectory,
-                        criticalFailureAfterRun);
+                        criticalFailureAfterRun,
+                        report.HtmlReportPath);
                     ShowGuangdongReviewReminder(report);
                 }
             }
@@ -546,9 +576,13 @@ namespace HainanSettlementTool.Wpf
             return report.CountFor(settlementKind) + " / " + report.InputCountFor(settlementKind);
         }
 
-        private bool ConfirmStage2Preflight(HainanStage2PreflightReport report, HainanStage2Options options)
+        private bool ConfirmHainanStage2Preflight(
+            HainanStage2PreflightReport report,
+            Stage2PreflightEvaluation evaluation,
+            HainanStage2Options options)
         {
-            var dialog = new HainanStage2PreflightWindow(report)
+            var dialog = new Stage2PreflightWindow(
+                Stage2PreflightPresentationAdapter.CreateHainan(report, evaluation))
             {
                 Owner = _owner
             };
@@ -556,10 +590,75 @@ namespace HainanSettlementTool.Wpf
             if (confirmed)
             {
                 options.SummarySubjectDecisions.Clear();
-                options.SummarySubjectDecisions.AddRange(dialog.SummarySubjectDecisions);
+                options.SummarySubjectDecisions.AddRange(dialog.PaymentDecisions.Select(decision =>
+                    new HainanStage2SummarySubjectDecision
+                    {
+                        SettlementKind = decision.SettlementKind,
+                        Entity = decision.Entity,
+                        PaymentParty = decision.PaymentParty
+                    }));
+                options.TemplateDecisions.Clear();
+                options.TemplateDecisions.AddRange(dialog.TemplateDecisions.Select(decision =>
+                    new HainanStage2TemplateDecision
+                    {
+                        SettlementKind = decision.SettlementKind,
+                        Entity = decision.Entity,
+                        TemplatePath = decision.TemplatePath
+                    }));
             }
 
             return confirmed;
+        }
+
+        private void ShowHainanStage2ReviewReminder(HainanStage2Report report)
+        {
+            if (report == null
+                || (report.Warnings.Count == 0
+                    && report.AuditIssues.Count == 0
+                    && report.MissingOwners.Count == 0))
+            {
+                return;
+            }
+
+            var message = new StringBuilder();
+            message.AppendLine("生成已完成，但仍有项目需要人工复核。");
+            message.AppendLine("校验项目：" + report.AuditIssues.Count + " 条；新增/自动填充提示："
+                + report.Warnings.Count + " 条。");
+
+            foreach (var group in report.AuditIssues
+                .Where(item => item != null)
+                .GroupBy(item => string.IsNullOrWhiteSpace(item.Category) ? "其他校验项目" : item.Category)
+                .Take(3))
+            {
+                message.AppendLine("- " + group.Key + "：" + group.Count() + " 项");
+            }
+
+            foreach (var warning in report.Warnings.Where(item => !string.IsNullOrWhiteSpace(item)).Take(2))
+            {
+                message.AppendLine("- " + ShortenStage2ReviewWarning(warning));
+            }
+
+            if (report.MissingOwners.Count > 0)
+            {
+                message.AppendLine("- 负责人缺失：" + report.MissingOwners.Count + " 项");
+            }
+
+            message.AppendLine();
+            message.AppendLine("优先查看可读报告：");
+            message.AppendLine(report.HtmlReportPath);
+            _dialogController.ShowWarningMessage(
+                "海南阶段二需要复核",
+                "生成完成，但有项目需要人工确认",
+                message.ToString());
+        }
+
+        private static bool HainanStage2NeedsReview(HainanStage2Report report)
+        {
+            return report != null
+                && (report.Warnings.Any(item => !string.IsNullOrWhiteSpace(item))
+                    || report.MissingOwners.Count > 0
+                    || report.AuditIssues.Any(issue =>
+                        issue != null && issue.Disposition == Stage2PreflightDisposition.Review));
         }
 
         private void ShowChongqingStage2ReviewReminder(ChongqingStage2Report report)
@@ -573,6 +672,14 @@ namespace HainanSettlementTool.Wpf
                 "重庆阶段二需要复核",
                 "生成完成，但有项目需要人工确认",
                 BuildChongqingStage2ReviewMessage(report));
+        }
+
+        private static bool ChongqingStage2NeedsReview(ChongqingStage2Report report)
+        {
+            return report != null
+                && (report.Warnings.Any(item => !string.IsNullOrWhiteSpace(item))
+                    || report.AuditIssues.Any(issue =>
+                        issue != null && issue.Disposition == Stage2PreflightDisposition.Review));
         }
 
         private static string BuildChongqingStage2ReviewMessage(ChongqingStage2Report report)
@@ -598,7 +705,7 @@ namespace HainanSettlementTool.Wpf
             var otherWarnings = report.Warnings
                 .Where(item => item == null || item.IndexOf("额外扣减块", StringComparison.Ordinal) < 0)
                 .Take(2)
-                .Select(ShortenChongqingReviewWarning)
+                .Select(ShortenStage2ReviewWarning)
                 .ToList();
             foreach (var warning in otherWarnings)
             {
@@ -611,12 +718,12 @@ namespace HainanSettlementTool.Wpf
             }
 
             message.AppendLine();
-            message.AppendLine("完整明细：");
-            message.AppendLine(report.ValidationReportPath);
+            message.AppendLine("优先查看可读报告：");
+            message.AppendLine(report.HtmlReportPath);
             return message.ToString();
         }
 
-        private static string ShortenChongqingReviewWarning(string warning)
+        private static string ShortenStage2ReviewWarning(string warning)
         {
             if (string.IsNullOrWhiteSpace(warning))
             {
@@ -628,9 +735,13 @@ namespace HainanSettlementTool.Wpf
             return text.Length <= 96 ? text : text.Substring(0, 96) + "...";
         }
 
-        private bool ConfirmChongqingStage2Preflight(ChongqingStage2PreflightReport report, ChongqingStage2Options options)
+        private bool ConfirmChongqingStage2Preflight(
+            ChongqingStage2PreflightReport report,
+            Stage2PreflightEvaluation evaluation,
+            ChongqingStage2Options options)
         {
-            var dialog = new ChongqingStage2PreflightWindow(report)
+            var dialog = new Stage2PreflightWindow(
+                Stage2PreflightPresentationAdapter.CreateChongqing(report, evaluation))
             {
                 Owner = _owner
             };
@@ -638,7 +749,13 @@ namespace HainanSettlementTool.Wpf
             if (confirmed)
             {
                 options.SummarySubjectDecisions.Clear();
-                options.SummarySubjectDecisions.AddRange(dialog.SummarySubjectDecisions);
+                options.SummarySubjectDecisions.AddRange(dialog.PaymentDecisions.Select(decision =>
+                    new ChongqingStage2SummarySubjectDecision
+                    {
+                        SettlementKind = decision.SettlementKind,
+                        Entity = decision.Entity,
+                        PaymentParty = decision.PaymentParty
+                    }));
             }
 
             return confirmed;

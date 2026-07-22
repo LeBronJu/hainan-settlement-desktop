@@ -44,7 +44,7 @@ namespace HainanSettlementTool.Wpf
                 showsIntermediaryDirectory: true,
                 showsRefundDirectory: false,
                 showsSummaryTemplate: true,
-                showsAllowMissingOwner: true));
+                showsAllowMissingOwner: false));
 
         private static readonly ProvinceUiProfile ChongqingProfile = new ProvinceUiProfile(
             ProvinceCode.Chongqing,

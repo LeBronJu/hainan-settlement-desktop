@@ -17,6 +17,9 @@ namespace HainanSettlementTool.Core.Models
         public string Summary { get; set; }
         public string ReportPath { get; set; }
         public string ValidationReportPath { get; set; }
+        public string HtmlReportPath { get; set; }
+        public string PreflightSignature { get; set; }
+        public string InputFingerprint { get; set; }
         public int ProxyRows { get; set; }
         public int IntermediaryRows { get; set; }
         public int RefundRows { get; set; }

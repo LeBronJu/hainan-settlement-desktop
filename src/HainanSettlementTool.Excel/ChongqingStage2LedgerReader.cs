@@ -13,12 +13,17 @@ namespace HainanSettlementTool.Excel
     {
         public static List<ChongqingSettlementDetail> ReadDetails(ChongqingStage2Options options)
         {
+            return ReadSnapshot(options).Details;
+        }
+
+        public static ChongqingStage2LedgerSnapshot ReadSnapshot(ChongqingStage2Options options)
+        {
             using (var stream = File.Open(options.LedgerPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             using (var workbook = new XLWorkbook(stream))
             {
                 var worksheet = FindLedgerWorksheet(workbook);
                 var map = FindLedgerMap(worksheet, options.Month);
-                return ReadDetails(worksheet, map);
+                return ReadSnapshot(worksheet, map);
             }
         }
 
@@ -45,9 +50,10 @@ namespace HainanSettlementTool.Excel
                 .ToList();
         }
 
-        private static List<ChongqingSettlementDetail> ReadDetails(IXLWorksheet worksheet, ChongqingLedgerMap map)
+        private static ChongqingStage2LedgerSnapshot ReadSnapshot(IXLWorksheet worksheet, ChongqingLedgerMap map)
         {
-            var details = new List<ChongqingSettlementDetail>();
+            var snapshot = new ChongqingStage2LedgerSnapshot();
+            var occurrences = new List<ChongqingRelationshipOccurrence>();
             var lastRow = worksheet.LastRowUsed()?.RowNumber() ?? ChongqingStage2Layout.LedgerDataStartRow;
             for (var row = ChongqingStage2Layout.LedgerDataStartRow; row <= lastRow; row++)
             {
@@ -66,22 +72,399 @@ namespace HainanSettlementTool.Excel
                 var refundEntity = map.PayeeColumn > 0
                     ? ChongqingStage2ExcelUtil.CellText(worksheet.Cell(row, map.PayeeColumn))
                     : string.Empty;
+                var isSelfOperated = TextUtil.S(agentOrSelf).Contains("自营");
+
+                if (isSelfOperated)
+                {
+                    // 重庆自营客户仍可保留项目开发人作为内部归属信息，
+                    // 但不得产生代理费或居间费结算关系。
+                    ValidateSelfOperatedExternalSettlementFieldsEmpty(
+                        snapshot,
+                        worksheet,
+                        row,
+                        customer,
+                        owner,
+                        string.Empty,
+                        ChongqingStage2SettlementKinds.Proxy,
+                        map.ProxyRatioColumn,
+                        map.ProxyUnitPriceColumn,
+                        map.ProxyTaxRateColumn);
+                    ValidateSelfOperatedExternalSettlementFieldsEmpty(
+                        snapshot,
+                        worksheet,
+                        row,
+                        customer,
+                        owner,
+                        intermediaryEntity,
+                        ChongqingStage2SettlementKinds.Intermediary,
+                        map.IntermediaryRatioColumn,
+                        map.IntermediaryUnitPriceColumn,
+                        map.IntermediaryTaxRateColumn);
+                }
+                else
+                {
+                    ValidateProxyLikeRelationship(
+                        snapshot,
+                        occurrences,
+                        worksheet,
+                        row,
+                        customer,
+                        owner,
+                        proxyEntity,
+                        ChongqingStage2SettlementKinds.Proxy,
+                        map.ProxyRatioColumn,
+                        map.ProxyUnitPriceColumn,
+                        map.ProxyTaxRateColumn);
+                    ValidateProxyLikeRelationship(
+                        snapshot,
+                        occurrences,
+                        worksheet,
+                        row,
+                        customer,
+                        owner,
+                        intermediaryEntity,
+                        ChongqingStage2SettlementKinds.Intermediary,
+                        map.IntermediaryRatioColumn,
+                        map.IntermediaryUnitPriceColumn,
+                        map.IntermediaryTaxRateColumn);
+                }
+
+                AddRefundOccurrence(
+                    occurrences,
+                    worksheet,
+                    map,
+                    row,
+                    customer,
+                    owner,
+                    refundEntity);
 
                 AddDetailIfNeeded(
-                    details,
-                    CreateProxyLikeDetail(worksheet, map, row, customer, owner, proxyEntity, ChongqingStage2SettlementKinds.Proxy, map.ProxyRatioColumn, map.ProxyUnitPriceColumn, map.ProxyTaxRateColumn, map.ProxyNetColumn, map.RecoverShortfallColumn),
-                    !TextUtil.S(agentOrSelf).Contains("自营"));
+                    snapshot.Details,
+                    isSelfOperated
+                        ? null
+                        : CreateProxyLikeDetail(worksheet, map, row, customer, owner, proxyEntity, ChongqingStage2SettlementKinds.Proxy, map.ProxyRatioColumn, map.ProxyUnitPriceColumn, map.ProxyTaxRateColumn, map.ProxyNetColumn, map.RecoverShortfallColumn),
+                    !isSelfOperated);
                 AddDetailIfNeeded(
-                    details,
-                    CreateProxyLikeDetail(worksheet, map, row, customer, owner, intermediaryEntity, ChongqingStage2SettlementKinds.Intermediary, map.IntermediaryRatioColumn, map.IntermediaryUnitPriceColumn, map.IntermediaryTaxRateColumn, map.IntermediaryNetColumn, 0),
-                    true);
+                    snapshot.Details,
+                    isSelfOperated
+                        ? null
+                        : CreateProxyLikeDetail(worksheet, map, row, customer, owner, intermediaryEntity, ChongqingStage2SettlementKinds.Intermediary, map.IntermediaryRatioColumn, map.IntermediaryUnitPriceColumn, map.IntermediaryTaxRateColumn, map.IntermediaryNetColumn, 0),
+                    !isSelfOperated);
                 AddDetailIfNeeded(
-                    details,
+                    snapshot.Details,
                     CreateRefundDetail(worksheet, map, row, customer, owner, refundEntity),
                     true);
             }
 
-            return details;
+            ApplyCanonicalOwnersAndGroupChecks(snapshot, occurrences);
+            return snapshot;
+        }
+
+        private static void ValidateSelfOperatedExternalSettlementFieldsEmpty(
+            ChongqingStage2LedgerSnapshot snapshot,
+            IXLWorksheet worksheet,
+            int row,
+            string customer,
+            string owner,
+            string entity,
+            string settlementKind,
+            int ratioColumn,
+            int unitPriceColumn,
+            int taxRateColumn)
+        {
+            var ratio = ReadParameterValue(worksheet.Cell(row, ratioColumn));
+            var unitPrice = ReadParameterValue(worksheet.Cell(row, unitPriceColumn));
+            var taxRate = ReadParameterValue(worksheet.Cell(row, taxRateColumn));
+            if (string.IsNullOrWhiteSpace(entity)
+                && !ratio.HasContent
+                && !unitPrice.HasContent
+                && !taxRate.HasContent)
+            {
+                return;
+            }
+
+            var residuals = new List<string>();
+            if (!string.IsNullOrWhiteSpace(entity))
+            {
+                residuals.Add(settlementKind + "主体：" + entity);
+            }
+
+            AddResidualParameter(residuals, "比例", ratio);
+            AddResidualParameter(residuals, "单价", unitPrice);
+            AddResidualParameter(residuals, "税率", taxRate);
+            snapshot.Issues.Add(new ChongqingStage2CheckIssue
+            {
+                Code = Stage2PreflightIssueKinds.RelationshipParametersInvalid,
+                Disposition = Stage2PreflightDisposition.Blocker,
+                Severity = "阻断",
+                Category = "自营行残留" + settlementKind + "关系字段",
+                Kind = Stage2PreflightIssueKinds.RelationshipParametersInvalid,
+                SettlementKind = settlementKind,
+                Customer = customer,
+                Owner = owner,
+                Entity = entity,
+                LedgerRow = row,
+                CurrentValue = string.Join("；", residuals),
+                Message = "重庆台账第" + row + "行为自营，但仍填写了" + settlementKind + "主体或参数。",
+                Suggestion = settlementKind == ChongqingStage2SettlementKinds.Proxy
+                    ? "自营行可以保留项目开发人，但不参与代理费结算；代理比例、单价和税率必须全部空白。"
+                    : "自营行不参与居间费结算；居间人、比例、单价和税率必须全部空白。"
+            });
+        }
+
+        private static void AddResidualParameter(
+            IList<string> residuals,
+            string name,
+            Stage2RelationshipParameterValue value)
+        {
+            if (!value.HasContent)
+            {
+                return;
+            }
+
+            residuals.Add(name + "：" + (string.IsNullOrWhiteSpace(value.DisplayValue)
+                ? "（公式或不可见内容）"
+                : value.DisplayValue));
+        }
+
+        private static void AddRefundOccurrence(
+            IList<ChongqingRelationshipOccurrence> occurrences,
+            IXLWorksheet worksheet,
+            ChongqingLedgerMap map,
+            int row,
+            string customer,
+            string owner,
+            string entity)
+        {
+            if (string.IsNullOrWhiteSpace(entity))
+            {
+                return;
+            }
+
+            // 重庆退补使用分段单价结构。当前没有业务依据要求四个分段
+            // 单价必须大于零，因此这里只投影已能可靠识别的主体、负责人
+            // 和扣税率，供跨费用类型一致的聚合检查使用。
+            occurrences.Add(new ChongqingRelationshipOccurrence
+            {
+                LedgerRow = row,
+                Customer = customer,
+                Owner = owner,
+                Entity = entity,
+                Kind = ChongqingStage2SettlementKinds.Refund,
+                TaxRate = ChongqingStage2ExcelUtil.GetNumeric(
+                    worksheet,
+                    row,
+                    map.RefundTaxRateColumn)
+            });
+        }
+
+        private static void ValidateProxyLikeRelationship(
+            ChongqingStage2LedgerSnapshot snapshot,
+            IList<ChongqingRelationshipOccurrence> occurrences,
+            IXLWorksheet worksheet,
+            int row,
+            string customer,
+            string owner,
+            string entity,
+            string kind,
+            int ratioColumn,
+            int unitPriceColumn,
+            int taxRateColumn)
+        {
+            var ratio = ReadParameterValue(worksheet.Cell(row, ratioColumn));
+            var unitPrice = ReadParameterValue(worksheet.Cell(row, unitPriceColumn));
+            var taxRate = ReadParameterValue(worksheet.Cell(row, taxRateColumn));
+            var validation = Stage2RelationshipParameterValidator.Validate(entity, ratio, unitPrice, taxRate);
+            foreach (var error in validation.Errors)
+            {
+                var parametersWithoutSubject = error.Kind == Stage2RelationshipParameterErrorKind.ParametersWithoutSubject;
+                snapshot.Issues.Add(new ChongqingStage2CheckIssue
+                {
+                    Code = parametersWithoutSubject
+                        ? Stage2PreflightIssueKinds.RelationshipParametersWithoutSubject
+                        : Stage2PreflightIssueKinds.RelationshipParametersInvalid,
+                    Disposition = Stage2PreflightDisposition.Blocker,
+                    Severity = "阻断",
+                    Category = parametersWithoutSubject ? "主体为空但参数有值" : "结算关系参数不完整",
+                    Kind = parametersWithoutSubject
+                        ? Stage2PreflightIssueKinds.RelationshipParametersWithoutSubject
+                        : Stage2PreflightIssueKinds.RelationshipParametersInvalid,
+                    SettlementKind = kind,
+                    Customer = customer,
+                    Owner = owner,
+                    Entity = entity,
+                    LedgerRow = row,
+                    CurrentValue = error.ParameterName + "：" + TextUtil.S(error.DisplayValue),
+                    Message = "重庆台账第" + row + "行" + kind + "关系的" + error.ParameterName + "填写不符合规则。",
+                    Suggestion = parametersWithoutSubject
+                        ? "主体为空时比例、单价和税率必须全部空白。"
+                        : "主体已填写时比例、单价和税率必须全部为大于 0 的数字。"
+                });
+            }
+
+            if (!validation.HasRelationship || !validation.IsValid)
+            {
+                return;
+            }
+
+            occurrences.Add(new ChongqingRelationshipOccurrence
+            {
+                LedgerRow = row,
+                Customer = customer,
+                Owner = owner,
+                Entity = entity,
+                Kind = kind,
+                TaxRate = taxRate.Value
+            });
+        }
+
+        private static Stage2RelationshipParameterValue ReadParameterValue(IXLCell cell)
+        {
+            var hasFormula = !string.IsNullOrWhiteSpace(cell.FormulaA1);
+            var formatted = cell.GetFormattedString();
+            var hasContent = hasFormula || !string.IsNullOrWhiteSpace(formatted);
+            var value = 0d;
+            var numeric = hasContent && cell.TryGetValue(out value);
+            return new Stage2RelationshipParameterValue
+            {
+                HasContent = hasContent,
+                IsNumeric = numeric,
+                Value = numeric ? value : 0d,
+                DisplayValue = formatted
+            };
+        }
+
+        private static void ApplyCanonicalOwnersAndGroupChecks(
+            ChongqingStage2LedgerSnapshot snapshot,
+            IList<ChongqingRelationshipOccurrence> occurrences)
+        {
+            foreach (var group in occurrences
+                .GroupBy(item => ChongqingStage2Keys.SummaryKey(item.Entity, item.Kind)))
+            {
+                var ordered = group.OrderBy(item => item.LedgerRow).ToList();
+                var first = ordered[0];
+                if (string.IsNullOrWhiteSpace(first.Owner))
+                {
+                    snapshot.Issues.Add(new ChongqingStage2CheckIssue
+                    {
+                        Code = Stage2PreflightIssueKinds.FirstOwnerMissing,
+                        Disposition = Stage2PreflightDisposition.Blocker,
+                        Severity = "阻断",
+                        Category = "首次关系行负责人为空",
+                        Kind = Stage2PreflightIssueKinds.FirstOwnerMissing,
+                        SettlementKind = first.Kind,
+                        Customer = first.Customer,
+                        Entity = first.Entity,
+                        LedgerRow = first.LedgerRow,
+                        Message = "重庆台账中该主体的首次关系行没有负责人，无法确定唯一分表目录。",
+                        Suggestion = "请补齐第" + first.LedgerRow + "行负责人后重新预检。"
+                    });
+                }
+
+                var owners = ordered
+                    .Select(item => TextUtil.S(item.Owner))
+                    .Where(item => !string.IsNullOrWhiteSpace(item))
+                    .Distinct()
+                    .ToList();
+                if (owners.Count > 1)
+                {
+                    snapshot.Issues.Add(new ChongqingStage2CheckIssue
+                    {
+                        Code = Stage2PreflightIssueKinds.MultipleOwners,
+                        Disposition = Stage2PreflightDisposition.Review,
+                        Severity = "复核",
+                        Category = "同一主体存在多个负责人",
+                        Kind = Stage2PreflightIssueKinds.MultipleOwners,
+                        SettlementKind = first.Kind,
+                        Owner = first.Owner,
+                        Entity = first.Entity,
+                        LedgerRow = first.LedgerRow,
+                        PreviousValue = string.Join("、", owners),
+                        CurrentValue = "本次归属：" + first.Owner,
+                        Message = "程序将合并该主体在多个负责人名下的客户和金额，只生成一份分表及一条汇总记录。",
+                        Suggestion = "请确认按首次关系行负责人“" + first.Owner + "”归档。"
+                    });
+                }
+
+                foreach (var detail in snapshot.Details.Where(item =>
+                    ChongqingStage2Keys.SummaryKey(item.Entity, item.Kind) == group.Key))
+                {
+                    detail.Owner = first.Owner;
+                }
+
+                var relationshipTaxRates = ordered
+                    .Select(item => item.TaxRate)
+                    .Distinct(new TaxRateComparer())
+                    .ToList();
+                if (relationshipTaxRates.Count > 1)
+                {
+                    snapshot.Issues.Add(new ChongqingStage2CheckIssue
+                    {
+                        Code = Stage2PreflightIssueKinds.ConflictingTaxRates,
+                        Disposition = Stage2PreflightDisposition.Blocker,
+                        Severity = "阻断",
+                        Category = "同一汇总主体扣税率冲突",
+                        Kind = Stage2PreflightIssueKinds.ConflictingTaxRates,
+                        SettlementKind = first.Kind,
+                        Owner = first.Owner,
+                        Entity = first.Entity,
+                        LedgerRow = first.LedgerRow,
+                    CurrentValue = string.Join("、", relationshipTaxRates.Select(item => item.ToString("0.##########", CultureInfo.InvariantCulture))),
+                        Message = "同一费用类型和主体出现多个扣税率，单条汇总记录无法可靠表达。",
+                        Suggestion = "请检查台账税率并统一后重新预检。"
+                    });
+                }
+            }
+
+            AddActiveTaxConflictIssues(snapshot);
+        }
+
+        private static void AddActiveTaxConflictIssues(ChongqingStage2LedgerSnapshot snapshot)
+        {
+            foreach (var group in snapshot.Details
+                .GroupBy(item => ChongqingStage2Keys.SummaryKey(item.Entity, item.Kind)))
+            {
+                var first = group.OrderBy(item => item.LedgerRow).First();
+                var rates = group
+                    .Select(item => item.TaxRate)
+                    .Distinct(new TaxRateComparer())
+                    .ToList();
+                if (rates.Count <= 1 || snapshot.Issues.Any(issue =>
+                    issue.Code == Stage2PreflightIssueKinds.ConflictingTaxRates
+                    && ChongqingStage2Keys.SummaryKey(issue.Entity, issue.SettlementKind) == group.Key))
+                {
+                    continue;
+                }
+
+                snapshot.Issues.Add(new ChongqingStage2CheckIssue
+                {
+                    Code = Stage2PreflightIssueKinds.ConflictingTaxRates,
+                    Disposition = Stage2PreflightDisposition.Blocker,
+                    Severity = "阻断",
+                    Category = "同一汇总主体扣税率冲突",
+                    Kind = Stage2PreflightIssueKinds.ConflictingTaxRates,
+                    SettlementKind = first.Kind,
+                    Owner = first.Owner,
+                    Entity = first.Entity,
+                    LedgerRow = first.LedgerRow,
+                    CurrentValue = string.Join("、", rates.Select(item => item.ToString("0.##########", CultureInfo.InvariantCulture))),
+                    Message = "同一费用类型和主体出现多个扣税率，单条汇总记录无法可靠表达。",
+                    Suggestion = "请检查台账税率并统一后重新预检。"
+                });
+            }
+        }
+
+        private sealed class TaxRateComparer : IEqualityComparer<double>
+        {
+            public bool Equals(double x, double y)
+            {
+                return ChongqingStage2ExcelUtil.TaxRatesEqual(x, y);
+            }
+
+            public int GetHashCode(double obj)
+            {
+                return 0;
+            }
         }
 
         private static ChongqingSettlementDetail CreateProxyLikeDetail(
@@ -108,7 +491,7 @@ namespace HainanSettlementTool.Excel
             detail.AdjustedGross = Math.Round(detail.Gross - detail.RecoverShortfall, 4);
             detail.TaxAmount = Math.Round(detail.AdjustedGross / 1.13d * detail.TaxRate, 4);
             detail.CalculatedNet = Math.Round(detail.AdjustedGross - detail.TaxAmount, 4);
-            detail.ExpectedNet = ChongqingStage2ExcelUtil.NonZeroOrFallback(detail.CalculatedNet, detail.LedgerNet);
+            detail.ExpectedNet = detail.CalculatedNet;
             return detail;
         }
 
@@ -137,7 +520,7 @@ namespace HainanSettlementTool.Excel
             detail.AdjustedGross = detail.Gross;
             detail.TaxAmount = Math.Round(detail.Gross / 1.13d * detail.TaxRate, 4);
             detail.CalculatedNet = Math.Round(detail.Gross - detail.TaxAmount, 4);
-            detail.ExpectedNet = ChongqingStage2ExcelUtil.NonZeroOrFallback(detail.CalculatedNet, detail.LedgerNet);
+            detail.ExpectedNet = detail.CalculatedNet;
             return detail;
         }
 

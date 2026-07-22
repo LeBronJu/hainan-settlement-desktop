@@ -81,6 +81,31 @@ namespace HainanSettlementTool.Core.Tests
             }
         }
 
+        [TestMethod]
+        public void AnalyzeDoesNotAuthorizeDirectGeneration()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var gateway = new FakeChongqingStage2Gateway();
+                var service = new ChongqingStage2Service(gateway);
+                var options = CreateOptions(root);
+                options.ExpectedPreflightSignature = null;
+                options.ExpectedInputFingerprint = null;
+
+                service.Analyze(options);
+
+                Assert.IsNull(options.ExpectedPreflightSignature);
+                Assert.IsNull(options.ExpectedInputFingerprint);
+                Assert.ThrowsException<InvalidOperationException>(() => service.Run(options, null));
+                Assert.AreEqual(0, gateway.GenerateCalls);
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
         private static ChongqingStage2Options CreateOptions(string root)
         {
             var proxyDir = Path.Combine(root, "proxy");
@@ -95,7 +120,9 @@ namespace HainanSettlementTool.Core.Tests
                 ProxyTemplateDirectory = proxyDir,
                 RefundTemplateDirectory = refundDir,
                 SummaryTemplatePath = CreateFile(root, "summary.xlsx"),
-                OutputDirectory = Path.Combine(root, "out")
+                OutputDirectory = Path.Combine(root, "out"),
+                ExpectedPreflightSignature = "confirmed-preflight",
+                ExpectedInputFingerprint = "confirmed-input"
             };
         }
 
@@ -132,7 +159,12 @@ namespace HainanSettlementTool.Core.Tests
 
             public ChongqingStage2PreflightReport AnalyzeSettlement(ChongqingStage2Options options)
             {
-                return new ChongqingStage2PreflightReport { Month = options.Month };
+                return new ChongqingStage2PreflightReport
+                {
+                    Month = options.Month,
+                    PreflightSignature = "preflight",
+                    InputFingerprint = "input"
+                };
             }
 
             public ChongqingStage2Report GenerateSettlement(ChongqingStage2Options options)

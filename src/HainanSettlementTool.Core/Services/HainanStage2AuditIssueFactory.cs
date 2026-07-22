@@ -18,9 +18,12 @@ namespace HainanSettlementTool.Core.Services
 
             return new HainanStage2CheckIssue
             {
-                Severity = "错误",
+                Code = Stage2PreflightIssueKinds.LedgerAmountDifference,
+                Disposition = Stage2PreflightDisposition.Review,
+                Severity = "复核",
                 Category = "台账与分表金额不一致",
                 Kind = kind + "费",
+                SettlementKind = kind + "费",
                 Customer = row.Customer,
                 Owner = row.Owner,
                 Entity = row.Entity,

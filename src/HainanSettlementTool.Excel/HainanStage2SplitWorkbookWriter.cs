@@ -11,51 +11,140 @@ namespace HainanSettlementTool.Excel
 {
     internal static class HainanStage2SplitWorkbookWriter
     {
+        internal static void VerifyGeneratedSplitWorkbooks(
+            IList<HainanStage2SubjectGroup> subjectGroups,
+            IList<GroupSettlementTotal> totals,
+            int month)
+        {
+            var expectedGroups = subjectGroups.ToDictionary(
+                group => HainanStage2ExcelUtil.SummaryKey(group.Entity, group.SettlementKind));
+            var generatedGroups = totals
+                .GroupBy(total => HainanStage2ExcelUtil.SummaryKey(total.Entity, total.Kind))
+                .ToDictionary(group => group.Key, group => group.ToList());
+            if (generatedGroups.Any(group => group.Value.Count != 1)
+                || !new HashSet<string>(expectedGroups.Keys).SetEquals(generatedGroups.Keys))
+            {
+                throw new InvalidDataException("海南阶段二分表主体集合与预检结果不一致。");
+            }
+
+            var outputPaths = totals
+                .Select(total => Path.GetFullPath(total.OutputFile))
+                .ToList();
+            if (outputPaths.Count != outputPaths.Distinct(StringComparer.OrdinalIgnoreCase).Count())
+            {
+                throw new InvalidDataException("海南阶段二有多个主体指向同一分表文件。");
+            }
+
+            foreach (var pair in expectedGroups)
+            {
+                var expected = pair.Value;
+                var generated = generatedGroups[pair.Key].Single();
+                if (generated.Rows != expected.Rows.Count
+                    || Math.Abs(generated.ExpectedNet - expected.Rows.Sum(row => row.ExpectedNet))
+                        > Stage2SettlementCalculator.AmountTolerance)
+                {
+                    throw new InvalidDataException("海南阶段二分表分组摘要与台账不一致：" + generated.Kind + " " + generated.Entity);
+                }
+
+                using (var stream = File.Open(generated.OutputFile, FileMode.Open, FileAccess.Read, FileShare.Read))
+                using (var workbook = new XLWorkbook(stream))
+                {
+                    var sheetName = month + "月";
+                    var matches = workbook.Worksheets.Where(sheet => sheet.Name == sheetName).ToList();
+                    if (matches.Count != 1)
+                    {
+                        throw new InvalidDataException("海南阶段二分表目标月工作表数量不是 1：" + generated.OutputFile);
+                    }
+
+                    var worksheet = matches[0];
+                    var displayEntity = TextUtil.S(worksheet.Cell("A2").GetFormattedString());
+                    if (displayEntity.StartsWith("代理名称:", StringComparison.Ordinal))
+                    {
+                        displayEntity = displayEntity.Substring("代理名称:".Length);
+                    }
+
+                    if (HainanStage2ExcelUtil.NormalizeName(displayEntity)
+                        != HainanStage2ExcelUtil.NormalizeName(generated.DisplayEntity))
+                    {
+                        throw new InvalidDataException("海南阶段二分表主体与分组不一致：" + generated.OutputFile);
+                    }
+
+                    var totalRow = HainanStage2ExcelUtil.FindTotalRow(worksheet, HainanStage2ExcelUtil.DataStartRow);
+                    if (totalRow - HainanStage2ExcelUtil.DataStartRow != expected.Rows.Count)
+                    {
+                        throw new InvalidDataException("海南阶段二分表明细行数与台账不一致：" + generated.OutputFile);
+                    }
+
+                    for (var index = 0; index < expected.Rows.Count; index++)
+                    {
+                        var expectedRow = expected.Rows[index];
+                        var row = HainanStage2ExcelUtil.DataStartRow + index;
+                        if (HainanStage2ExcelUtil.NormalizeName(worksheet.Cell(row, 2).GetFormattedString())
+                            != HainanStage2ExcelUtil.NormalizeName(expectedRow.Customer)
+                            || !AmountsEqual(ClosedXmlUtil.CellNumber(worksheet.Cell(row, 3)), expectedRow.Total)
+                            || !AmountsEqual(ClosedXmlUtil.CellNumber(worksheet.Cell(row, 10)), expectedRow.Ratio)
+                            || !AmountsEqual(ClosedXmlUtil.CellNumber(worksheet.Cell(row, 11)), expectedRow.UnitPrice)
+                            || !AmountsEqual(ClosedXmlUtil.CellNumber(worksheet.Cell(row, 16)), expectedRow.ExpectedNet)
+                            || !HainanStage2ExcelUtil.TaxRatesEqual(
+                                ClosedXmlUtil.CellNumber(worksheet.Cell(row, 17)),
+                                expectedRow.TaxRate))
+                        {
+                            throw new InvalidDataException(
+                                "海南阶段二分表明细与台账不一致："
+                                + generated.Kind + " " + generated.Entity + "，第" + row + "行。");
+                        }
+                    }
+
+                    if (!AmountsEqual(
+                        ClosedXmlUtil.CellNumber(worksheet.Cell(totalRow, 16)),
+                        generated.ExpectedNet))
+                    {
+                        throw new InvalidDataException("海南阶段二分表合计与分组金额不一致：" + generated.OutputFile);
+                    }
+                }
+            }
+        }
+
         internal static List<GroupSettlementTotal> BuildSplitFiles(
             HainanStage2Options options,
-            IList<HainanStage2DetailSettlementRow> proxyRows,
-            IList<HainanStage2DetailSettlementRow> interRows,
-            IList<HainanStage2CheckIssue> auditIssues)
+            IList<HainanStage2SubjectGroup> subjectGroups,
+            HainanStage2TemplateCatalog templateCatalog)
         {
-            var templateMap = HainanStage2TemplateIndex.Build(options.ProxyTemplateDirectory, options.IntermediaryTemplateDirectory);
-            var grouped = proxyRows
-                .Select(row => new { Key = Tuple.Create("代理", row.Owner, row.Entity), Row = row })
-                .Concat(interRows.Select(row => new { Key = Tuple.Create("居间", row.Owner, row.Entity), Row = row }))
-                .GroupBy(item => item.Key)
-                .OrderBy(group => group.Key.Item1)
-                .ThenBy(group => group.Key.Item2)
-                .ThenBy(group => group.Key.Item3);
-
             var totals = new List<GroupSettlementTotal>();
-            foreach (var group in grouped)
+            foreach (var group in subjectGroups
+                .OrderBy(item => item.Kind)
+                .ThenBy(item => item.FirstLedgerRow))
             {
-                var kind = group.Key.Item1;
-                var owner = group.Key.Item2;
-                var entity = group.Key.Item3;
                 bool matchedTemplate;
-                var outputPath = EnsureOutputWorkbook(templateMap, options, kind, owner, entity, out matchedTemplate);
-                FileAccessGuard.RequireWritableWorkbook(outputPath, kind + "分表输出文件");
+                var outputPath = EnsureOutputWorkbook(templateCatalog, options, group.Kind, group.Owner, group.Entity, out matchedTemplate);
+                FileAccessGuard.RequireWritableWorkbook(outputPath, group.Kind + "分表输出文件");
 
                 using (var workbook = new XLWorkbook(outputPath))
                 {
-                    var displayEntity = matchedTemplate ? PriorSheetDisplayEntity(workbook, options.Month) : entity;
+                    var displayEntity = matchedTemplate ? PriorSheetDisplayEntity(workbook, options.Month) : group.Entity;
                     var worksheet = PrepareMonthSheet(workbook, options.Month);
-                    WriteDetailSheet(worksheet, kind, entity, options.Month, group.Select(item => item.Row).ToList(), displayEntity, outputPath, auditIssues);
+                    WriteDetailSheet(worksheet, group.Kind, group.Entity, options.Month, group.Rows, displayEntity);
                     if (!matchedTemplate)
                     {
                         KeepOnlyCurrentMonthSheet(workbook, worksheet);
+                        foreach (var cell in worksheet.CellsUsed(XLCellsUsedOptions.Comments)
+                            .Where(cell => cell.HasComment)
+                            .ToList())
+                        {
+                            cell.GetComment().Delete();
+                        }
                     }
 
                     HainanStage2ExcelUtil.SaveWorkbook(workbook, outputPath);
 
                     totals.Add(new GroupSettlementTotal
                     {
-                        Kind = kind + "费",
-                        Owner = owner,
-                        Entity = entity,
-                        DisplayEntity = string.IsNullOrWhiteSpace(displayEntity) ? entity : displayEntity,
-                        Rows = group.Count(),
-                        ExpectedNet = Math.Round(group.Sum(item => item.Row.ExpectedNet), 4),
+                        Kind = group.SettlementKind,
+                        Owner = group.Owner,
+                        Entity = group.Entity,
+                        DisplayEntity = string.IsNullOrWhiteSpace(displayEntity) ? group.Entity : displayEntity,
+                        Rows = group.Rows.Count,
+                        ExpectedNet = Math.Round(group.Rows.Sum(row => row.ExpectedNet), 4),
                         OutputFile = outputPath
                     });
                 }
@@ -64,22 +153,49 @@ namespace HainanSettlementTool.Excel
             return totals;
         }
 
+        internal static string PlanOutputPath(
+            HainanStage2Options options,
+            HainanStage2SubjectGroup group,
+            HainanStage2TemplateCatalog templateCatalog)
+        {
+            var exactCandidates = templateCatalog.ExactCandidates(group.Kind, group.Entity);
+            var baseRoot = Path.Combine(
+                options.OutputDirectory,
+                group.Kind == "代理" ? "2026年代理 - 海南" : "2026年居间 - 海南");
+            var folder = Path.Combine(baseRoot, TextUtil.SafeFileName(group.Owner) + " - 海南2026");
+            var fileName = exactCandidates.Count == 1
+                ? Path.GetFileName(exactCandidates[0].Path)
+                : TextUtil.SafeFileName(group.Entity) + " 2026海南.xlsx";
+            return Path.GetFullPath(Path.Combine(folder, fileName));
+        }
+
         private static string EnsureOutputWorkbook(
-            IDictionary<string, string> templateMap,
+            HainanStage2TemplateCatalog templateCatalog,
             HainanStage2Options options,
             string kind,
             string owner,
             string entity,
             out bool matchedTemplate)
         {
-            string source;
-            if (templateMap.TryGetValue(HainanStage2ExcelUtil.TemplateKey(kind, owner, entity), out source))
+            var exactCandidates = templateCatalog.ExactCandidates(kind, entity);
+            if (exactCandidates.Count > 1)
             {
-                var sourceRoot = kind == "代理" ? options.ProxyTemplateDirectory : options.IntermediaryTemplateDirectory;
-                var targetRoot = Path.Combine(options.OutputDirectory, kind == "代理" ? "2026年代理 - 海南" : "2026年居间 - 海南");
-                var relative = HainanStage2ExcelUtil.RelativePath(sourceRoot, source);
-                var target = Path.Combine(targetRoot, relative);
-                Directory.CreateDirectory(Path.GetDirectoryName(target));
+                throw new InvalidOperationException(kind + "费主体“" + entity + "”匹配到多个上月分表，已停止生成。请先处理重复模板。");
+            }
+
+            var group = new HainanStage2SubjectGroup
+            {
+                Kind = kind,
+                Entity = entity,
+                Owner = owner
+            };
+            var target = PlanOutputPath(options, group, templateCatalog);
+            var folder = Path.GetDirectoryName(target);
+            Directory.CreateDirectory(folder);
+
+            if (exactCandidates.Count == 1)
+            {
+                var source = exactCandidates[0].Path;
                 if (!File.Exists(target))
                 {
                     File.Copy(source, target, false);
@@ -89,28 +205,66 @@ namespace HainanSettlementTool.Excel
                 return target;
             }
 
-            var baseRoot = Path.Combine(options.OutputDirectory, kind == "代理" ? "2026年代理 - 海南" : "2026年居间 - 海南");
-            var folder = Path.Combine(baseRoot, TextUtil.SafeFileName(owner) + " - 海南2026");
-            Directory.CreateDirectory(folder);
-            var newTarget = Path.Combine(folder, TextUtil.SafeFileName(entity) + " 2026海南.xlsx");
+            var newTarget = target;
             if (File.Exists(newTarget))
             {
                 matchedTemplate = false;
                 return newTarget;
             }
 
-            var candidate = templateMap
-                .Where(item => item.Key.StartsWith(kind + "|", StringComparison.Ordinal))
-                .Select(item => item.Value)
-                .FirstOrDefault();
-            if (string.IsNullOrWhiteSpace(candidate))
+            var candidate = ResolveBorrowTemplate(
+                templateCatalog,
+                options,
+                kind,
+                entity);
+
+            File.Copy(candidate.Path, newTarget, false);
+            matchedTemplate = false;
+            return newTarget;
+        }
+
+        private static HainanStage2TemplateCandidate ResolveBorrowTemplate(
+            HainanStage2TemplateCatalog templateCatalog,
+            HainanStage2Options options,
+            string kind,
+            string entity)
+        {
+            var candidates = templateCatalog.CandidatesForKind(kind);
+            if (candidates.Count == 0)
             {
                 throw new InvalidOperationException("没有可用的" + kind + "分表模板。");
             }
 
-            File.Copy(candidate, newTarget, false);
-            matchedTemplate = false;
-            return newTarget;
+            if (candidates.Count == 1)
+            {
+                return candidates[0];
+            }
+
+            var settlementKind = kind + "费";
+            var key = HainanStage2ExcelUtil.SummaryKey(entity, settlementKind);
+            var decisions = options.TemplateDecisions
+                .Where(item => item != null
+                    && HainanStage2ExcelUtil.SummaryKey(item.Entity, item.SettlementKind) == key)
+                .ToList();
+            if (decisions.Count != 1)
+            {
+                throw new InvalidOperationException(
+                    settlementKind + "主体“" + entity + "”没有唯一的本次分表模板选择。");
+            }
+
+            var selectedPath = Path.GetFullPath(decisions[0].TemplatePath);
+            var selected = candidates.SingleOrDefault(candidate =>
+                string.Equals(
+                    Path.GetFullPath(candidate.Path),
+                    selectedPath,
+                    StringComparison.OrdinalIgnoreCase));
+            if (selected == null)
+            {
+                throw new InvalidOperationException(
+                    settlementKind + "主体“" + entity + "”选择的分表模板不在本次预检候选范围内。");
+            }
+
+            return selected;
         }
 
         private static IXLWorksheet PrepareMonthSheet(XLWorkbook workbook, int month)
@@ -180,9 +334,7 @@ namespace HainanSettlementTool.Excel
             string entity,
             int month,
             IList<HainanStage2DetailSettlementRow> rows,
-            string displayEntity,
-            string outputPath,
-            IList<HainanStage2CheckIssue> auditIssues)
+            string displayEntity)
         {
             SetTopTitles(worksheet, kind, entity, month, displayEntity);
             var totalRow = AdjustDetailRows(worksheet, rows.Count);
@@ -211,8 +363,6 @@ namespace HainanSettlementTool.Excel
                 {
                     worksheet.Cell(excelRow, column).Clear(XLClearOptions.Contents);
                 }
-
-                AddLedgerDifferenceIssue(row, kind, outputPath, worksheet.Name, auditIssues);
             }
 
             if (rows.Count > 0)
@@ -382,20 +532,9 @@ namespace HainanSettlementTool.Excel
             return "日期：" + date.Year + "年" + date.Month.ToString("00") + "月" + date.Day.ToString("00") + "日";
         }
 
-        private static void AddLedgerDifferenceIssue(
-            HainanStage2DetailSettlementRow row,
-            string kind,
-            string outputPath,
-            string sheetName,
-            IList<HainanStage2CheckIssue> auditIssues)
+        private static bool AmountsEqual(double left, double right)
         {
-            var issue = HainanStage2AuditIssueFactory.CreateLedgerDifferenceIssue(row, kind, outputPath, sheetName);
-            if (issue == null)
-            {
-                return;
-            }
-
-            auditIssues.Add(issue);
+            return Math.Abs(left - right) <= Stage2SettlementCalculator.AmountTolerance;
         }
 
         private static void SetTopTitles(IXLWorksheet worksheet, string kind, string entity, int month, string displayEntity)

@@ -720,7 +720,7 @@ if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
     $OutputRoot = [string](Get-JsonProperty $manifest "outputRoot" "")
 }
 if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
-    $OutputRoot = Join-Path $ProjectRoot "dist"
+    $OutputRoot = Join-Path $ProjectRoot "local-validation\backtests"
 }
 
 if (-not $SkipBuild) {

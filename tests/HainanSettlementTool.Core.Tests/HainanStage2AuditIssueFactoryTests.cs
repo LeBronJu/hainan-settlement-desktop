@@ -40,7 +40,7 @@ namespace HainanSettlementTool.Core.Tests
             var issue = HainanStage2AuditIssueFactory.CreateLedgerDifferenceIssue(row, "代理", "分表.xlsx", "6月");
 
             Assert.IsNotNull(issue);
-            Assert.AreEqual("错误", issue.Severity);
+            Assert.AreEqual("复核", issue.Severity);
             Assert.AreEqual("台账与分表金额不一致", issue.Category);
             Assert.AreEqual("代理费", issue.Kind);
             Assert.AreEqual("测试客户", issue.Customer);

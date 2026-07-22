@@ -5,8 +5,8 @@
     <UseWPF>true</UseWPF>
     <LangVersion>7.3</LangVersion>
     <AssemblyName>清能电力-结算自动化工具Win10-11版</AssemblyName>
-    <Version>1.1.0</Version>
-    <FileVersion>1.1.0.0</FileVersion>
+    <Version>1.2.0</Version>
+    <FileVersion>1.2.0.0</FileVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Ookii.Dialogs.Wpf" Version="4.0.0" />
@@ -14,5 +14,8 @@
   <ItemGroup>
     <ProjectReference Include="..\HainanSettlementTool.Core\HainanSettlementTool.Core.csproj" />
     <ProjectReference Include="..\HainanSettlementTool.Excel\HainanSettlementTool.Excel.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="HainanSettlementTool.Wpf.Tests" />
   </ItemGroup>
 </Project>

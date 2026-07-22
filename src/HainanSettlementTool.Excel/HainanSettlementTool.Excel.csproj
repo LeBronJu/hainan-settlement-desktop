@@ -11,4 +11,7 @@
     <PackageReference Include="ExcelDataReader" Version="3.7.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="HainanSettlementTool.Excel.Tests" />
+  </ItemGroup>
 </Project>

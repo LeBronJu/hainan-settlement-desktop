@@ -81,11 +81,11 @@ This is a single-context repo. See `docs/agents/domain.md`.
 
 The app is evolving from a Hainan-only desktop tool into a multi-province settlement automation tool. Keep province-specific business rules isolated behind province/module naming. Do not add broad `if Hainan / if Chongqing` branches in shared logic when a province-specific service or Excel generator is the cleaner boundary.
 
-Current business scope and stage rules live in `CONTEXT.md`. Current architecture and module boundaries live in `docs/architecture.md`. Hainan Stage 2 implementation details live in `docs/hainan-stage2-current-behavior.md`. Chongqing Stage 2 analysis lives in `docs/dev-notes/chongqing-stage2-analysis-2026-07-07.md`.
+Current business scope and stage rules live in `CONTEXT.md`. Current architecture and module boundaries live in `docs/architecture.md`. Hainan Stage 2 implementation details live in `docs/hainan-stage2-current-behavior.md`. Chongqing Stage 2 analysis lives in `docs/dev-notes/chongqing-stage2-analysis-2026-07-07.md`. Stage 2 preflight, subject aggregation, payee/tax/payment-party rules, and official-batch integrity work must also read `docs/dev-notes/stage2-preflight-integrity-2026-07-22.md`.
 
 Guangdong month-sheet preparation details live in `docs/dev-notes/guangdong-stage2-month-preparation-2026-07-10.md`. Standard month sheets are exact numeric names; non-standard names are preserved but ignored for source selection. Existing target-month sheets are normalized in place in the output copy, while missing target months are copied only from the exact previous numeric month sheet.
 
-Excel performance and Open XML SDK research lives in `docs/dev-notes/excel-performance-openxml-research-2026-07-10.md`. The next performance pilot starts with Hainan measurement and read-only shadow adapters. Preserve current workbook behavior and keep complex template writers on ClosedXML until equivalence is demonstrated.
+Excel performance and Open XML SDK research lives in `docs/dev-notes/excel-performance-openxml-research-2026-07-10.md`. Hainan/Chongqing performance work is currently paused because the monthly volume is small; if the user explicitly reopens it, start with Hainan measurement and read-only shadow adapters. Preserve current workbook behavior and keep complex template writers on ClosedXML until equivalence is demonstrated.
 
 ## Business Rules To Preserve
 
@@ -94,7 +94,7 @@ Excel performance and Open XML SDK research lives in `docs/dev-notes/excel-perfo
 - `项目开发人` is an agent/intermediary relationship under a负责人, not the salesperson themselves.
 - Historical January/February 2026 data may be irregular. Do not generalize those quirks.
 - New customers can be left with blank负责人/项目开发人 for manual review in stage 1.
-- Hainan Stage 2 keeps the existing new-subject invoice/tax defaults and existing-subject inheritance described in `docs/hainan-stage2-current-behavior.md`. For new Hainan summary subjects whose payment party cannot be inherited, preflight must require an explicit `清能`/`清辉` choice instead of silently defaulting. Do not apply Hainan defaults to Chongqing without an explicit Chongqing rule.
+- Stage 2 summary identity is normalized `(settlement subject, settlement kind)`, not owner or payee. Multi-owner relationships aggregate once and use the first physical ledger relationship row's owner. Relationship parameters must be strictly valid before amount filtering; one summary identity must have one tax rate and one opaque payee text. New subjects and existing subjects with missing/unsupported payment party require an explicit `清能`/`清辉` choice; never silently default existing blanks to `清辉`. Preserve the Hainan Jingyan payment override and keep province-specific workbook rules behind province Adapters. Full rules live in `docs/dev-notes/stage2-preflight-integrity-2026-07-22.md`.
 
 ## Build Command
 

@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using HainanSettlementTool.Core.Models;
 using HainanSettlementTool.Core.Services;
 
 namespace HainanSettlementTool.Excel
@@ -74,7 +76,26 @@ namespace HainanSettlementTool.Excel
         public int Row { get; set; }
         public string Entity { get; set; }
         public string Kind { get; set; }
+        public string Payee { get; set; }
         public string PaymentParty { get; set; }
+        public string SourcePaymentParty { get; set; }
+        public string SheetName { get; set; }
+    }
+
+    internal sealed class ChongqingStage2LedgerSnapshot
+    {
+        public List<ChongqingSettlementDetail> Details { get; } = new List<ChongqingSettlementDetail>();
+        public List<ChongqingStage2CheckIssue> Issues { get; } = new List<ChongqingStage2CheckIssue>();
+    }
+
+    internal sealed class ChongqingRelationshipOccurrence
+    {
+        public int LedgerRow { get; set; }
+        public string Customer { get; set; }
+        public string Owner { get; set; }
+        public string Entity { get; set; }
+        public string Kind { get; set; }
+        public double TaxRate { get; set; }
     }
 
     internal static class ChongqingStage2Keys

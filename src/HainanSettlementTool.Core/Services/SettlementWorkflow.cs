@@ -145,7 +145,10 @@ namespace HainanSettlementTool.Core.Services
 
         public HainanStage2WorkflowPlan PlanHainanStage2(HainanStage2Options options)
         {
-            return new HainanStage2WorkflowPlan(options, AnalyzeHainanStage2(options));
+            var preflight = AnalyzeHainanStage2(options);
+            options.ExpectedPreflightSignature = preflight.PreflightSignature;
+            options.ExpectedInputFingerprint = preflight.InputFingerprint;
+            return new HainanStage2WorkflowPlan(options, preflight);
         }
 
         public HainanStage2WorkflowResult CompleteHainanStage2(HainanStage2WorkflowPlan plan, bool confirmed, Action<string> log)
@@ -155,11 +158,28 @@ namespace HainanSettlementTool.Core.Services
                 throw new ArgumentNullException(nameof(plan));
             }
 
-            if (plan.RequiresConfirmation && !confirmed)
+            var evaluation = plan.Evaluation;
+            if (evaluation.HasBlockingIssues)
+            {
+                throw new InvalidOperationException("海南阶段二预检存在阻断项，请修正台账或模板后重新预检。");
+            }
+
+            if (!confirmed && evaluation.RequiresConfirmation)
             {
                 return HainanStage2WorkflowResult.Cancelled();
             }
 
+            if (!evaluation.CanContinue)
+            {
+                throw new InvalidOperationException("海南阶段二仍有未完成或无效的必选项，请完成支付方或模板选择后再生成。");
+            }
+
+            if (!evaluation.CanGenerate(confirmed))
+            {
+                return HainanStage2WorkflowResult.Cancelled();
+            }
+
+            EnsureHainanStage2PlanIsCurrent(plan);
             return HainanStage2WorkflowResult.Complete(RunHainanStage2(plan.Options, log));
         }
 
@@ -190,7 +210,10 @@ namespace HainanSettlementTool.Core.Services
 
         public ChongqingStage2WorkflowPlan PlanChongqingStage2(ChongqingStage2Options options)
         {
-            return new ChongqingStage2WorkflowPlan(options, AnalyzeChongqingStage2(options));
+            var preflight = AnalyzeChongqingStage2(options);
+            options.ExpectedPreflightSignature = preflight.PreflightSignature;
+            options.ExpectedInputFingerprint = preflight.InputFingerprint;
+            return new ChongqingStage2WorkflowPlan(options, preflight);
         }
 
         public ChongqingStage2WorkflowResult CompleteChongqingStage2(
@@ -203,12 +226,82 @@ namespace HainanSettlementTool.Core.Services
                 throw new ArgumentNullException(nameof(plan));
             }
 
-            if (plan.RequiresConfirmation && !confirmed)
+            var evaluation = plan.Evaluation;
+            if (evaluation.HasBlockingIssues)
+            {
+                throw new InvalidOperationException("重庆阶段二预检存在阻断项，请修正台账或模板后重新预检。");
+            }
+
+            if (!confirmed && evaluation.RequiresConfirmation)
             {
                 return ChongqingStage2WorkflowResult.Cancelled();
             }
 
+            if (!evaluation.CanContinue)
+            {
+                throw new InvalidOperationException("重庆阶段二仍有未完成或无效的必选项，请完成支付方选择后再生成。");
+            }
+
+            if (!evaluation.CanGenerate(confirmed))
+            {
+                return ChongqingStage2WorkflowResult.Cancelled();
+            }
+
+            EnsureChongqingStage2PlanIsCurrent(plan);
             return ChongqingStage2WorkflowResult.Complete(RunChongqingStage2(plan.Options, log));
+        }
+
+        private void EnsureHainanStage2PlanIsCurrent(HainanStage2WorkflowPlan plan)
+        {
+            if (string.IsNullOrWhiteSpace(plan.Options.ExpectedPreflightSignature)
+                && string.IsNullOrWhiteSpace(plan.Options.ExpectedInputFingerprint))
+            {
+                return;
+            }
+
+            var current = AnalyzeHainanStage2(plan.Options);
+            EnsureStage2PlanSignaturesMatch(
+                "海南",
+                plan.Options.ExpectedPreflightSignature,
+                current.PreflightSignature,
+                plan.Options.ExpectedInputFingerprint,
+                current.InputFingerprint);
+        }
+
+        private void EnsureChongqingStage2PlanIsCurrent(ChongqingStage2WorkflowPlan plan)
+        {
+            if (string.IsNullOrWhiteSpace(plan.Options.ExpectedPreflightSignature)
+                && string.IsNullOrWhiteSpace(plan.Options.ExpectedInputFingerprint))
+            {
+                return;
+            }
+
+            var current = AnalyzeChongqingStage2(plan.Options);
+            EnsureStage2PlanSignaturesMatch(
+                "重庆",
+                plan.Options.ExpectedPreflightSignature,
+                current.PreflightSignature,
+                plan.Options.ExpectedInputFingerprint,
+                current.InputFingerprint);
+        }
+
+        private static void EnsureStage2PlanSignaturesMatch(
+            string province,
+            string expectedPreflight,
+            string currentPreflight,
+            string expectedInput,
+            string currentInput)
+        {
+            var preflightMatches = string.IsNullOrWhiteSpace(expectedPreflight)
+                || Stage2PreflightSignature.Matches(expectedPreflight, currentPreflight);
+            var inputMatches = string.IsNullOrWhiteSpace(expectedInput)
+                || Stage2PreflightSignature.Matches(expectedInput, currentInput);
+            if (!preflightMatches || !inputMatches)
+            {
+                throw new InvalidOperationException(
+                    province
+                    + "阶段二输入或预检项目在确认后发生变化。为避免使用未确认的新资料，本次未生成；请重新打开预检并确认。" );
+            }
         }
 
         public StageWorkflowResult<ChongqingStage2Report> RunChongqingStage2(

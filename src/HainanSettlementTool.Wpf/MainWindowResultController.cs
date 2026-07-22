@@ -15,6 +15,7 @@ namespace HainanSettlementTool.Wpf
         private readonly TextBlock _completionDetailText;
         private readonly TextBlock _completionOutputLabel;
         private readonly TextBlock _completionOutputText;
+        private readonly Button _openReadableReportButton;
         private readonly TextBlock _noProvinceResultHint;
         private readonly Grid _stage1ResultRow;
         private readonly TextBlock _stage1ResultLabel;
@@ -45,6 +46,7 @@ namespace HainanSettlementTool.Wpf
             TextBlock completionDetailText,
             TextBlock completionOutputLabel,
             TextBlock completionOutputText,
+            Button openReadableReportButton,
             TextBlock noProvinceResultHint,
             Grid stage1ResultRow,
             TextBlock stage1ResultLabel,
@@ -74,6 +76,7 @@ namespace HainanSettlementTool.Wpf
             _completionDetailText = completionDetailText;
             _completionOutputLabel = completionOutputLabel;
             _completionOutputText = completionOutputText;
+            _openReadableReportButton = openReadableReportButton;
             _noProvinceResultHint = noProvinceResultHint;
             _stage1ResultRow = stage1ResultRow;
             _stage1ResultLabel = stage1ResultLabel;
@@ -98,6 +101,8 @@ namespace HainanSettlementTool.Wpf
         }
 
         public string LastOutputDirectory { get; private set; }
+
+        public string LastReadableReportPath { get; private set; }
 
         public void UpdateResultVisibility(ProvinceCode? province)
         {
@@ -138,6 +143,7 @@ namespace HainanSettlementTool.Wpf
             _employeeRewardResultCount.Text = "-";
             _finishedAtText.Text = "-";
             LastOutputDirectory = null;
+            SetReadableReport(null);
             ShowWaiting(province);
             _completionCard.Visibility = Visibility.Visible;
         }
@@ -209,9 +215,14 @@ namespace HainanSettlementTool.Wpf
             SetFinishedNow();
         }
 
-        public void ShowCompletion(string title, string detail, string outputDirectory)
+        public void ShowCompletion(
+            string title,
+            string detail,
+            string outputDirectory,
+            string readableReportPath = null)
         {
             LastOutputDirectory = outputDirectory;
+            SetReadableReport(readableReportPath);
             ResetCompletionAppearance();
             _completionIconCircle.Background = _brushOf("SuccessBrush");
             _completionIconText.Text = "\uE73E";
@@ -225,9 +236,11 @@ namespace HainanSettlementTool.Wpf
             string title,
             string detail,
             string outputDirectory,
-            bool critical)
+            bool critical,
+            string readableReportPath = null)
         {
             LastOutputDirectory = outputDirectory;
+            SetReadableReport(readableReportPath);
             _completionCard.SetResourceReference(Border.BackgroundProperty, "StatusBusyBrush");
             _completionCard.SetResourceReference(
                 Border.BorderBrushProperty,
@@ -240,6 +253,16 @@ namespace HainanSettlementTool.Wpf
             _completionDetailText.Text = detail;
             _completionOutputText.Text = outputDirectory;
             _completionCard.Visibility = Visibility.Visible;
+        }
+
+        private void SetReadableReport(string readableReportPath)
+        {
+            LastReadableReportPath = string.IsNullOrWhiteSpace(readableReportPath)
+                ? null
+                : readableReportPath;
+            _openReadableReportButton.Visibility = LastReadableReportPath == null
+                ? Visibility.Collapsed
+                : Visibility.Visible;
         }
 
         private void SetResultStatus(TextBlock statusText, string status)
