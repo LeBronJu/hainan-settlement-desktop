@@ -2071,6 +2071,227 @@ namespace HainanSettlementTool.Excel.Tests
         }
 
         [TestMethod]
+        public void GenerateSettlementClampsFullyDeductedLoanRemainingAtZero()
+        {
+            var root = Path.Combine(Path.GetTempPath(), "HainanSettlementToolTests", Guid.NewGuid().ToString("N"));
+            var ledgerPath = Path.Combine(root, "ledger.xlsx");
+            var proxyRoot = Path.Combine(root, "proxy");
+            var interRoot = Path.Combine(root, "intermediary");
+            var outputRoot = Path.Combine(root, "output");
+            var summaryPath = Path.Combine(root, "summary.xlsx");
+
+            try
+            {
+                Directory.CreateDirectory(proxyRoot);
+                Directory.CreateDirectory(interRoot);
+                WriteLedgerWithSingleProxyRow(ledgerPath, 4, "测试负责人", "借支结清代理", "存量客户");
+                WriteProxyTemplate(proxyRoot, "测试负责人", "借支结清代理");
+                WriteLoanSummaryTemplate(summaryPath, "借支结清代理", "代理费", HainanStage2PaymentParties.Qinghui);
+                using (var workbook = new XLWorkbook(summaryPath))
+                {
+                    var main = workbook.Worksheet("汇总表");
+                    main.Cell(4, 15).Value = 0.1;
+                    main.Cell(4, 21).Value = 0.1;
+                    main.Cell(4, 27).Value = 0.1;
+                    main.Cell(4, 31).Value = 1.3;
+                    main.Cell(4, 32).Value = 0.3;
+                    main.Cell(4, 35).Value = "每月扣除1万";
+                    var payment = workbook.Worksheet("清辉汇总表");
+                    main.Row(4).CopyTo(payment.Row(4));
+                    workbook.Save();
+                }
+
+                var options = new HainanStage2Options
+                {
+                    Month = 4,
+                    LedgerPath = ledgerPath,
+                    ProxyTemplateDirectory = proxyRoot,
+                    IntermediaryTemplateDirectory = interRoot,
+                    SummaryTemplatePath = summaryPath,
+                    OutputDirectory = outputRoot
+                };
+
+                var report = RunAfterPreflight(options);
+
+                using (var workbook = new XLWorkbook(report.Summary))
+                {
+                    var main = workbook.Worksheet("汇总表");
+                    var payment = workbook.Worksheet("清辉汇总表");
+                    Assert.AreEqual("O4+U4+AA4+AG4", main.Cell(4, 38).FormulaA1);
+                    Assert.AreEqual("MAX(0,AK4-AL4)", main.Cell(4, 39).FormulaA1);
+                    Assert.AreEqual(main.Cell(4, 39).FormulaA1, payment.Cell(4, 39).FormulaA1);
+                    Assert.AreEqual(new DateTime(2026, 4, 1), main.Cell(4, 42).GetDateTime());
+                    Assert.AreEqual(main.Cell(4, 42).GetDateTime(), payment.Cell(4, 42).GetDateTime());
+                    Assert.AreEqual("yyyy年m月", main.Cell(4, 42).Style.DateFormat.Format);
+                }
+            }
+            finally
+            {
+                if (Directory.Exists(root))
+                {
+                    Directory.Delete(root, true);
+                }
+            }
+        }
+
+        [TestMethod]
+        public void GenerateSettlementPreservesExistingLoanCompletionMonth()
+        {
+            var root = Path.Combine(Path.GetTempPath(), "HainanSettlementToolTests", Guid.NewGuid().ToString("N"));
+            try
+            {
+                var options = CreateSingleProxyOptionsWithLoanSummary(
+                    root,
+                    "测试负责人",
+                    "已有结清月份代理");
+                using (var workbook = new XLWorkbook(options.SummaryTemplatePath))
+                {
+                    var main = workbook.Worksheet("汇总表");
+                    main.Cell(4, 15).Value = 0.1;
+                    main.Cell(4, 21).Value = 0.1;
+                    main.Cell(4, 27).Value = 0.1;
+                    main.Cell(4, 31).Value = 1.3;
+                    main.Cell(4, 32).Value = 0.3;
+                    main.Cell(4, 35).Value = "每月扣除1万";
+                    main.Cell(4, 36).Value = new DateTime(2026, 3, 1);
+                    main.Cell(4, 36).Style.DateFormat.Format = "yyyy年m月";
+                    var payment = workbook.Worksheet("清辉汇总表");
+                    main.Row(4).CopyTo(payment.Row(4));
+                    workbook.Save();
+                }
+
+                var report = RunAfterPreflight(options);
+
+                using (var workbook = new XLWorkbook(report.Summary))
+                {
+                    var main = workbook.Worksheet("汇总表");
+                    var payment = workbook.Worksheet("清辉汇总表");
+                    Assert.AreEqual(1d, ClosedXmlUtil.CellNumber(main.Cell(4, 33)), 0.0001d);
+                    Assert.AreEqual(new DateTime(2026, 3, 1), main.Cell(4, 42).GetDateTime());
+                    Assert.AreEqual(main.Cell(4, 42).GetDateTime(), payment.Cell(4, 42).GetDateTime());
+                    Assert.AreEqual("yyyy年m月", main.Cell(4, 42).Style.DateFormat.Format);
+                }
+            }
+            finally
+            {
+                if (Directory.Exists(root))
+                {
+                    Directory.Delete(root, true);
+                }
+            }
+        }
+
+        [TestMethod]
+        public void GenerateSettlementRecomputesLoanCompletionWhenTargetMonthAlreadyExists()
+        {
+            var root = Path.Combine(Path.GetTempPath(), "HainanSettlementToolTests", Guid.NewGuid().ToString("N"));
+            try
+            {
+                var firstOptions = CreateSingleProxyOptionsWithLoanSummary(
+                    root,
+                    "测试负责人",
+                    "同月重算代理");
+                using (var workbook = new XLWorkbook(firstOptions.SummaryTemplatePath))
+                {
+                    var main = workbook.Worksheet("汇总表");
+                    main.Cell(4, 15).Value = 0.1;
+                    main.Cell(4, 21).Value = 0.1;
+                    main.Cell(4, 27).Value = 0.1;
+                    main.Cell(4, 31).Value = 1.3;
+                    main.Cell(4, 32).Value = 0.3;
+                    main.Cell(4, 35).Value = "每月扣除1万";
+                    var payment = workbook.Worksheet("清辉汇总表");
+                    main.Row(4).CopyTo(payment.Row(4));
+                    workbook.Save();
+                }
+
+                var firstReport = RunAfterPreflight(firstOptions);
+                using (var workbook = new XLWorkbook(firstReport.Summary))
+                {
+                    var main = workbook.Worksheet("汇总表");
+                    var payment = workbook.Worksheet("清辉汇总表");
+                    main.Cell(4, 38).Value = 1.3;
+                    payment.Cell(4, 38).Value = 1.3;
+                    main.Cell(4, 42).Clear(XLClearOptions.Contents);
+                    payment.Cell(4, 42).Clear(XLClearOptions.Contents);
+                    workbook.Save();
+                }
+
+                var rerunOptions = new HainanStage2Options
+                {
+                    Month = 4,
+                    LedgerPath = firstOptions.LedgerPath,
+                    ProxyTemplateDirectory = firstOptions.ProxyTemplateDirectory,
+                    IntermediaryTemplateDirectory = firstOptions.IntermediaryTemplateDirectory,
+                    SummaryTemplatePath = firstReport.Summary,
+                    OutputDirectory = Path.Combine(root, "rerun-output")
+                };
+
+                var rerunReport = RunAfterPreflight(rerunOptions);
+
+                using (var workbook = new XLWorkbook(rerunReport.Summary))
+                {
+                    var main = workbook.Worksheet("汇总表");
+                    Assert.AreEqual(1d, ClosedXmlUtil.CellNumber(main.Cell(4, 33)), 0.0001d);
+                    Assert.AreEqual("O4+U4+AA4+AG4", main.Cell(4, 38).FormulaA1);
+                    Assert.AreEqual("MAX(0,AK4-AL4)", main.Cell(4, 39).FormulaA1);
+                    Assert.AreEqual(new DateTime(2026, 4, 1), main.Cell(4, 42).GetDateTime());
+                    Assert.AreEqual("yyyy年m月", main.Cell(4, 42).Style.DateFormat.Format);
+                }
+            }
+            finally
+            {
+                if (Directory.Exists(root))
+                {
+                    Directory.Delete(root, true);
+                }
+            }
+        }
+
+        [TestMethod]
+        public void GenerateSettlementDoesNotGuessLoanCompletionMonthWhenAlreadySettled()
+        {
+            var root = Path.Combine(Path.GetTempPath(), "HainanSettlementToolTests", Guid.NewGuid().ToString("N"));
+            try
+            {
+                var options = CreateSingleProxyOptionsWithLoanSummary(
+                    root,
+                    "测试负责人",
+                    "历史结清代理");
+                using (var workbook = new XLWorkbook(options.SummaryTemplatePath))
+                {
+                    var main = workbook.Worksheet("汇总表");
+                    main.Cell(4, 15).Value = 0.5;
+                    main.Cell(4, 21).Value = 0.4;
+                    main.Cell(4, 27).Value = 0.4;
+                    main.Cell(4, 31).Value = 1.3;
+                    main.Cell(4, 32).Value = 1.3;
+                    main.Cell(4, 35).Value = "每月扣除1万";
+                    var payment = workbook.Worksheet("清辉汇总表");
+                    main.Row(4).CopyTo(payment.Row(4));
+                    workbook.Save();
+                }
+
+                var report = RunAfterPreflight(options);
+
+                using (var workbook = new XLWorkbook(report.Summary))
+                {
+                    var main = workbook.Worksheet("汇总表");
+                    Assert.AreEqual("MAX(0,AK4-AL4)", main.Cell(4, 39).FormulaA1);
+                    Assert.IsTrue(main.Cell(4, 33).IsEmpty());
+                    Assert.IsTrue(main.Cell(4, 42).IsEmpty());
+                }
+            }
+            finally
+            {
+                if (Directory.Exists(root))
+                {
+                    Directory.Delete(root, true);
+                }
+            }
+        }
+
+        [TestMethod]
         public void GenerateSettlementSynchronizesCanonicalBusinessFieldsToExistingPaymentRow()
         {
             var root = Path.Combine(Path.GetTempPath(), "HainanSettlementToolTests", Guid.NewGuid().ToString("N"));
@@ -2097,6 +2318,7 @@ namespace HainanSettlementTool.Excel.Tests
                     main.Cell(4, 7).Value = "专票";
                     main.Cell(4, 23).Value = 12.34;
                     main.Cell(4, 27).Value = "每月扣除1万";
+                    main.Cell(4, 28).Value = new DateTime(2026, 3, 1);
                     main.Cell(4, 31).Value = "主表备注";
                     payment.Cell(4, 4).Value = "否";
                     payment.Cell(4, 5).Value = "错误协议";
@@ -2104,6 +2326,7 @@ namespace HainanSettlementTool.Excel.Tests
                     payment.Cell(4, 7).Value = "平台";
                     payment.Cell(4, 23).Value = 99;
                     payment.Cell(4, 27).Value = "错误扣除";
+                    payment.Cell(4, 28).Value = new DateTime(2026, 2, 1);
                     payment.Cell(4, 31).Value = "错误备注";
                     workbook.Save();
                 }
@@ -2124,7 +2347,7 @@ namespace HainanSettlementTool.Excel.Tests
                 {
                     var main = workbook.Worksheet("汇总表");
                     var payment = workbook.Worksheet("清辉汇总表");
-                    foreach (var column in new[] { 2, 3, 4, 5, 6, 7, 9, 10, 11, 29, 33, 37 })
+                    foreach (var column in new[] { 2, 3, 4, 5, 6, 7, 9, 10, 11, 29, 33, 34, 37 })
                     {
                         Assert.AreEqual(
                             main.Cell(4, column).GetFormattedString(),
@@ -2780,6 +3003,20 @@ namespace HainanSettlementTool.Excel.Tests
             };
         }
 
+        private static HainanStage2Options CreateSingleProxyOptionsWithLoanSummary(
+            string root,
+            string owner,
+            string entity)
+        {
+            var options = CreateSingleProxyOptions(root, owner, entity);
+            WriteLoanSummaryTemplate(
+                options.SummaryTemplatePath,
+                entity,
+                "代理费",
+                HainanStage2PaymentParties.Qinghui);
+            return options;
+        }
+
         private static void WriteManagedWorkbook(string path, params string[] sheetNames)
         {
             Directory.CreateDirectory(Path.GetDirectoryName(path));
@@ -2990,6 +3227,69 @@ namespace HainanSettlementTool.Excel.Tests
                 }
                 workbook.SaveAs(path);
             }
+        }
+
+        private static void WriteLoanSummaryTemplate(
+            string path,
+            string entity,
+            string kind,
+            string paymentParty)
+        {
+            using (var workbook = new XLWorkbook())
+            {
+                PopulateLoanSummaryTemplateSheet(
+                    workbook.AddWorksheet("汇总表"),
+                    entity,
+                    kind,
+                    paymentParty);
+                PopulateEmptyLoanSummaryTemplateSheet(workbook.AddWorksheet("清能汇总表"));
+                PopulateLoanSummaryTemplateSheet(
+                    workbook.AddWorksheet("清辉汇总表"),
+                    entity,
+                    kind,
+                    paymentParty);
+                workbook.SaveAs(path);
+            }
+        }
+
+        private static void PopulateLoanSummaryTemplateSheet(
+            IXLWorksheet worksheet,
+            string entity,
+            string kind,
+            string paymentParty)
+        {
+            WriteLoanSummaryHeaders(worksheet);
+            worksheet.Cell(4, 1).Value = 1;
+            worksheet.Cell(4, 2).Value = entity;
+            worksheet.Cell(4, 3).Value = kind;
+            worksheet.Cell(4, 6).Value = entity;
+            worksheet.Cell(4, 38).Value = paymentParty;
+            worksheet.Cell(5, 1).Value = "合计";
+            worksheet.Cell(8, 39).Value = "日期：2026年05月08日";
+        }
+
+        private static void PopulateEmptyLoanSummaryTemplateSheet(IXLWorksheet worksheet)
+        {
+            WriteLoanSummaryHeaders(worksheet);
+            worksheet.Cell(4, 1).Value = "合计";
+            worksheet.Cell(7, 39).Value = "日期：2026年05月08日";
+        }
+
+        private static void WriteLoanSummaryHeaders(IXLWorksheet worksheet)
+        {
+            for (var month = 1; month <= 3; month++)
+            {
+                var startColumn = 12 + (month - 1) * 6;
+                worksheet.Cell(2, startColumn).Value = "2026年" + month + "月";
+                worksheet.Cell(3, startColumn).Value = "代理费";
+                worksheet.Cell(3, startColumn + 1).Value = "居间费";
+                worksheet.Cell(3, startColumn + 2).Value = "退补电费";
+                worksheet.Cell(3, startColumn + 3).Value = "当月抵扣";
+                worksheet.Cell(3, startColumn + 4).Value = "费用合计";
+                worksheet.Cell(2, startColumn + 5).Value = "当月实际支付";
+            }
+
+            worksheet.Cell(2, 30).Value = "累计代理费总计";
         }
 
         private static void WriteSummaryTemplateWithStructuralProblems(

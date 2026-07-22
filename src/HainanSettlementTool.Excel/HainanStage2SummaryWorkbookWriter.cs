@@ -261,6 +261,7 @@ namespace HainanSettlementTool.Excel
             var startRow = 4;
             DeleteSummaryRowsNotAllowed(worksheet, startRow, allowedKeys);
 
+            var targetMonthAlreadyExisted = FindSummaryMonthBlocks(worksheet, month).Count == 1;
             var monthColumn = InsertMonthBlock(worksheet, month);
             var cumulativeColumn = SummaryColumn(worksheet, "累计代理费总计");
             var totalByKey = totals.ToDictionary(total => HainanStage2ExcelUtil.SummaryKey(total.Entity, total.Kind), total => total);
@@ -294,6 +295,7 @@ namespace HainanSettlementTool.Excel
                     info.Entity,
                     info.Kind,
                     month,
+                    targetMonthAlreadyExisted,
                     newSubjectKeys.Contains(HainanStage2ExcelUtil.SummaryKey(info.Entity, info.Kind)),
                     paymentPartyByKey,
                     payeeByKey,
@@ -317,6 +319,7 @@ namespace HainanSettlementTool.Excel
             string entity,
             string kind,
             int month,
+            bool targetMonthAlreadyExisted,
             bool isNewRow,
             IDictionary<string, string> paymentPartyByKey,
             IDictionary<string, string> payeeByKey,
@@ -332,7 +335,14 @@ namespace HainanSettlementTool.Excel
             var loanTotalCell = worksheet.Cell(row, cumulativeColumn + 1);
             var hasLoan = CellHasContent(loanTotalCell);
             var loanTotal = hasLoan ? ClosedXmlUtil.CellNumber(loanTotalCell) : 0;
-            var previousDeducted = hasLoan ? ClosedXmlUtil.CellNumber(worksheet.Cell(row, cumulativeColumn + 2)) : 0;
+            var previousDeducted = hasLoan
+                ? PreviousDeductedAmount(
+                    worksheet,
+                    row,
+                    monthColumn,
+                    cumulativeColumn,
+                    targetMonthAlreadyExisted)
+                : 0;
             var monthlyDeduction = ParseMonthlyDeduction(TextUtil.S(worksheet.Cell(row, cumulativeColumn + 5).GetFormattedString()));
             var remaining = Math.Max(loanTotal - previousDeducted, 0);
             var deduction = 0d;
@@ -348,7 +358,18 @@ namespace HainanSettlementTool.Excel
             if (hasLoan)
             {
                 worksheet.Cell(row, cumulativeColumn + 2).FormulaA1 = SumEverySix(row, 15, cumulativeColumn - 1);
-                worksheet.Cell(row, cumulativeColumn + 3).FormulaA1 = ClosedXmlUtil.ColumnLetter(cumulativeColumn + 1) + row + "-" + ClosedXmlUtil.ColumnLetter(cumulativeColumn + 2) + row;
+                worksheet.Cell(row, cumulativeColumn + 3).FormulaA1 = NonNegativeDifferenceFormula(
+                    row,
+                    cumulativeColumn + 1,
+                    cumulativeColumn + 2);
+                var completionMonthCell = worksheet.Cell(row, cumulativeColumn + 6);
+                if (deduction > 0
+                    && remaining > 0
+                    && remaining - deduction <= Stage2SettlementCalculator.AmountTolerance
+                    && !CellHasContent(completionMonthCell))
+                {
+                    completionMonthCell.Value = new DateTime(HainanStage2ExcelUtil.Year, month, 1);
+                }
             }
             else
             {
@@ -1236,6 +1257,23 @@ namespace HainanSettlementTool.Excel
             return 0;
         }
 
+        private static double PreviousDeductedAmount(
+            IXLWorksheet worksheet,
+            int row,
+            int monthColumn,
+            int cumulativeColumn,
+            bool targetMonthAlreadyExisted)
+        {
+            var cumulativeDeductedCell = worksheet.Cell(row, cumulativeColumn + 2);
+            var previousDeducted = ClosedXmlUtil.CellNumber(cumulativeDeductedCell);
+            if (targetMonthAlreadyExisted)
+            {
+                previousDeducted -= ClosedXmlUtil.CellNumber(worksheet.Cell(row, monthColumn + 3));
+            }
+
+            return Math.Max(previousDeducted, 0);
+        }
+
         private static string SumEverySix(int row, int firstColumn, int beforeColumn)
         {
             var parts = new List<string>();
@@ -1256,6 +1294,18 @@ namespace HainanSettlementTool.Excel
             }
 
             return string.Join("+", parts);
+        }
+
+        private static string NonNegativeDifferenceFormula(
+            int row,
+            int minuendColumn,
+            int subtrahendColumn)
+        {
+            return "MAX(0,"
+                + ClosedXmlUtil.ColumnLetter(minuendColumn) + row
+                + "-"
+                + ClosedXmlUtil.ColumnLetter(subtrahendColumn) + row
+                + ")";
         }
 
         private static void SetNullableNumber(IXLCell cell, double? value)
