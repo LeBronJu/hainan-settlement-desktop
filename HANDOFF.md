@@ -46,22 +46,21 @@ For the current Stage 2 integrity work, also read:
 
 ## Git State
 
-- Current development branch: `codex/stage2-preflight-integrity`.
-- It was created from local `main` at `4baaf88` (`Integrate Guangdong safety fix into local main`).
-- Local `main` is three commits ahead of `origin/main`: `23e79ff`, `0089f58`, and `4baaf88`; none has been pushed.
-- The Stage 2 integrity implementation and documentation are committed on the `codex/` branch as `ed9452a` (`Add Stage 2 preflight and batch integrity safeguards`).
-- Artifact organization is committed as `8b2de9b` (`Organize package and local validation artifacts`). The Hainan new-subject preflight UX/template-choice follow-up and its selected-template display fix are committed on the current branch.
-- The borrowed-template comment cleanup, shared readable HTML renderer, Hainan/Chongqing HTML batch reports, WPF report button, Chongqing self-operated regression fix, tests, and documentation are committed as `f495d5d` (`Add readable Stage 2 reports and settlement fixes`).
-- The current branch tip prepares the WPF product/file version and release documentation for `v1.2.0`.
-- On 2026-07-22 the user confirmed practical testing across all provinces found no further issue and explicitly authorized commit, merge to `main`, push, tag, and formal release.
+- Current production branch: `main`.
+- `codex/stage2-preflight-integrity` was merged into `main` as `3e4c6f9` (`Merge Stage 2 integrity and v1.2.0 release`).
+- The main implementation commits are `ed9452a` (preflight/integrity), `8029a61` (new-subject preflight UX), `54549ab` (template display and Hainan loan status), `f495d5d` (readable reports and settlement fixes), and `ca0f26b` (release preparation).
+- The previously local-only Guangdong safety commits and the Stage 2 branch are now pushed through `origin/main`.
+- Tag `v1.2.0` points to the exact merge commit used to build the formal package. The later main commit only records post-release handoff state.
 - Preserve the Window Separation / `outputs` exclusions in this handoff and do not revert them.
-- Future push, merge, tag, package, or publication again requires a new explicit authorization after this release closes.
+- Future push, merge, tag, package, publication, or real-workbook read again requires new explicit user authorization.
 
 ## Release State
 
 - Latest formal release: `v1.2.0`.
 - Release: `https://github.com/LeBronJu/retail-power-settlement-desktop/releases/tag/v1.2.0`.
 - Formal asset: `RetailPowerSettlementTool-Win10-11-v1.2.0.zip`; only the maintained Win10/11 WPF entry is published.
+- Local formal package: `dist/releases/RetailPowerSettlementTool-Win10-11-v1.2.0.zip`.
+- Formal package SHA-256: `2C914708542D8D6C56336AA3C3A852421617B4379F4FC21AA15345C63E85F3A3`.
 - The preceding local Win10/11 test package is `dist/test-packages/RetailPowerSettlementTool-Win10-11-Release-20260722-172921-704.zip`; SHA-256 is `273477D21A1F97AE5CB1AC88BEF83429B0AD60A076A7042B36D97954934E6798`.
 - `dist/` now contains distributable artifacts grouped under `test-packages/`, `releases/`, and `legacy-win7-8/`; local backtests and smoke outputs belong under the Git-ignored `local-validation/` tree.
 
@@ -113,6 +112,7 @@ Current branch, synthetic inputs only:
 - Documentation guardrails and `git diff --check` passed.
 - Independent read-only diff review found no remaining P0/P1 in the current scope; its two P2 findings (card-count wording and whitespace-normalized subject keys) were addressed.
 - The latest `172921-704` Win10/11 test package build passed; its directory and ZIP each contain the same 20 files, no workbook/CSV/JSON/log data, and the packaged WPF executable remained running through a five-second hidden startup smoke.
+- The formal `v1.2.0` package repeats those checks: directory and ZIP each contain the same 20 files, no business-data file types, executable file version `1.2.0.0`, and a successful five-second hidden startup smoke.
 - One user-authorized generated Hainan summary workbook was inspected read-only for the reported loan-balance row. The later exact user-authorized new-agent split workbook was inspected read-only and contained one legacy comment at `6月!P6`; no surrounding business directory was scanned and the source workbook was not modified. Automated tests remained synthetic. No `outputs` material was read or produced.
 - For the later Chongqing self-operated regression, the user explicitly authorized one exact historical ledger. It was inspected and replayed read-only: all seven reported rows had project developer/owner attribution but no monthly proxy/intermediary parameters; the fixed reader reports zero self-operated blockers. No surrounding directory was scanned and the workbook was not modified.
 
