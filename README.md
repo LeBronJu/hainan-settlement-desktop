@@ -10,12 +10,12 @@ GitHub 仓库：
 
 ## 当前版本
 
-- 最新正式版本：`v1.1.0`
-- Release 页面：`https://github.com/LeBronJu/retail-power-settlement-desktop/releases/tag/v1.1.0`
+- 最新正式版本：`v1.2.0`
+- Release 页面：`https://github.com/LeBronJu/retail-power-settlement-desktop/releases/tag/v1.2.0`
 - 当前主线：`main`
-- `v1.1.0` 包含海南员工电量奖励、Win10/11 WPF 主题与现代弹窗、重庆阶段一/阶段二首个可用生产基线，以及广东分表月份初始化。
+- `v1.2.0` 重点加强海南/重庆阶段二预检和整批输出完整性，新增三省统一样式的可读 HTML 报告，并修复海南新增主体模板/借支状态及重庆自营行误阻断问题。
 - 当前正式包：
-  - `RetailPowerSettlementTool-Win10-11-v1.1.0.zip`
+  - `RetailPowerSettlementTool-Win10-11-v1.2.0.zip`
 
 ## 当前范围
 
@@ -27,7 +27,7 @@ GitHub 仓库：
 - 员工电量奖励：最新售电结算台账 + 月份范围 -> 员工电量奖励总表、每个负责人一份个人电量确认表、JSON 校验报告。
 - 重庆阶段一：交易中心售电公司电量确认结算单 -> 重庆零售侧用户电量处理表、户号明细、重庆台账更新副本、JSON 校验/更新报告。
 - 广东分表月份初始化：批量处理代理/居间/退补 workbook，创建或整理标准目标月份 sheet，清空 C-F 电量并顺延日期，输出 workbook 副本和 HTML/JSON/TXT 检查报告；日期或结构异常的原文件会原样保留到 `【未处理-需人工复核】`，界面明确显示部分完成，不自动纠正业务日期。当前不计算广东结算金额。
-- 广东第一批及后续安全加固包已通过用户实测；用户运行 600 多个真实 workbook 总耗时 4 分多钟，当前性能满足临时需求。广东完整结算、海南/重庆性能优化和新版本发布目前均暂缓，开发优先保障阶段二业务正确性与正式输出完整性。
+- 广东第一批及后续安全加固包已通过用户实测；用户运行 600 多个真实 workbook 总耗时 4 分多钟，当前性能满足临时需求。2026-07-22 用户完成全省份实机测试，未发现新的问题。广东完整结算和海南/重庆性能优化仍暂缓，开发优先保障阶段二业务正确性与正式输出完整性。
 - 界面顶部“公共设置”里的结算月份和结果输出文件夹由阶段1、阶段2共用；员工电量奖励使用同一个结果输出文件夹，并在模块内选择开始/结束月份。
 - Win10/11版（WPF）支持结算省份选择，启动时默认不选省份，需手动选择后再执行。海南显示成熟结算流程；重庆开放阶段一和阶段二生成；广东当前只显示代理/居间/退补三个分表目录和“分表月份初始化”入口。切换省份时会清空上一省份专用输入，避免把其它省份路径误用于广东。
 - Win10/11版（WPF）是主推荐版本和后续新功能入口。
@@ -115,7 +115,7 @@ git diff --check
 .\scripts\run_real_smoke.ps1 -Month 5 -RawDetailPath "<原始明细.xls>" -ExistingPowerPath "<已清洗电量表.xlsx>" -BaseLedgerPath "<基础台账.xlsx>" -ReviewedLedgerPath "<人工整理后的台账.xlsx>" -ProxyTemplateDirectory "<上月代理分表文件夹>" -IntermediaryTemplateDirectory "<上月居间分表文件夹>" -SummaryTemplatePath "<上月汇总表.xlsx>" -OutputRoot "<临时输出文件夹>"
 ```
 
-当前解决方案已编译通过。2026-07-22 阶段二完整性、预检交互、借用模板批注清理、可读报告和重庆自营排除修复仅使用合成 workbook 做自动化验证：Core 80/80、Excel 126/126（海南阶段二 57/57、重庆阶段二 40/40）、WPF 展示/控件 4/4 通过，完整解决方案 Debug/Release 构建通过。当前分支已生成本地 Win10/11 测试包；`v1.1.0` 仍是最新正式版，本次没有制作或发布新正式版。
+当前解决方案已编译通过。2026-07-22 阶段二完整性、预检交互、借用模板批注清理、可读报告和重庆自营排除修复仅使用合成 workbook 做自动化验证：Core 80/80、Excel 126/126（海南阶段二 57/57、重庆阶段二 40/40）、WPF 展示/控件 4/4 通过，完整解决方案 Debug/Release 构建通过。用户随后完成全省份实机测试并确认未发现问题；上述改动随 Win10/11 WPF 正式版 `v1.2.0` 发布。
 
 ## 发布打包
 
@@ -130,7 +130,7 @@ git diff --check
 生成带稳定文件名的正式发布包：
 
 ```powershell
-.\scripts\package_wpf_release.ps1 -ReleaseTag v1.1.0
+.\scripts\package_wpf_release.ps1 -ReleaseTag v1.2.0
 ```
 
 带 `ReleaseTag` 的稳定文件名包默认写入 `dist/releases/`；这只是打包行为，正式 tag、GitHub Release 和发布仍需要单独明确授权。

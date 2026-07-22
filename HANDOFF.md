@@ -51,18 +51,18 @@ For the current Stage 2 integrity work, also read:
 - Local `main` is three commits ahead of `origin/main`: `23e79ff`, `0089f58`, and `4baaf88`; none has been pushed.
 - The Stage 2 integrity implementation and documentation are committed on the `codex/` branch as `ed9452a` (`Add Stage 2 preflight and batch integrity safeguards`).
 - Artifact organization is committed as `8b2de9b` (`Organize package and local validation artifacts`). The Hainan new-subject preflight UX/template-choice follow-up and its selected-template display fix are committed on the current branch.
-- The borrowed-template comment cleanup, shared readable HTML renderer, Hainan/Chongqing HTML batch reports, WPF report button, Chongqing self-operated regression fix, tests, and documentation are the final validated scope of this branch.
+- The borrowed-template comment cleanup, shared readable HTML renderer, Hainan/Chongqing HTML batch reports, WPF report button, Chongqing self-operated regression fix, tests, and documentation are committed as `f495d5d` (`Add readable Stage 2 reports and settlement fixes`).
+- The current branch tip prepares the WPF product/file version and release documentation for `v1.2.0`.
 - On 2026-07-22 the user confirmed practical testing across all provinces found no further issue and explicitly authorized commit, merge to `main`, push, tag, and formal release.
 - Preserve the Window Separation / `outputs` exclusions in this handoff and do not revert them.
 - Future push, merge, tag, package, or publication again requires a new explicit authorization after this release closes.
 
 ## Release State
 
-- Latest formal release remains `v1.1.0`.
-- Release: `https://github.com/LeBronJu/retail-power-settlement-desktop/releases/tag/v1.1.0`.
-- The Guangdong safety hardening package passed user practical testing, but the user explicitly decided not to publish a new version yet.
-- The latest local Win10/11 test package for user retesting is `dist/test-packages/RetailPowerSettlementTool-Win10-11-Release-20260722-172921-704.zip`; SHA-256 is `273477D21A1F97AE5CB1AC88BEF83429B0AD60A076A7042B36D97954934E6798`. It includes the Chongqing self-operated regression fix, borrowed-template comment cleanup, and shared Hainan/Chongqing/Guangdong readable-report work in addition to the earlier template-choice and Hainan loan fixes.
-- This is not a formal release: no release tag, GitHub Release, push, merge, or publication was performed.
+- Latest formal release: `v1.2.0`.
+- Release: `https://github.com/LeBronJu/retail-power-settlement-desktop/releases/tag/v1.2.0`.
+- Formal asset: `RetailPowerSettlementTool-Win10-11-v1.2.0.zip`; only the maintained Win10/11 WPF entry is published.
+- The preceding local Win10/11 test package is `dist/test-packages/RetailPowerSettlementTool-Win10-11-Release-20260722-172921-704.zip`; SHA-256 is `273477D21A1F97AE5CB1AC88BEF83429B0AD60A076A7042B36D97954934E6798`.
 - `dist/` now contains distributable artifacts grouped under `test-packages/`, `releases/`, and `legacy-win7-8/`; local backtests and smoke outputs belong under the Git-ignored `local-validation/` tree.
 
 ## Current Product State
@@ -113,7 +113,7 @@ Current branch, synthetic inputs only:
 - Documentation guardrails and `git diff --check` passed.
 - Independent read-only diff review found no remaining P0/P1 in the current scope; its two P2 findings (card-count wording and whitespace-normalized subject keys) were addressed.
 - The latest `172921-704` Win10/11 test package build passed; its directory and ZIP each contain the same 20 files, no workbook/CSV/JSON/log data, and the packaged WPF executable remained running through a five-second hidden startup smoke.
-- One user-authorized generated Hainan summary workbook was inspected read-only for the reported loan-balance row. The later exact user-authorized new-agent split workbook was inspected read-only and contained one legacy comment at `6月!P6`; no surrounding business directory was scanned and the source workbook was not modified. Automated tests remained synthetic. No `outputs` material was read or produced, and no formal release was created.
+- One user-authorized generated Hainan summary workbook was inspected read-only for the reported loan-balance row. The later exact user-authorized new-agent split workbook was inspected read-only and contained one legacy comment at `6月!P6`; no surrounding business directory was scanned and the source workbook was not modified. Automated tests remained synthetic. No `outputs` material was read or produced.
 - For the later Chongqing self-operated regression, the user explicitly authorized one exact historical ledger. It was inspected and replayed read-only: all seven reported rows had project developer/owner attribution but no monthly proxy/intermediary parameters; the fixed reader reports zero self-operated blockers. No surrounding directory was scanned and the workbook was not modified.
 
 ## Known Boundary
@@ -126,11 +126,10 @@ Current branch, synthetic inputs only:
 
 ## Next Session
 
-1. Run the required reading gate and continue on `codex/stage2-preflight-integrity`; do not restart the implementation from `main`.
-2. Inspect the working tree and the current task note before changing anything. Preserve unrelated user edits and `outputs` exclusions.
-3. If the user wants practical workbook validation, obtain explicit current authorization for the exact read-only source and write only to a separate temporary output. Otherwise keep using synthetic fixtures.
-4. Use the latest `172921-704` local test package for the next practical check. First rerun the provided Chongqing ledger and confirm the seven self-operated rows no longer block; then continue the Hainan borrowed-comment and readable-report checks. Do not commit to `main`, push, merge, tag, or release unless the user explicitly asks.
-5. Do not resume Hainan/Chongqing performance work, add routing JSON, change the ledger format, or add partial formal summaries without a new explicit decision.
+1. Run the required reading gate from clean `main` and confirm it matches `origin/main` after the `v1.2.0` closeout.
+2. Preserve the `outputs/` exclusions and obtain new explicit authorization before any future merge, push, tag, release, or real-workbook read.
+3. Treat `v1.2.0` as the current production baseline; future settlement changes should start from a new `codex/` branch and synthetic regression tests.
+4. Do not resume Hainan/Chongqing performance work, add routing JSON, change the ledger format, or add partial formal summaries without a new explicit decision.
 
 ## Window Separation
 
