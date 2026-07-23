@@ -183,6 +183,7 @@ namespace HainanSettlementTool.Excel
                         KeepOnlyCurrentMonthSheet(workbook, worksheet);
                     }
 
+                    ClosedXmlUtil.SetOnlyActiveWorksheet(workbook, worksheet);
                     ChongqingStage2ExcelUtil.SaveWorkbook(workbook, outputPath);
                 }
 

@@ -29,5 +29,19 @@ namespace HainanSettlementTool.Excel
 
             return columnName;
         }
+
+        public static void SetOnlyActiveWorksheet(
+            XLWorkbook workbook,
+            IXLWorksheet worksheet)
+        {
+            worksheet.Visibility = XLWorksheetVisibility.Visible;
+            foreach (var candidate in workbook.Worksheets)
+            {
+                candidate.SetTabSelected(false);
+            }
+
+            worksheet.SetTabSelected();
+            worksheet.SetTabActive();
+        }
     }
 }

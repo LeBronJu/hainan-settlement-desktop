@@ -16,6 +16,7 @@ namespace HainanSettlementTool.Core.Models
         public bool PeriodNeedsUpdate { get; set; }
         public bool SettlementDateNeedsUpdate { get; set; }
         public bool TotalPowerNeedsReset { get; set; }
+        public bool WorksheetViewNeedsUpdate { get; set; }
         public int DetailRowCount { get; set; }
 
         public bool CanProcess

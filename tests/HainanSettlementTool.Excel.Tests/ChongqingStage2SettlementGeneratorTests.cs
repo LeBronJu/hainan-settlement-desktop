@@ -498,6 +498,8 @@ namespace HainanSettlementTool.Excel.Tests
                 var refundTemplate = Path.Combine(options.RefundTemplateDirectory, "测试负责人", "新增退补.xlsx");
                 WriteProxyTemplate(proxyTemplate);
                 WriteRefundTemplate(refundTemplate);
+                HideOnlyTemplateMonth(proxyTemplate);
+                HideOnlyTemplateMonth(refundTemplate);
                 WriteSummaryTemplate(
                     options.SummaryTemplatePath,
                     "新增代理",
@@ -542,6 +544,11 @@ namespace HainanSettlementTool.Excel.Tests
                 using (var workbook = new XLWorkbook(proxyGroup.OutputFile))
                 {
                     var ws = workbook.Worksheet("5");
+                    Assert.AreEqual(XLWorksheetVisibility.Visible, ws.Visibility);
+                    Assert.IsTrue(ws.TabActive);
+                    Assert.IsTrue(ws.TabSelected);
+                    Assert.AreEqual(1, workbook.Worksheets.Count(sheet => sheet.TabActive));
+                    Assert.AreEqual(1, workbook.Worksheets.Count(sheet => sheet.TabSelected));
                     Assert.AreEqual("代理名称:新增代理", ws.Cell("A2").GetFormattedString());
                     Assert.AreEqual("代理客户", ws.Cell(5, 2).GetFormattedString());
                     Assert.AreEqual("ROUND(C5*H5*I5/10,4)", ws.Cell(5, 10).FormulaA1);
@@ -554,6 +561,11 @@ namespace HainanSettlementTool.Excel.Tests
                 using (var workbook = new XLWorkbook(refundGroup.OutputFile))
                 {
                     var ws = workbook.Worksheet("5");
+                    Assert.AreEqual(XLWorksheetVisibility.Visible, ws.Visibility);
+                    Assert.IsTrue(ws.TabActive);
+                    Assert.IsTrue(ws.TabSelected);
+                    Assert.AreEqual(1, workbook.Worksheets.Count(sheet => sheet.TabActive));
+                    Assert.AreEqual(1, workbook.Worksheets.Count(sheet => sheet.TabSelected));
                     Assert.AreEqual("名称:新增退补", ws.Cell("A2").GetFormattedString());
                     Assert.AreEqual("退补客户", ws.Cell(5, 2).GetFormattedString());
                     Assert.AreEqual("SUM(D5:G5)", ws.Cell(5, 3).FormulaA1);
@@ -1768,6 +1780,16 @@ namespace HainanSettlementTool.Excel.Tests
             {
                 workbook.Worksheet("4").CopyTo(sheetName);
                 workbook.Worksheet(sheetName).Cell("A3").Value = marker;
+                workbook.Save();
+            }
+        }
+
+        private static void HideOnlyTemplateMonth(string path)
+        {
+            using (var workbook = new XLWorkbook(path))
+            {
+                workbook.AddWorksheet("说明");
+                workbook.Worksheet("4").Visibility = XLWorksheetVisibility.Hidden;
                 workbook.Save();
             }
         }

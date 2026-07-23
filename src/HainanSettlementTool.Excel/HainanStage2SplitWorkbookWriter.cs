@@ -135,6 +135,7 @@ namespace HainanSettlementTool.Excel
                         }
                     }
 
+                    ClosedXmlUtil.SetOnlyActiveWorksheet(workbook, worksheet);
                     HainanStage2ExcelUtil.SaveWorkbook(workbook, outputPath);
 
                     totals.Add(new GroupSettlementTotal
