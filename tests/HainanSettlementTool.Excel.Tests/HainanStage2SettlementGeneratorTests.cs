@@ -1431,6 +1431,7 @@ namespace HainanSettlementTool.Excel.Tests
                 using (var workbook = new XLWorkbook(templatePath))
                 {
                     workbook.Worksheet("3月").Cell("P6").CreateComment().AddText("本主体需要保留的人工批注");
+                    workbook.Worksheet("3月").Visibility = XLWorksheetVisibility.Hidden;
                     workbook.Save();
                 }
                 WriteSummaryTemplate(summaryPath, "测试代理", "代理费", "清辉");
@@ -1455,6 +1456,11 @@ namespace HainanSettlementTool.Excel.Tests
                 using (var workbook = new XLWorkbook(outputPath))
                 {
                     var worksheet = workbook.Worksheet("4月");
+                    Assert.AreEqual(XLWorksheetVisibility.Visible, worksheet.Visibility);
+                    Assert.IsTrue(worksheet.TabActive);
+                    Assert.IsTrue(worksheet.TabSelected);
+                    Assert.AreEqual(1, workbook.Worksheets.Count(sheet => sheet.TabActive));
+                    Assert.AreEqual(1, workbook.Worksheets.Count(sheet => sheet.TabSelected));
                     Assert.AreEqual("SUM(C5:C6)", worksheet.Cell(7, 3).FormulaA1);
                     Assert.AreEqual("SUM(P5:P6)", worksheet.Cell(7, 16).FormulaA1);
                     Assert.AreEqual("日期：2026年05月08日", FindSignatureDateText(worksheet));

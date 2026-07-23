@@ -22,6 +22,11 @@ namespace HainanSettlementTool.Excel.Tests
                 var options = CreateOptions(root);
                 var sourcePath = Path.Combine(options.ProxyDirectory, "owner", "proxy.xlsx");
                 WriteWorkbook(sourcePath, "代理费用结算单", includeTarget: false, includeStandardSource: true, includeSpecialSheet: true);
+                using (var workbook = new XLWorkbook(sourcePath))
+                {
+                    workbook.Worksheet("4").Visibility = XLWorksheetVisibility.Hidden;
+                    workbook.Save();
+                }
 
                 var service = new GuangdongStage2MonthPreparationService(new ClosedXmlSettlementExcelGateway());
                 var preflight = service.Analyze(options);
@@ -52,6 +57,11 @@ namespace HainanSettlementTool.Excel.Tests
                     Assert.IsTrue(target.Column(18).IsHidden);
                     Assert.IsTrue(target.Row(8).IsHidden);
                     Assert.AreEqual(41d, target.Row(5).Height, 0.001);
+                    Assert.AreEqual(XLWorksheetVisibility.Visible, target.Visibility);
+                    Assert.IsTrue(target.TabActive);
+                    Assert.IsTrue(target.TabSelected);
+                    Assert.AreEqual(1, workbook.Worksheets.Count(sheet => sheet.TabActive));
+                    Assert.AreEqual(1, workbook.Worksheets.Count(sheet => sheet.TabSelected));
                 }
             }
             finally
@@ -98,6 +108,11 @@ namespace HainanSettlementTool.Excel.Tests
                     Assert.IsTrue(target.Range("C6:F6").Cells().All(cell => cell.GetDouble() == 0));
                     Assert.AreEqual("  所属期：2026 年 05 月", target.Cell("F2").GetString());
                     Assert.AreEqual("结算日期：2026 年 06 月 15 日", target.Cell("L2").GetString());
+                    Assert.AreEqual(XLWorksheetVisibility.Visible, target.Visibility);
+                    Assert.IsTrue(target.TabActive);
+                    Assert.IsTrue(target.TabSelected);
+                    Assert.AreEqual(1, workbook.Worksheets.Count(sheet => sheet.TabActive));
+                    Assert.AreEqual(1, workbook.Worksheets.Count(sheet => sheet.TabSelected));
                 }
             }
             finally
@@ -121,6 +136,7 @@ namespace HainanSettlementTool.Excel.Tests
                     target.Range("C5:F5").Clear(XLClearOptions.Contents);
                     target.Cell("F2").Value = "  所属期：2026 年 05 月";
                     target.Cell("L2").Value = "结算日期：2026 年 06 月 15 日";
+                    ClosedXmlUtil.SetOnlyActiveWorksheet(workbook, target);
                     workbook.Save();
                 }
 
@@ -133,6 +149,56 @@ namespace HainanSettlementTool.Excel.Tests
                 var item = report.Workbooks.Single();
                 Assert.AreEqual(GuangdongStage2PreparationActions.AlreadyPrepared, item.Action);
                 CollectionAssert.AreEqual(sourceHash, FileHash(item.OutputPath));
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
+        public void GenerateNormalizesPreparedTargetWhenPreviousMonthIsStillActive()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var options = CreateOptions(root);
+                var sourcePath = Path.Combine(options.ProxyDirectory, "proxy.xlsx");
+                WriteWorkbook(sourcePath, "代理费用结算单", includeTarget: true, includeStandardSource: true, includeSpecialSheet: false);
+                using (var workbook = new XLWorkbook(sourcePath))
+                {
+                    var target = workbook.Worksheet("5");
+                    target.Range("C5:F5").Clear(XLClearOptions.Contents);
+                    target.Cell("F2").Value = "  所属期：2026 年 05 月";
+                    target.Cell("L2").Value = "结算日期：2026 年 06 月 15 日";
+                    ClosedXmlUtil.SetOnlyActiveWorksheet(workbook, workbook.Worksheet("4"));
+                    workbook.Save();
+                }
+
+                var service = new GuangdongStage2MonthPreparationService(new ClosedXmlSettlementExcelGateway());
+                var preflight = service.Analyze(options);
+                Assert.AreEqual(1, preflight.NormalizeCount);
+                Assert.AreEqual(0, preflight.AlreadyPreparedCount);
+
+                var report = service.Run(options, null);
+                var item = report.Workbooks.Single();
+                Assert.AreEqual(GuangdongStage2PreparationActions.NormalizeExistingTargetMonth, item.Action);
+                using (var workbook = new XLWorkbook(item.OutputPath))
+                {
+                    var target = workbook.Worksheet("5");
+                    Assert.IsTrue(target.Range("C5:F5").Cells().All(cell => cell.IsEmpty()));
+                    Assert.AreEqual(XLWorksheetVisibility.Visible, target.Visibility);
+                    Assert.IsTrue(target.TabActive);
+                    Assert.IsTrue(target.TabSelected);
+                    Assert.AreEqual(1, workbook.Worksheets.Count(sheet => sheet.TabActive));
+                    Assert.AreEqual(1, workbook.Worksheets.Count(sheet => sheet.TabSelected));
+                }
+
+                options.ProxyDirectory = Path.GetDirectoryName(item.OutputPath);
+                options.OutputDirectory = Path.Combine(root, "repeat-output");
+                var repeatedPreflight = service.Analyze(options);
+                Assert.AreEqual(1, repeatedPreflight.AlreadyPreparedCount);
+                Assert.AreEqual(0, repeatedPreflight.NormalizeCount);
             }
             finally
             {
