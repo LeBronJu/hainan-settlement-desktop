@@ -756,6 +756,14 @@ namespace HainanSettlementTool.Wpf
                         Entity = decision.Entity,
                         PaymentParty = decision.PaymentParty
                     }));
+                options.TemplateDecisions.Clear();
+                options.TemplateDecisions.AddRange(dialog.TemplateDecisions.Select(decision =>
+                    new ChongqingStage2TemplateDecision
+                    {
+                        SettlementKind = decision.SettlementKind,
+                        Entity = decision.Entity,
+                        TemplatePath = decision.TemplatePath
+                    }));
             }
 
             return confirmed;

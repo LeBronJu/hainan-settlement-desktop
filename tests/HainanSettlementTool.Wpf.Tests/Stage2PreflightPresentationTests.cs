@@ -92,6 +92,8 @@ namespace HainanSettlementTool.Wpf.Tests
             Assert.AreEqual(2, templateRow.TemplateOptions.Count);
             Assert.IsTrue(templateRow.TemplateOptions.All(option =>
                 !option.DisplayText.Contains(@"C:\SyntheticTemplates")));
+            Assert.IsTrue(templateRow.TemplateOptions.Any(option =>
+                option.SubjectText == "模板代理甲" && option.OwnerText == "负责人甲"));
             StringAssert.Contains(templateRow.TechnicalDetailsText, firstTemplate);
             StringAssert.Contains(templateRow.Category, "需要你选择");
             StringAssert.Contains(
@@ -119,6 +121,50 @@ namespace HainanSettlementTool.Wpf.Tests
             CollectionAssert.AreEquivalent(
                 new[] { "代理费 · 同名主体", "居间费 · 同名主体" },
                 viewModel.IssueGroups.Select(group => group.Heading).ToArray());
+        }
+
+        [TestMethod]
+        public void CreateChongqingUsesSharedTemplateBrowserForRequiredSelection()
+        {
+            var firstTemplate = @"C:\SyntheticTemplates\重庆负责人甲\模板代理甲 2026重庆.xlsx";
+            var secondTemplate = @"C:\SyntheticTemplates\重庆负责人乙\模板代理乙 2026重庆.xlsx";
+            var report = new ChongqingStage2PreflightReport
+            {
+                Month = 6,
+                SubjectCount = 1
+            };
+            var issue = new ChongqingStage2CheckIssue
+            {
+                Code = Stage2PreflightIssueKinds.AmbiguousBorrowTemplates,
+                Disposition = Stage2PreflightDisposition.RequiredDecision,
+                Category = "新增主体分表模板选择",
+                Kind = Stage2PreflightIssueKinds.AmbiguousBorrowTemplates,
+                SettlementKind = ChongqingStage2SettlementKinds.Proxy,
+                Entity = "重庆新增代理",
+                Owner = "重庆负责人",
+                RequiresTemplateSelection = true
+            };
+            issue.AvailableTemplateFiles.Add(firstTemplate);
+            issue.AvailableTemplateFiles.Add(secondTemplate);
+            report.Issues.Add(issue);
+
+            var evaluation = Stage2PreflightPolicy.Evaluate(
+                report.Issues,
+                Array.Empty<IStage2PaymentPartyDecision>(),
+                Array.Empty<IStage2TemplateDecision>());
+
+            var viewModel = Stage2PreflightPresentationAdapter.CreateChongqing(report, evaluation);
+            var row = viewModel.IssueRows.Single(item => item.RequiresTemplateSelection);
+
+            Assert.IsNotNull(row.TemplateBrowser);
+            Assert.AreEqual(2, row.TemplateBrowser.AllOptions.Count);
+            Assert.AreEqual(2, row.TemplateBrowser.VisibleOptions.Count);
+            Assert.IsTrue(row.TemplateBrowser.AllOptions.Any(option =>
+                option.SubjectText == "模板代理乙" && option.OwnerText == "重庆负责人乙"));
+            Assert.IsTrue(row.TemplateBrowser.SelectTemplate(secondTemplate));
+            Assert.AreEqual(secondTemplate, row.SelectedTemplatePath);
+            Assert.IsTrue(row.TemplateBrowser.AllOptions.All(option =>
+                !option.DisplayText.Contains(@"C:\SyntheticTemplates")));
         }
 
         private static HainanStage2CheckIssue ReviewIssue(string kind, string entity)

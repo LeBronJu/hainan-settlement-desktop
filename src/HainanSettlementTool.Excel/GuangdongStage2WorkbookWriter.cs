@@ -68,6 +68,7 @@ namespace HainanSettlementTool.Excel
                     }
 
                     ApplyPreparation(worksheet, preparation.Layout, plan, result);
+                    ClosedXmlUtil.SetOnlyActiveWorksheet(workbook, worksheet);
                     GuangdongStage2ExcelUtil.SaveWorkbook(workbook);
                 }
 

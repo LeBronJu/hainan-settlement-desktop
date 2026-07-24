@@ -101,16 +101,26 @@ namespace HainanSettlementTool.Excel
 
                     plan.PeriodNeedsUpdate = worksheet.Cell(layout.PeriodCellAddress).GetFormattedString() != layout.TargetPeriodText;
                     plan.SettlementDateNeedsUpdate = worksheet.Cell(layout.SettlementDateCellAddress).GetFormattedString() != layout.TargetSettlementDateText;
+                    plan.WorksheetViewNeedsUpdate = targetExists
+                        && (targetWorksheet.Visibility != XLWorksheetVisibility.Visible
+                            || !targetWorksheet.TabActive
+                            || !targetWorksheet.TabSelected
+                            || workbook.Worksheets.Count(item => item.TabActive) != 1
+                            || workbook.Worksheets.Count(item => item.TabSelected) != 1);
 
                     if (!targetExists)
                     {
                         plan.Action = GuangdongStage2PreparationActions.CreateTargetMonth;
                         plan.Message = "将从标准 sheet " + sourceName + " 创建 " + targetName + "。";
                     }
-                    else if (plan.PowerNeedsClearing || plan.PeriodNeedsUpdate || plan.SettlementDateNeedsUpdate || plan.TotalPowerNeedsReset)
+                    else if (plan.PowerNeedsClearing
+                        || plan.PeriodNeedsUpdate
+                        || plan.SettlementDateNeedsUpdate
+                        || plan.TotalPowerNeedsReset
+                        || plan.WorksheetViewNeedsUpdate)
                     {
                         plan.Action = GuangdongStage2PreparationActions.NormalizeExistingTargetMonth;
-                        plan.Message = "将保留现有标准 sheet " + targetName + " 并整理电量和日期。";
+                        plan.Message = "将保留现有标准 sheet " + targetName + " 并整理电量、日期或默认打开月份。";
                     }
                     else
                     {

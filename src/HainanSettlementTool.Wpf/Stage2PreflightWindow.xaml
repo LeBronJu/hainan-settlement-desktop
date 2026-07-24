@@ -266,18 +266,165 @@
                                                                            Foreground="{StaticResource TextBrush}"
                                                                            FontSize="12"
                                                                            FontWeight="SemiBold" />
-                                                                <ComboBox ItemsSource="{Binding TemplateOptions}"
-                                                                          DisplayMemberPath="DisplayText"
-                                                                          SelectedValuePath="Path"
-                                                                          SelectedValue="{Binding SelectedTemplatePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                                          IsTextSearchEnabled="True"
-                                                                          Style="{StaticResource ModernComboBox}"
-                                                                          MaxDropDownHeight="320"
-                                                                          Width="620"
-                                                                          MaxWidth="760"
-                                                                          HorizontalAlignment="Left"
-                                                                          Margin="0,5,0,0"
-                                                                          SelectionChanged="Decision_SelectionChanged" />
+                                                                <Border Background="#EAF7F7"
+                                                                        BorderBrush="#9BCFD0"
+                                                                        BorderThickness="1"
+                                                                        CornerRadius="5"
+                                                                        Padding="10"
+                                                                        Margin="0,7,0,0"
+                                                                        MaxWidth="760"
+                                                                        HorizontalAlignment="Stretch"
+                                                                        Visibility="{Binding TemplateBrowser.SelectedOptionVisibility}">
+                                                                    <DockPanel LastChildFill="True">
+                                                                        <TextBlock DockPanel.Dock="Left"
+                                                                                   Text="&#xE73E;"
+                                                                                   FontFamily="Segoe MDL2 Assets"
+                                                                                   Foreground="{StaticResource AccentDarkBrush}"
+                                                                                   FontSize="15"
+                                                                                   Margin="0,1,8,0" />
+                                                                        <StackPanel>
+                                                                            <TextBlock Text="已选择（切换批次后仍会保留）"
+                                                                                       Foreground="{StaticResource AccentDarkBrush}"
+                                                                                       FontSize="11"
+                                                                                       FontWeight="SemiBold" />
+                                                                            <TextBlock Text="{Binding TemplateBrowser.SelectedOption.SubjectText}"
+                                                                                       Foreground="{StaticResource TextBrush}"
+                                                                                       FontSize="13"
+                                                                                       FontWeight="SemiBold"
+                                                                                       Margin="0,2,0,0"
+                                                                                       TextWrapping="Wrap" />
+                                                                            <TextBlock Foreground="{StaticResource MutedBrush}"
+                                                                                       FontSize="11"
+                                                                                       Margin="0,2,0,0"
+                                                                                       TextWrapping="Wrap">
+                                                                                <Run Text="{Binding TemplateBrowser.SelectedOption.OwnerText}" />
+                                                                                <Run Text="  ·  " />
+                                                                                <Run Text="{Binding TemplateBrowser.SelectedOption.FileName}" />
+                                                                            </TextBlock>
+                                                                        </StackPanel>
+                                                                    </DockPanel>
+                                                                </Border>
+                                                                <DockPanel Margin="0,9,0,5"
+                                                                           MaxWidth="760"
+                                                                           LastChildFill="True">
+                                                                    <Button DockPanel.Dock="Right"
+                                                                            Content="搜索全部模板"
+                                                                            Style="{StaticResource SecondaryButton}"
+                                                                            Height="30"
+                                                                            Margin="10,0,0,0"
+                                                                            Click="SearchTemplates_Click" />
+                                                                    <TextBlock Text="{Binding TemplateBrowser.BatchText}"
+                                                                               Foreground="{StaticResource MutedBrush}"
+                                                                               FontSize="11"
+                                                                               VerticalAlignment="Center" />
+                                                                </DockPanel>
+                                                                <ItemsControl ItemsSource="{Binding TemplateBrowser.VisibleOptions}"
+                                                                              MaxWidth="760"
+                                                                              HorizontalAlignment="Stretch">
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate>
+                                                                            <Button Click="TemplateOption_Click"
+                                                                                    Tag="{Binding Path}"
+                                                                                    HorizontalContentAlignment="Stretch"
+                                                                                    Padding="0"
+                                                                                    Margin="0,0,0,5"
+                                                                                    Cursor="Hand">
+                                                                                <Button.Style>
+                                                                                    <Style TargetType="Button">
+                                                                                        <Setter Property="Background" Value="#FFFFFF" />
+                                                                                        <Setter Property="BorderBrush" Value="#D9E2E6" />
+                                                                                        <Setter Property="BorderThickness" Value="1" />
+                                                                                        <Setter Property="Template">
+                                                                                            <Setter.Value>
+                                                                                                <ControlTemplate TargetType="Button">
+                                                                                                    <Border x:Name="CandidateBorder"
+                                                                                                            Background="{TemplateBinding Background}"
+                                                                                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                                                                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                                                                                            CornerRadius="5"
+                                                                                                            Padding="10,8">
+                                                                                                        <ContentPresenter HorizontalAlignment="Stretch"
+                                                                                                                          VerticalAlignment="Center" />
+                                                                                                    </Border>
+                                                                                                    <ControlTemplate.Triggers>
+                                                                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                                                                            <Setter TargetName="CandidateBorder"
+                                                                                                                    Property="Background"
+                                                                                                                    Value="#F1F8F8" />
+                                                                                                            <Setter TargetName="CandidateBorder"
+                                                                                                                    Property="BorderBrush"
+                                                                                                                    Value="#9BCFD0" />
+                                                                                                        </Trigger>
+                                                                                                    </ControlTemplate.Triggers>
+                                                                                                </ControlTemplate>
+                                                                                            </Setter.Value>
+                                                                                        </Setter>
+                                                                                        <Style.Triggers>
+                                                                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                                                <Setter Property="Background" Value="#E3F4F4" />
+                                                                                                <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                                                                                <Setter Property="BorderThickness" Value="2" />
+                                                                                            </DataTrigger>
+                                                                                        </Style.Triggers>
+                                                                                    </Style>
+                                                                                </Button.Style>
+                                                                                <Grid>
+                                                                                    <Grid.ColumnDefinitions>
+                                                                                        <ColumnDefinition Width="22" />
+                                                                                        <ColumnDefinition Width="*" />
+                                                                                    </Grid.ColumnDefinitions>
+                                                                                    <TextBlock Grid.Column="0"
+                                                                                               Text="&#xE73E;"
+                                                                                               FontFamily="Segoe MDL2 Assets"
+                                                                                               Foreground="{StaticResource AccentBrush}"
+                                                                                               FontSize="13"
+                                                                                               VerticalAlignment="Top"
+                                                                                               Margin="0,2,0,0">
+                                                                                        <TextBlock.Style>
+                                                                                            <Style TargetType="TextBlock">
+                                                                                                <Setter Property="Visibility" Value="Hidden" />
+                                                                                                <Style.Triggers>
+                                                                                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                                                        <Setter Property="Visibility" Value="Visible" />
+                                                                                                    </DataTrigger>
+                                                                                                </Style.Triggers>
+                                                                                            </Style>
+                                                                                        </TextBlock.Style>
+                                                                                    </TextBlock>
+                                                                                    <StackPanel Grid.Column="1">
+                                                                                        <TextBlock Text="{Binding SubjectText}"
+                                                                                                   Foreground="{StaticResource TextBrush}"
+                                                                                                   FontSize="13"
+                                                                                                   FontWeight="SemiBold"
+                                                                                                   TextWrapping="Wrap" />
+                                                                                        <TextBlock Foreground="{StaticResource MutedBrush}"
+                                                                                                   FontSize="11"
+                                                                                                   Margin="0,2,0,0"
+                                                                                                   TextWrapping="Wrap">
+                                                                                            <Run Text="{Binding OwnerText}" />
+                                                                                            <Run Text="  ·  " />
+                                                                                            <Run Text="{Binding FileName}" />
+                                                                                        </TextBlock>
+                                                                                    </StackPanel>
+                                                                                </Grid>
+                                                                            </Button>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
+                                                                <StackPanel Orientation="Horizontal"
+                                                                            Margin="0,3,0,0"
+                                                                            Visibility="{Binding TemplateBrowser.NavigationVisibility}">
+                                                                    <Button Content="上一批"
+                                                                            Style="{StaticResource SecondaryButton}"
+                                                                            Height="30"
+                                                                            IsEnabled="{Binding TemplateBrowser.CanMovePrevious}"
+                                                                            Click="PreviousTemplateBatch_Click" />
+                                                                    <Button Content="{Binding TemplateBrowser.NextButtonText}"
+                                                                            Style="{StaticResource SecondaryButton}"
+                                                                            Height="30"
+                                                                            Margin="8,0,0,0"
+                                                                            Click="NextTemplateBatch_Click" />
+                                                                </StackPanel>
                                                                 <TextBlock Text="只借用所选工作簿的分表版式；主体、客户、金额和税率仍按本月台账重新写入。"
                                                                            Foreground="{StaticResource MutedBrush}"
                                                                            FontSize="11"

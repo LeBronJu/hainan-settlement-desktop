@@ -22,6 +22,11 @@ namespace HainanSettlementTool.Core.Models
             get { return Issues.Any(issue => issue.RequiresPaymentPartySelection); }
         }
 
+        public bool RequiresTemplateSelection
+        {
+            get { return Issues.Any(issue => issue.RequiresTemplateSelection); }
+        }
+
         public bool HasBlockingIssues
         {
             get { return Stage2PreflightPolicy.HasBlockingIssues(Issues); }

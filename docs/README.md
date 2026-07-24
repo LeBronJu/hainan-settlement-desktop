@@ -21,10 +21,12 @@
 | --- | --- | --- |
 | `docs/dev-notes/chongqing-stage2-analysis-2026-07-07.md` | 当前模块 note | 重庆阶段二结构、已实现行为、回测结论和长期人工复核边界。 |
 | `docs/dev-notes/stage2-preflight-integrity-2026-07-22.md` | 当前任务 note | 海南/重庆阶段二最终确认的主体聚合、关系校验、收款人、税率、支付方、统一预检 UI 和正式输出完整性改造。 |
+| `docs/dev-notes/stage2-template-candidate-browser-2026-07-23.md` | 当前模块 note | 海南/重庆大量分表模板候选的 5 个随机分批、Excel 式关键词搜索、安全签名边界和跨省复用实现。 |
 | `docs/dev-notes/guangdong-stage2-month-preparation-2026-07-10.md` | 当前模块 note | 广东代理/居间/退补分表标准月份 sheet 初始化规则、安全边界和验证结果。 |
 | `docs/dev-notes/excel-performance-openxml-research-2026-07-10.md` | 当前架构 note | Excel 批处理性能基线、Open XML SDK 风险、海南优先试点和渐进迁移门槛。 |
 | `docs/dev-notes/multi-province-code-quality-2026-07-08.md` | 当前任务 note | 多省份代码质量、海南命名中性化、大类拆分和执行连续性。 |
 | `docs/dev-notes/multi-province-readiness-2026-07-07.md` | 当前架构 note | 新省份接入、WPF 省份 UI、Core/Excel 多省份 seam 工作前必须读。 |
+| `docs/dev-notes/settlement-year-2027-readiness-2026-07-23.md` | 当前架构 note | 2027 年年份参数化、各模块就绪度、1 月跨年风险和新台账适配待确认事项。 |
 | `docs/dev-notes/hainan-employee-power-reward-module-2026-07-02.md` | 当前模块 note | 海南员工电量奖励模块的输入、输出、读取规则和验证记录。 |
 | `docs/dev-notes/win7-8-maintenance-mode-2026-06-29.md` | 当前政策 note | 判断 Win7/8 WinForms 冻结/退役边界，或用户明确重新开启 Win7/8 支持时。 |
 | `docs/dev-notes/documentation-sync-gate-2026-06-25.md` | 当前流程 note | 判断文档影响、决定该更新哪些文档时。 |
@@ -53,7 +55,9 @@
 | 每次接手或恢复线程 | `AGENTS.md`、`HANDOFF.md`、`docs/README.md` |
 | 重庆阶段二实现 | `CONTEXT.md`、`docs/architecture.md`、`docs/hainan-stage2-current-behavior.md`、`docs/dev-notes/chongqing-stage2-analysis-2026-07-07.md`、`docs/dev-notes/multi-province-readiness-2026-07-07.md` |
 | 海南/重庆阶段二预检、主体聚合或输出完整性 | `CONTEXT.md`、`docs/architecture.md`、`docs/dev-notes/stage2-preflight-integrity-2026-07-22.md`，再读对应省份 current-behavior/module note |
+| 阶段二大量模板候选搜索或随机分批 | `docs/architecture.md`、`docs/dev-notes/stage2-preflight-integrity-2026-07-22.md`、`docs/dev-notes/stage2-template-candidate-browser-2026-07-23.md` |
 | 新省份接入 | `CONTEXT.md`、`docs/architecture.md`、`docs/dev-notes/multi-province-readiness-2026-07-07.md` |
+| 2027 年或跨年度结算支持 | `CONTEXT.md`、`docs/architecture.md`、`docs/dev-notes/settlement-year-2027-readiness-2026-07-23.md`，再读对应省份行为文档 |
 | 广东分表月份初始化 | `CONTEXT.md`、`docs/architecture.md`、`docs/dev-notes/guangdong-stage2-month-preparation-2026-07-10.md` |
 | WPF UI 或交互改动 | `docs/architecture.md`、`docs/dev-notes/multi-province-readiness-2026-07-07.md`；涉及 WinForms 时再读 `docs/dev-notes/win7-8-maintenance-mode-2026-06-29.md` |
 | Excel adapter / workbook 读写改动 | `CONTEXT.md`、`docs/architecture.md`，再读对应省份或模块的 current-behavior/dev-note |

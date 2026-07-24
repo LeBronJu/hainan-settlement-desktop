@@ -58,6 +58,7 @@ namespace HainanSettlementTool.Core.Services
             ValidateOutputSummaryName(options.OutputSummaryName);
 
             ValidateSummarySubjectDecisions(options);
+            ValidateTemplateDecisions(options);
         }
 
         private static void ValidateOutputSummaryName(string outputSummaryName)
@@ -130,6 +131,32 @@ namespace HainanSettlementTool.Core.Services
                 if (!ChongqingStage2PaymentParties.Supported.Contains(decision.PaymentParty))
                 {
                     throw new ArgumentException("重庆阶段二新增汇总主体支付方只能选择清能或清辉。");
+                }
+            }
+        }
+
+        private static void ValidateTemplateDecisions(ChongqingStage2Options options)
+        {
+            foreach (var decision in options.TemplateDecisions)
+            {
+                if (decision == null)
+                {
+                    throw new ArgumentException("重庆阶段二模板选择不能为空。");
+                }
+
+                if (string.IsNullOrWhiteSpace(decision.SettlementKind))
+                {
+                    throw new ArgumentException("重庆阶段二模板选择缺少结算类型。");
+                }
+
+                if (string.IsNullOrWhiteSpace(decision.Entity))
+                {
+                    throw new ArgumentException("重庆阶段二模板选择缺少主体名称。");
+                }
+
+                if (string.IsNullOrWhiteSpace(decision.TemplatePath))
+                {
+                    throw new ArgumentException("重庆阶段二模板选择缺少模板文件路径。");
                 }
             }
         }

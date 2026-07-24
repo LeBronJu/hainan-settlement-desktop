@@ -137,7 +137,8 @@ namespace HainanSettlementTool.Wpf
             var category = DisplayCategory(issue);
             var contextText = BuildContextText(issue);
             var technicalDetailsText = BuildTechnicalDetailsText(issue);
-            return new Stage2PreflightIssueItemViewModel
+            var templateOptions = BuildTemplateOptions(issue);
+            var row = new Stage2PreflightIssueItemViewModel
             {
                 Category = category,
                 Disposition = issue.Disposition,
@@ -165,11 +166,16 @@ namespace HainanSettlementTool.Wpf
                 TemplateSelectionVisibility = issue.RequiresTemplateSelection
                     ? Visibility.Visible
                     : Visibility.Collapsed,
-                TemplateOptions = BuildTemplateOptions(issue),
-                SelectedTemplatePath = resolvedTemplateDecision == null
-                    ? null
-                    : resolvedTemplateDecision.TemplatePath
+                TemplateOptions = templateOptions
             };
+            if (issue.RequiresTemplateSelection)
+            {
+                row.TemplateBrowser = new Stage2TemplateCandidateBrowserViewModel(
+                    templateOptions,
+                    resolvedTemplateDecision == null ? null : resolvedTemplateDecision.TemplatePath);
+            }
+
+            return row;
         }
 
         private static string DisplayCategory(Stage2PreflightIssue issue)
@@ -370,24 +376,16 @@ namespace HainanSettlementTool.Wpf
             return paths
                 .Where(path => !string.IsNullOrWhiteSpace(path))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
-                .Select(path => new Stage2PreflightTemplateOptionViewModel
-                {
-                    Path = path,
-                    DisplayText = BuildTemplateOptionDisplayText(path)
-                })
+                .Select(BuildTemplateOption)
                 .OrderBy(option => option.DisplayText, StringComparer.CurrentCulture)
                 .ToList();
         }
 
-        private static string BuildTemplateOptionDisplayText(string path)
+        private static Stage2PreflightTemplateOptionViewModel BuildTemplateOption(string path)
         {
             var fileName = SafeFileName(path);
-            var subject = Path.GetFileNameWithoutExtension(fileName) ?? string.Empty;
-            var yearMarker = subject.LastIndexOf(" 20", StringComparison.Ordinal);
-            if (yearMarker > 0 && subject.EndsWith("海南", StringComparison.Ordinal))
-            {
-                subject = subject.Substring(0, yearMarker).Trim();
-            }
+            var subject = NormalizeTemplateSubject(
+                Path.GetFileNameWithoutExtension(fileName) ?? string.Empty);
 
             var owner = string.Empty;
             try
@@ -401,18 +399,78 @@ namespace HainanSettlementTool.Wpf
             {
                 owner = string.Empty;
             }
-
-            var ownerMarker = owner.IndexOf(" - 海南", StringComparison.Ordinal);
-            if (ownerMarker > 0)
-            {
-                owner = owner.Substring(0, ownerMarker).Trim();
-            }
+            owner = NormalizeTemplateOwner(owner);
 
             var parts = new[] { subject, owner, fileName }
                 .Where(value => !string.IsNullOrWhiteSpace(value))
                 .Distinct(StringComparer.CurrentCulture)
                 .ToList();
-            return parts.Count == 0 ? path : string.Join(" / ", parts);
+            return new Stage2PreflightTemplateOptionViewModel
+            {
+                Path = path,
+                SubjectText = string.IsNullOrWhiteSpace(subject) ? fileName : subject,
+                OwnerText = owner,
+                FileName = fileName,
+                DisplayText = parts.Count == 0 ? fileName : string.Join(" / ", parts)
+            };
+        }
+
+        private static string NormalizeTemplateSubject(string subject)
+        {
+            var value = (subject ?? string.Empty).Trim();
+            var yearMarker = value.LastIndexOf(" 20", StringComparison.Ordinal);
+            if (yearMarker <= 0)
+            {
+                return value;
+            }
+
+            var suffix = value.Substring(yearMarker + 1);
+            return suffix.Length > 4 && ContainsFourDigitYear(suffix)
+                ? value.Substring(0, yearMarker).Trim()
+                : value;
+        }
+
+        private static string NormalizeTemplateOwner(string owner)
+        {
+            var value = (owner ?? string.Empty).Trim();
+            var separator = value.LastIndexOf(" - ", StringComparison.Ordinal);
+            if (separator <= 0)
+            {
+                return value;
+            }
+
+            var suffix = value.Substring(separator + 3).Trim();
+            return ContainsFourDigitYear(suffix)
+                ? value.Substring(0, separator).Trim()
+                : value;
+        }
+
+        private static bool ContainsFourDigitYear(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value) || value.Length < 4)
+            {
+                return false;
+            }
+
+            for (var index = 0; index <= value.Length - 4; index++)
+            {
+                if (!char.IsDigit(value[index])
+                    || !char.IsDigit(value[index + 1])
+                    || !char.IsDigit(value[index + 2])
+                    || !char.IsDigit(value[index + 3]))
+                {
+                    continue;
+                }
+
+                var hasDigitBefore = index > 0 && char.IsDigit(value[index - 1]);
+                var hasDigitAfter = index + 4 < value.Length && char.IsDigit(value[index + 4]);
+                if (!hasDigitBefore && !hasDigitAfter)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static string SafeFileName(string path)
@@ -635,13 +693,40 @@ namespace HainanSettlementTool.Wpf
         public bool RequiresTemplateSelection { get; set; }
         public Visibility TemplateSelectionVisibility { get; set; }
         public List<Stage2PreflightTemplateOptionViewModel> TemplateOptions { get; set; }
-        public string SelectedTemplatePath { get; set; }
+        public Stage2TemplateCandidateBrowserViewModel TemplateBrowser { get; set; }
+        public string SelectedTemplatePath
+        {
+            get { return TemplateBrowser == null ? null : TemplateBrowser.SelectedTemplatePath; }
+        }
     }
 
-    internal sealed class Stage2PreflightTemplateOptionViewModel
+    internal sealed class Stage2PreflightTemplateOptionViewModel : System.ComponentModel.INotifyPropertyChanged
     {
+        private bool _isSelected;
+
+        public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
+
         public string DisplayText { get; set; }
         public string Path { get; set; }
+        public string SubjectText { get; set; }
+        public string OwnerText { get; set; }
+        public string FileName { get; set; }
+        public bool IsSelected
+        {
+            get { return _isSelected; }
+            set
+            {
+                if (_isSelected == value)
+                {
+                    return;
+                }
+
+                _isSelected = value;
+                PropertyChanged?.Invoke(
+                    this,
+                    new System.ComponentModel.PropertyChangedEventArgs(nameof(IsSelected)));
+            }
+        }
     }
 
     internal sealed class Stage2PreflightPaymentDecision

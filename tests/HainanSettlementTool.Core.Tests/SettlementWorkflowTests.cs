@@ -542,6 +542,76 @@ namespace HainanSettlementTool.Core.Tests
         }
 
         [TestMethod]
+        public void CompleteChongqingStage2RequiresAndUsesTemplateDecision()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var gateway = new FakeGateway { AddChongqingTemplateRequirement = true };
+                var workflow = CreateWorkflowWithChongqingStage2(gateway);
+                var options = CreateChongqingStage2Options(root);
+                var plan = workflow.PlanChongqingStage2(options);
+
+                var missing = Assert.ThrowsException<InvalidOperationException>(() =>
+                    workflow.CompleteChongqingStage2(plan, confirmed: true, log: null));
+                StringAssert.Contains(missing.Message, "分表模板选择");
+                Assert.AreEqual(0, gateway.GenerateChongqingSettlementCalls);
+
+                options.TemplateDecisions.Add(new ChongqingStage2TemplateDecision
+                {
+                    SettlementKind = ChongqingStage2SettlementKinds.Proxy,
+                    Entity = "新增代理主体",
+                    TemplatePath = "C:\\templates\\a.xlsx"
+                });
+
+                var result = workflow.CompleteChongqingStage2(plan, confirmed: true, log: null);
+
+                Assert.IsFalse(result.WasCancelled);
+                Assert.AreSame(gateway.ChongqingStage2Report, result.Report);
+                Assert.AreEqual(1, gateway.GenerateChongqingSettlementCalls);
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
+        public void CompleteChongqingStage2RejectsConflictingTemplateDecisions()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var gateway = new FakeGateway { AddChongqingTemplateRequirement = true };
+                var workflow = CreateWorkflowWithChongqingStage2(gateway);
+                var options = CreateChongqingStage2Options(root);
+                var plan = workflow.PlanChongqingStage2(options);
+                options.TemplateDecisions.Add(new ChongqingStage2TemplateDecision
+                {
+                    SettlementKind = ChongqingStage2SettlementKinds.Proxy,
+                    Entity = "新增代理主体",
+                    TemplatePath = "C:\\templates\\a.xlsx"
+                });
+                options.TemplateDecisions.Add(new ChongqingStage2TemplateDecision
+                {
+                    SettlementKind = ChongqingStage2SettlementKinds.Proxy,
+                    Entity = "新增代理主体",
+                    TemplatePath = "C:\\templates\\b.xlsx"
+                });
+
+                var exception = Assert.ThrowsException<InvalidOperationException>(() =>
+                    workflow.CompleteChongqingStage2(plan, confirmed: true, log: null));
+
+                StringAssert.Contains(exception.Message, "分表模板选择");
+                Assert.AreEqual(0, gateway.GenerateChongqingSettlementCalls);
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
         public void CompleteChongqingStage2RejectsInputThatChangedAfterConfirmation()
         {
             var root = CreateTempRoot();
@@ -677,6 +747,8 @@ namespace HainanSettlementTool.Core.Tests
             public bool AddBlockingHainanPreflightIssue { get; set; }
 
             public bool AddHainanTemplateRequirement { get; set; }
+
+            public bool AddChongqingTemplateRequirement { get; set; }
 
             public bool AddChongqingPreflightIssue { get; set; }
 
@@ -898,6 +970,21 @@ namespace HainanSettlementTool.Core.Tests
                         Entity = "错误主体",
                         Message = "测试阻断项"
                     });
+                }
+
+                if (AddChongqingTemplateRequirement)
+                {
+                    var issue = new ChongqingStage2CheckIssue
+                    {
+                        Code = Stage2PreflightIssueKinds.AmbiguousBorrowTemplates,
+                        Disposition = Stage2PreflightDisposition.RequiredDecision,
+                        SettlementKind = ChongqingStage2SettlementKinds.Proxy,
+                        Entity = "新增代理主体",
+                        RequiresTemplateSelection = true
+                    };
+                    issue.AvailableTemplateFiles.Add("C:\\templates\\a.xlsx");
+                    issue.AvailableTemplateFiles.Add("C:\\templates\\b.xlsx");
+                    report.Issues.Add(issue);
                 }
 
                 return report;
