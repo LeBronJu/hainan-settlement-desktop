@@ -42,6 +42,7 @@ namespace HainanSettlementTool.Excel
                 var reportPath = UniquePath(Path.Combine(options.OutputDirectory, options.Month + "月重庆阶段一台账更新报告.json"));
                 FileAccessGuard.RequireWritableWorkbook(outputPath, "重庆台账更新输出文件");
 
+                ClearMonthPower(context.Worksheet, context.Map, context.LedgerRows);
                 var updatedRows = 0;
                 foreach (var ledgerRow in context.LedgerRows)
                 {
@@ -447,6 +448,22 @@ namespace HainanSettlementTool.Excel
                 CustomerName = newCustomer.CustomerName,
                 Key = TextUtil.CustomerKey(newCustomer.CustomerName)
             });
+        }
+
+        private static void ClearMonthPower(
+            IXLWorksheet worksheet,
+            LedgerMap map,
+            IEnumerable<LedgerCustomerRow> ledgerRows)
+        {
+            foreach (var ledgerRow in ledgerRows)
+            {
+                worksheet.Range(
+                        ledgerRow.RowNumber,
+                        map.TotalColumn,
+                        ledgerRow.RowNumber,
+                        map.ValleyColumn)
+                    .Clear(XLClearOptions.Contents);
+            }
         }
 
         private static void WritePower(

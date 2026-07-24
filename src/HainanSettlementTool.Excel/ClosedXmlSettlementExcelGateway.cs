@@ -21,7 +21,8 @@ namespace HainanSettlementTool.Excel
         {
             _provinceStage1Adapters = new IProvinceStage1Adapter[]
             {
-                new ChongqingProvinceStage1Adapter()
+                new ChongqingProvinceStage1Adapter(),
+                new GuangdongProvinceStage1Adapter()
             }.ToDictionary(adapter => adapter.Province);
         }
 

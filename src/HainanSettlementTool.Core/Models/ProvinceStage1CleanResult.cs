@@ -10,6 +10,7 @@ namespace HainanSettlementTool.Core.Models
         public string RawDetailPath { get; set; }
         public string OutputWorkbookPath { get; set; }
         public string ReportPath { get; set; }
+        public string HtmlReportPath { get; set; }
         public string SourceSheetName { get; set; }
         public int RawRows { get; set; }
         public int CustomerRows { get; set; }

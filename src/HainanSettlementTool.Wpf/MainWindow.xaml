@@ -565,7 +565,7 @@
                                 <Button x:Name="OpenReadableReportButton"
                                         Grid.Column="0"
                                         Margin="0,0,8,0"
-                                        Content="查看可读报告"
+                                        Content="查看检查报告"
                                         Style="{StaticResource PrimaryButton}"
                                         Visibility="Collapsed"
                                         Click="OpenReadableReport_Click" />

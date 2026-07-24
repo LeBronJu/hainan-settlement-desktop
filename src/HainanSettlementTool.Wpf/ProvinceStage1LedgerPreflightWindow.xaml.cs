@@ -18,14 +18,28 @@ namespace HainanSettlementTool.Wpf
         {
             InitializeComponent();
 
+            var presentation = ProvinceStage1PreflightPresentationAdapter.Create(options, plan);
             var manualMatchingIssueCount = CountManualMatchingIssues(plan);
-            var issueGroups = BuildIssueGroups(plan);
-            var otherIssueCount = issueGroups.Sum(group => group.Issues.Count);
-
-            SummaryText.Text = ProvinceDisplayNames.GetName(plan.Province)
-                + "；结算月份：2026年" + options.Month + "月；匹配客户："
-                + plan.MatchedRows + " / " + plan.PowerCustomerRows
-                + "；客户匹配项目：" + manualMatchingIssueCount + " 条；其它预检项目：" + otherIssueCount + " 条。";
+            Title = presentation.Title;
+            HeadingText.Text = presentation.Heading;
+            SummaryText.Text = presentation.SummaryText;
+            GuidanceText.Text = presentation.GuidanceText;
+            ConfirmButton.Content = presentation.ConfirmButtonText;
+            SummaryMetricsList.ItemsSource = presentation.Metrics;
+            FocusGroupsList.ItemsSource = presentation.FocusGroups;
+            FocusCountText.Text = presentation.FocusCountText;
+            FocusPanel.Visibility = presentation.FocusGroups.Count > 0
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+            AutomaticItemsList.ItemsSource = presentation.AutomaticItems;
+            AutomaticPanel.Visibility = presentation.AutomaticItems.Count > 0
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+            IssueGroupsList.ItemsSource = presentation.DetailGroups;
+            TechnicalDetailsHeaderText.Text = presentation.DetailsHeaderText;
+            TechnicalDetailsExpander.Visibility = presentation.DetailGroups.Count > 0
+                ? Visibility.Visible
+                : Visibility.Collapsed;
 
             _manualMatchRows = BuildManualMatchRows(plan);
             PowerOnlySummaryText.Text = BuildCustomerSummary(plan.PowerOnlyCustomers);
@@ -35,10 +49,6 @@ namespace HainanSettlementTool.Wpf
             ManualMatchPanel.Visibility = manualMatchingIssueCount > 0 ? Visibility.Visible : Visibility.Collapsed;
             ManualMatchList.Visibility = _manualMatchRows.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
             NoManualMatchRowsText.Visibility = _manualMatchRows.Count > 0 ? Visibility.Collapsed : Visibility.Visible;
-
-            IssueGroupsList.ItemsSource = issueGroups;
-            IssueCountText.Text = otherIssueCount + " 条";
-            OtherIssuePanel.Visibility = otherIssueCount > 0 ? Visibility.Visible : Visibility.Collapsed;
         }
 
         public List<ProvinceStage1CustomerMatch> ManualCustomerMatches { get; private set; } =
@@ -87,23 +97,6 @@ namespace HainanSettlementTool.Wpf
                 .ToList();
         }
 
-        private static List<IssueGroupViewModel> BuildIssueGroups(ProvinceStage1LedgerUpdatePlan plan)
-        {
-            return plan.Issues
-                .Where(issue => !IsManualMatchingIssue(issue))
-                .GroupBy(issue => issue.Category)
-                .OrderBy(group => group.Key)
-                .Select(group => new IssueGroupViewModel
-                {
-                    Category = group.Key,
-                    CountText = group.Count() + " 条",
-                    Issues = group
-                        .Select(issue => BuildIssueText(issue))
-                        .ToList()
-                })
-                .ToList();
-        }
-
         private static int CountManualMatchingIssues(ProvinceStage1LedgerUpdatePlan plan)
         {
             return plan.Issues.Count(IsManualMatchingIssue);
@@ -122,13 +115,9 @@ namespace HainanSettlementTool.Wpf
                 return "无";
             }
 
-            return customers.Count + " 个：" + string.Join("、", customers.OrderBy(name => name));
-        }
-
-        private static string BuildIssueText(ProvinceStage1LedgerUpdateIssue issue)
-        {
-            var customer = string.IsNullOrWhiteSpace(issue.CustomerName) ? string.Empty : "：" + issue.CustomerName;
-            return "[" + issue.Severity + "] " + issue.Category + customer + "；" + issue.Message;
+            var ordered = customers.OrderBy(name => name).ToList();
+            var preview = string.Join("、", ordered.Take(5));
+            return customers.Count + " 个：" + preview + (ordered.Count > 5 ? " 等" : string.Empty);
         }
 
         private void Ok_Click(object sender, RoutedEventArgs e)
@@ -223,13 +212,6 @@ namespace HainanSettlementTool.Wpf
             {
                 return DisplayText;
             }
-        }
-
-        public sealed class IssueGroupViewModel
-        {
-            public string Category { get; set; }
-            public string CountText { get; set; }
-            public List<string> Issues { get; set; }
         }
     }
 }

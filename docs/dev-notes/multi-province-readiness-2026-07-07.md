@@ -4,7 +4,7 @@
 
 ## 背景
 
-海南是成熟省份模块；重庆已经接入阶段一和阶段二；广东作为第三个省份，当前只接入低风险分表月份初始化，阶段一已完成结构研究但尚未实现。后续仍要控制省份分支扩散，避免每加一个省就在 WPF、Core、Excel 三处同时堆 `if Hainan / if Chongqing / if Guangdong / if XXX`。
+海南是成熟省份模块；重庆已经接入阶段一和阶段二；广东作为第三个省份，低风险分表月份初始化已发布，阶段一也已通过独立 Adapter 接入 Core/Excel/WPF 并随 `v1.4.0` 正式发布。后续仍要控制省份分支扩散，避免每加一个省就在 WPF、Core、Excel 三处同时堆 `if Hainan / if Chongqing / if Guangdong / if XXX`。
 
 本自查只看代码结构和文档，不读取真实 Excel、真实台账或结算输出。
 
@@ -313,7 +313,7 @@ UI 约束：
 8. WPF 新增 `MainWindowInputController`，把路径载入/保存、阶段 options 构造、月份/省份选择读取和输入清空行为从 `MainWindow.xaml.cs` 拆出。
 9. WPF 新增 `MainWindowProvinceUiController`，把结算月份启停、省份 tab/panel 可见性、省份文案和省份按钮启停应用从 `MainWindow.xaml.cs` 拆出。
 10. WPF 新增 `MainWindowStage2WorkflowController` 和 `SettlementWorkflowFactory`，把海南/重庆阶段二 plan-confirm-complete 编排和 workflow 构造从 `MainWindow.xaml.cs` 拆出。
-11. WPF 新增 `MainWindowHainanStage1WorkflowController`、`MainWindowChongqingStage1WorkflowController` 和 `MainWindowHainanEmployeePowerRewardWorkflowController`，把海南阶段一、重庆阶段一和员工奖励生成编排从 `MainWindow.xaml.cs` 拆出。
+11. WPF 新增 `MainWindowHainanStage1WorkflowController`、`MainWindowProvinceStage1WorkflowController` 和 `MainWindowHainanEmployeePowerRewardWorkflowController`，把海南阶段一、多省份阶段一和员工奖励生成编排从 `MainWindow.xaml.cs` 拆出。多省份 controller 当前服务重庆和广东。
 12. Core/Excel/WPF 已实现重庆客户处理决定：`匹配已有台账客户`、`新增客户到台账`、`本月不写入`。海南阶段一保持原有稳定自动新增客户流程。
 13. 员工电量奖励实现已显式命名为 `HainanEmployeePowerReward...`，模型字段改用 `ResponsiblePerson`、`ProjectDeveloper` 和 `MonthlyPowers`；未来重庆电量奖应新增重庆专属 Module 或在两省规则验证一致后再抽共享 seam。
 
@@ -321,7 +321,7 @@ UI 约束：
 
 - 海南命名逐步中性化已进入今日多省份技术债主线。已完成低风险切片：海南专用阶段入口改为 `HainanStage1Service` / `HainanStage2Service` 和对应 gateway interface；海南阶段一 Core/Excel 合同、海南台账布局、海南原始明细读取器和海南阶段二 Core/WPF 合同已显式命名；员工电量奖励改为 `HainanEmployeePowerReward...`；组合型 ClosedXML gateway 改为 `ClosedXmlSettlementExcelGateway`；省份显示名抽到 `ProvinceDisplayNames`；WPF 窗口标题、日志文件名和输入持久化目录改为中性名称并保留旧目录读取 fallback。暂不做项目名/命名空间/发布包名的一次性大重命名。
 - 客户处理决定已作为多省份通用模型落地，并优先启用于重庆显式预检和台账写入。海南仍不启用手动匹配 UI，保持成熟自动新增客户流程；未来只有出现真实改名/跳过需求时再接入同一模型。
-- `ProvinceStage1Service` 仍有重庆专用支持校验；广东阶段一实现前应把“是否支持”和通用必填项收敛到更明确的省份能力 seam。
+- `ProvinceStage1Service` 的重庆专用门禁已移除；具体省份实现由 `ClosedXmlSettlementExcelGateway` 的 adapter 注册决定，WPF 能力与文案由 `ProvinceUiProfile` 决定。海南成熟阶段一仍走独立服务/controller。
 - 完整 MVVM、持久化别名表和跨省通用阶段二抽象仍属于 P2，暂不展开。重庆阶段二本身已经是当前任务，应先做重庆专属实现和验证，不提前抽象成跨省通用阶段二。
 
 ### P0：第三个省接入前先做

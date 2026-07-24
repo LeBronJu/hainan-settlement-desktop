@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace HainanSettlementTool.Core.Services
@@ -50,7 +51,20 @@ namespace HainanSettlementTool.Core.Services
 
         public static string CustomerKey(object value)
         {
-            return Regex.Replace(S(value), "\\s+", string.Empty);
+            var normalized = S(value).Normalize(NormalizationForm.FormKC);
+            var result = new StringBuilder(normalized.Length);
+            foreach (var character in normalized)
+            {
+                if (char.IsWhiteSpace(character)
+                    || CharUnicodeInfo.GetUnicodeCategory(character) == UnicodeCategory.Format)
+                {
+                    continue;
+                }
+
+                result.Append(character);
+            }
+
+            return result.ToString();
         }
 
         public static string SafeFileName(string value)

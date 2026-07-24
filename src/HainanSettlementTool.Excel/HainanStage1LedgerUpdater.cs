@@ -48,6 +48,7 @@ namespace HainanSettlementTool.Excel
                         CopyMonthBlock(worksheet, options.Month - 1, options.Month);
                     }
 
+                    ClearMonthPower(worksheet, targetStart, ledgerMap.Values);
                     var report = CreateReport(options, outputPath, reportPath, targetStart, targetMonthAlreadyPresent, powerRows, rawCodeMap);
 
                     foreach (var item in powerRows)
@@ -247,17 +248,31 @@ namespace HainanSettlementTool.Excel
             }
         }
 
+        private static void ClearMonthPower(
+            IXLWorksheet worksheet,
+            int targetStart,
+            IEnumerable<int> ledgerRows)
+        {
+            foreach (var row in ledgerRows)
+            {
+                worksheet.Range(row, targetStart, row, targetStart + 4)
+                    .Clear(XLClearOptions.Contents);
+            }
+        }
+
         private static void CopyRowTemplate(IXLWorksheet worksheet, int styleTemplateRow, int targetRow, int month)
         {
             var maxCol = HainanLedgerLayout.MonthStartColumn(month) + HainanLedgerLayout.MonthBlockWidth - 1;
             worksheet.Row(styleTemplateRow).CopyTo(worksheet.Row(targetRow));
             for (var col = 1; col <= maxCol; col++)
             {
-                if (col == 23 || col == 24 || col == 25 || col == 27 || col >= HainanLedgerLayout.MonthStartColumn(month) + 5)
+                var cell = worksheet.Cell(targetRow, col);
+                if (!string.IsNullOrWhiteSpace(cell.FormulaA1))
                 {
                     continue;
                 }
-                worksheet.Cell(targetRow, col).Clear(XLClearOptions.Contents);
+
+                cell.Clear(XLClearOptions.Contents);
             }
         }
 

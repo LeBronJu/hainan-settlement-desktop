@@ -94,10 +94,55 @@ namespace HainanSettlementTool.Core.Tests
                 CollectionAssert.AreEqual(
                     new[]
                     {
-                        "重庆阶段一电量清洗完成。",
+                        "重庆本月电量整理完成。",
                         "电量处理表：" + gateway.ProvinceStage1CleanResult.OutputWorkbookPath,
-                        "报告：" + gateway.ProvinceStage1CleanResult.ReportPath,
+                        "检查报告：" + gateway.ProvinceStage1CleanResult.ReportPath,
                         "客户数量：2，户号数量：3",
+                        "合计电量：12.3456 兆瓦时"
+                    },
+                    result.SummaryLines.ToArray());
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
+        public void CleanGuangdongStage1PowerDataUsesProvinceNeutralServiceAndSummary()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var gateway = new FakeGateway();
+                gateway.ProvinceStage1CleanResult.Province = ProvinceCode.Guangdong;
+                gateway.ProvinceStage1CleanResult.OutputWorkbookPath = "guangdong-power.xlsx";
+                gateway.ProvinceStage1CleanResult.ReportPath = "guangdong-power-report.json";
+                gateway.ProvinceStage1CleanResult.HtmlReportPath = "guangdong-power-report.html";
+                gateway.ProvinceStage1CleanResult.RawRows = 7;
+                gateway.ProvinceStage1CleanResult.AccountRows = 0;
+                var workflow = new SettlementWorkflow(
+                    new HainanStage1Service(gateway),
+                    new HainanStage2Service(gateway),
+                    new HainanEmployeePowerRewardService(gateway),
+                    new ProvinceStage1Service(gateway));
+                var options = new ProvinceStage1CleanOptions
+                {
+                    Province = ProvinceCode.Guangdong,
+                    Month = 6,
+                    RawDetailPath = CreateFile(root, "guangdong-raw.xlsx"),
+                    OutputDirectory = Path.Combine(root, "out")
+                };
+
+                var result = workflow.CleanProvinceStage1PowerData(options, null);
+
+                CollectionAssert.AreEqual(
+                    new[]
+                    {
+                        "广东本月电量整理完成。",
+                        "电量处理表：guangdong-power.xlsx",
+                        "检查报告：guangdong-power-report.html",
+                        "客户数量：2，原始明细行数：7",
                         "合计电量：12.3456 兆瓦时"
                     },
                     result.SummaryLines.ToArray());
@@ -143,6 +188,59 @@ namespace HainanSettlementTool.Core.Tests
                         "匹配客户：2，写入电量：2",
                         "人工匹配：1",
                         "多户号提示：1",
+                        "合计电量：12.3456 兆瓦时"
+                    },
+                    result.SummaryLines.ToArray());
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
+        public void UpdateGuangdongStage1LedgerUsesCodeOrientedSummary()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var gateway = new FakeGateway();
+                gateway.ProvinceStage1LedgerUpdatePlan.Province = ProvinceCode.Guangdong;
+                gateway.ProvinceStage1LedgerUpdateResult.Province = ProvinceCode.Guangdong;
+                gateway.ProvinceStage1LedgerUpdateResult.OutputPowerWorkbookPath = "guangdong-power.xlsx";
+                gateway.ProvinceStage1LedgerUpdateResult.OutputLedgerPath = "guangdong-ledger.xlsx";
+                gateway.ProvinceStage1LedgerUpdateResult.ReportPath = "guangdong-ledger-report.json";
+                gateway.ProvinceStage1LedgerUpdateResult.HtmlReportPath = "guangdong-ledger-report.html";
+                gateway.ProvinceStage1LedgerUpdateResult.CreatedCustomerRows = 1;
+                gateway.ProvinceStage1LedgerUpdateResult.MultiAccountRows = 2;
+                var workflow = new SettlementWorkflow(
+                    new HainanStage1Service(gateway),
+                    new HainanStage2Service(gateway),
+                    new HainanEmployeePowerRewardService(gateway),
+                    new ProvinceStage1Service(gateway));
+                var options = new ProvinceStage1LedgerUpdateOptions
+                {
+                    Province = ProvinceCode.Guangdong,
+                    Month = 6,
+                    LedgerPath = CreateFile(root, "ledger.xlsx"),
+                    RawDetailPath = CreateFile(root, "raw.xlsx"),
+                    OutputDirectory = Path.Combine(root, "out")
+                };
+
+                var plan = workflow.PlanProvinceStage1LedgerUpdate(options, null);
+                var result = workflow.UpdateProvinceStage1Ledger(options, null);
+
+                Assert.AreSame(gateway.ProvinceStage1LedgerUpdatePlan, plan);
+                CollectionAssert.AreEqual(
+                    new[]
+                    {
+                        "广东本月台账已生成。",
+                        "电量表：guangdong-power.xlsx",
+                        "本月台账：guangdong-ledger.xlsx",
+                        "检查报告：guangdong-ledger-report.html",
+                        "已找到客户：2，写入电量：2",
+                        "新增客户：1",
+                        "多计量点客户：2",
                         "合计电量：12.3456 兆瓦时"
                     },
                     result.SummaryLines.ToArray());

@@ -115,6 +115,7 @@ namespace HainanSettlementTool.Excel.Tests
                 var outputDirectory = Path.Combine(root, "out");
                 WriteChongqingWorkbook(raw);
                 WriteChongqingLedger(ledger);
+                SeedExistingMonthPower(ledger, "台账独有客户", 88, 8, 18, 28, 34, 1.3, 0.7);
                 var gateway = new ClosedXmlSettlementExcelGateway();
                 var options = new ProvinceStage1LedgerUpdateOptions
                 {
@@ -165,6 +166,12 @@ namespace HainanSettlementTool.Excel.Tests
                     Assert.AreEqual(6, updatedSheet.Cell(customerA, 12).GetDouble(), 0.00001);
                     Assert.AreEqual(12, updatedSheet.Cell(customerB, 8).GetDouble(), 0.00001);
                     Assert.IsTrue(updatedSheet.Cell(customerC, 8).IsEmpty());
+                    Assert.IsTrue(updatedSheet.Cell(customerC, 9).IsEmpty());
+                    Assert.IsTrue(updatedSheet.Cell(customerC, 10).IsEmpty());
+                    Assert.IsTrue(updatedSheet.Cell(customerC, 11).IsEmpty());
+                    Assert.IsTrue(updatedSheet.Cell(customerC, 12).IsEmpty());
+                    Assert.AreEqual(1.3, updatedSheet.Cell(customerC, 13).GetDouble(), 0.00001);
+                    Assert.AreEqual(0.7, updatedSheet.Cell(customerC, 14).GetDouble(), 0.00001);
                 }
 
                 var report = JObject.Parse(File.ReadAllText(result.ReportPath));
@@ -601,6 +608,33 @@ namespace HainanSettlementTool.Excel.Tests
                 WriteLedgerRow(ws, 5, 2, customerBName);
                 WriteLedgerRow(ws, 6, 3, "台账独有客户");
                 workbook.SaveAs(path);
+            }
+        }
+
+        private static void SeedExistingMonthPower(
+            string path,
+            string customerName,
+            double total,
+            double sharp,
+            double peak,
+            double flat,
+            double valley,
+            double peakFlatCoefficient,
+            double valleyFlatCoefficient)
+        {
+            using (var workbook = new XLWorkbook(path))
+            {
+                var worksheet = workbook.Worksheet("Sheet1");
+                var row = FindLedgerRow(worksheet, customerName);
+                var start = FindMonthStartColumn(worksheet, "5月");
+                worksheet.Cell(row, start).Value = total;
+                worksheet.Cell(row, start + 1).Value = sharp;
+                worksheet.Cell(row, start + 2).Value = peak;
+                worksheet.Cell(row, start + 3).Value = flat;
+                worksheet.Cell(row, start + 4).Value = valley;
+                worksheet.Cell(row, start + 5).Value = peakFlatCoefficient;
+                worksheet.Cell(row, start + 6).Value = valleyFlatCoefficient;
+                workbook.Save();
             }
         }
 

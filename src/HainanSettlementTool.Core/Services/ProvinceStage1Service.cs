@@ -18,10 +18,13 @@ namespace HainanSettlementTool.Core.Services
             ValidateCleanOptions(options);
             Directory.CreateDirectory(options.OutputDirectory);
 
-            log?.Invoke("正在清洗" + ProvinceDisplayNames.GetName(options.Province) + "阶段一电量数据。");
+            log?.Invoke("正在整理" + ProvinceDisplayNames.GetName(options.Province) + "本月电量。");
             var result = _excel.CleanPowerData(options);
             log?.Invoke("电量处理表已生成：" + result.OutputWorkbookPath);
-            log?.Invoke("校验报告已生成：" + result.ReportPath);
+            if (!string.IsNullOrWhiteSpace(result.HtmlReportPath))
+            {
+                log?.Invoke("检查报告已生成：" + result.HtmlReportPath);
+            }
             return result;
         }
 
@@ -29,7 +32,7 @@ namespace HainanSettlementTool.Core.Services
         {
             ValidateLedgerUpdateOptions(options);
 
-            log?.Invoke("正在预检" + ProvinceDisplayNames.GetName(options.Province) + "阶段一台账更新。");
+            log?.Invoke("正在检查" + ProvinceDisplayNames.GetName(options.Province) + "本月台账资料。");
             return _excel.PlanLedgerUpdate(options);
         }
 
@@ -38,10 +41,17 @@ namespace HainanSettlementTool.Core.Services
             ValidateLedgerUpdateOptions(options);
             Directory.CreateDirectory(options.OutputDirectory);
 
-            log?.Invoke("正在更新" + ProvinceDisplayNames.GetName(options.Province) + "阶段一台账。");
+            log?.Invoke("正在生成" + ProvinceDisplayNames.GetName(options.Province) + "本月台账。");
             var result = _excel.UpdateLedger(options);
-            log?.Invoke("台账更新结果已生成：" + result.OutputLedgerPath);
-            log?.Invoke("台账更新报告已生成：" + result.ReportPath);
+            if (!string.IsNullOrWhiteSpace(result.OutputPowerWorkbookPath))
+            {
+                log?.Invoke("电量处理表已生成：" + result.OutputPowerWorkbookPath);
+            }
+            log?.Invoke("本月台账已生成：" + result.OutputLedgerPath);
+            if (!string.IsNullOrWhiteSpace(result.HtmlReportPath))
+            {
+                log?.Invoke("检查报告已生成：" + result.HtmlReportPath);
+            }
             return result;
         }
 
@@ -52,9 +62,9 @@ namespace HainanSettlementTool.Core.Services
                 throw new ArgumentNullException(nameof(options));
             }
 
-            if (options.Province != ProvinceCode.Chongqing)
+            if (options.Province == ProvinceCode.Hainan)
             {
-                throw new NotSupportedException("当前仅支持重庆阶段一电量清洗。");
+                throw new NotSupportedException("海南阶段一使用独立的成熟工作流，不通过多省份阶段一电量清洗入口。");
             }
 
             if (string.IsNullOrWhiteSpace(options.RawDetailPath))
@@ -80,24 +90,26 @@ namespace HainanSettlementTool.Core.Services
                 throw new ArgumentNullException(nameof(options));
             }
 
-            if (options.Province != ProvinceCode.Chongqing)
+            if (options.Province == ProvinceCode.Hainan)
             {
-                throw new NotSupportedException("当前仅支持重庆阶段一台账更新。");
+                throw new NotSupportedException("海南阶段一使用独立的成熟工作流，不通过多省份阶段一台账更新入口。");
             }
 
-            if (options.Month <= 0)
+            if (options.Month < 1 || options.Month > 12)
             {
                 throw new ArgumentException("请选择结算月份。");
             }
 
             if (string.IsNullOrWhiteSpace(options.LedgerPath))
             {
-                throw new ArgumentException("请选择重庆售电结算台账。");
+                throw new ArgumentException("请选择" + ProvinceDisplayNames.GetName(options.Province) + "售电结算台账。");
             }
 
             if (!File.Exists(options.LedgerPath))
             {
-                throw new FileNotFoundException("重庆售电结算台账不存在。", options.LedgerPath);
+                throw new FileNotFoundException(
+                    ProvinceDisplayNames.GetName(options.Province) + "售电结算台账不存在。",
+                    options.LedgerPath);
             }
 
             if (string.IsNullOrWhiteSpace(options.RawDetailPath))

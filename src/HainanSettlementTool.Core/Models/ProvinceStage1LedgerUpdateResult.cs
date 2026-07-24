@@ -9,8 +9,10 @@ namespace HainanSettlementTool.Core.Models
         public string Unit { get; set; }
         public string LedgerPath { get; set; }
         public string RawDetailPath { get; set; }
+        public string OutputPowerWorkbookPath { get; set; }
         public string OutputLedgerPath { get; set; }
         public string ReportPath { get; set; }
+        public string HtmlReportPath { get; set; }
         public int LedgerCustomerRows { get; set; }
         public int PowerCustomerRows { get; set; }
         public int MatchedRows { get; set; }
