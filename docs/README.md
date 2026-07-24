@@ -22,7 +22,7 @@
 | `docs/dev-notes/chongqing-stage2-analysis-2026-07-07.md` | 当前模块 note | 重庆阶段二结构、已实现行为、回测结论和长期人工复核边界。 |
 | `docs/dev-notes/stage2-preflight-integrity-2026-07-22.md` | 当前任务 note | 海南/重庆阶段二最终确认的主体聚合、关系校验、收款人、税率、支付方、统一预检 UI 和正式输出完整性改造。 |
 | `docs/dev-notes/stage2-template-candidate-browser-2026-07-23.md` | 当前模块 note | 海南/重庆大量分表模板候选的 5 个随机分批、Excel 式关键词搜索、安全签名边界和跨省复用实现。 |
-| `docs/dev-notes/guangdong-stage1-research-2026-07-24.md` | 当前任务 note | 广东阶段一官方输入 sheet、编码聚合、32 列月份块、首版安全边界、架构接入点和实施前待确认事项。当前仅研究，尚未实现。 |
+| `docs/dev-notes/guangdong-stage1-research-2026-07-24.md` | 当前模块 note | 广东阶段一官方输入 sheet、编码聚合、系数、32 列月份块、安全新增客户、已确认业务规则和当前实现边界。 |
 | `docs/dev-notes/guangdong-stage2-month-preparation-2026-07-10.md` | 当前模块 note | 广东代理/居间/退补分表标准月份 sheet 初始化规则、安全边界和验证结果。 |
 | `docs/dev-notes/excel-performance-openxml-research-2026-07-10.md` | 当前架构 note | Excel 批处理性能基线、Open XML SDK 风险、海南优先试点和渐进迁移门槛。 |
 | `docs/dev-notes/multi-province-code-quality-2026-07-08.md` | 当前任务 note | 多省份代码质量、海南命名中性化、大类拆分和执行连续性。 |

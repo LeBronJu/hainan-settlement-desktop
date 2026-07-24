@@ -25,5 +25,21 @@ namespace HainanSettlementTool.Core.Tests
             Assert.IsFalse(result.EndsWith("."));
             Assert.IsFalse(result.EndsWith(" "));
         }
+
+        [TestMethod]
+        public void CustomerKeyNormalizesCompatibilityWhitespaceAndInvisibleCharacters()
+        {
+            var key = TextUtil.CustomerKey("Ａ公司\u3000分部\r\n\u00a0\u200b\u2060\ufeff");
+
+            Assert.AreEqual("A公司分部", key);
+        }
+
+        [TestMethod]
+        public void CustomerKeyKeepsMeaningfulPunctuation()
+        {
+            Assert.AreNotEqual(
+                TextUtil.CustomerKey("广东测试（第一）公司"),
+                TextUtil.CustomerKey("广东测试第一公司"));
+        }
     }
 }

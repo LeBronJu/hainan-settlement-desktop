@@ -46,6 +46,17 @@ namespace HainanSettlementTool.Excel.Tests
                     Assert.AreEqual(2.2, worksheet.Cell(5, targetStart + 2).GetDouble(), 0.00001);
                     Assert.AreEqual(3.3, worksheet.Cell(5, targetStart + 3).GetDouble(), 0.00001);
                     Assert.AreEqual(4.4, worksheet.Cell(5, targetStart + 4).GetDouble(), 0.00001);
+                    Assert.IsTrue(worksheet.Cell(4, targetStart).IsEmpty());
+                    Assert.IsTrue(worksheet.Cell(4, targetStart + 1).IsEmpty());
+                    Assert.IsTrue(worksheet.Cell(4, targetStart + 2).IsEmpty());
+                    Assert.IsTrue(worksheet.Cell(4, targetStart + 3).IsEmpty());
+                    Assert.IsTrue(worksheet.Cell(4, targetStart + 4).IsEmpty());
+                    Assert.IsTrue(worksheet.Cell(5, 23).IsEmpty());
+                    Assert.IsTrue(worksheet.Cell(5, 24).IsEmpty());
+                    Assert.IsTrue(worksheet.Cell(5, 25).IsEmpty());
+                    Assert.IsTrue(worksheet.Cell(5, 27).IsEmpty());
+                    Assert.IsTrue(worksheet.Cell(5, targetStart + 5).IsEmpty());
+                    Assert.IsTrue(worksheet.Cell(5, targetStart + 6).HasFormula);
                 }
             }
             finally
@@ -137,6 +148,41 @@ namespace HainanSettlementTool.Excel.Tests
             }
         }
 
+        [TestMethod]
+        public void HainanRunClearsAllExistingTargetMonthPowerBeforeWriting()
+        {
+            var root = CreateTempRoot();
+            var baseLedgerPath = Path.Combine(root, "base-ledger.xlsx");
+            var powerPath = Path.Combine(root, "power.xlsx");
+            var outputDirectory = Path.Combine(root, "out");
+
+            try
+            {
+                WriteHainanBaseLedger(baseLedgerPath);
+                SeedHainanTargetMonthPower(baseLedgerPath, 4, 77, 7, 17, 23, 30);
+                WriteHainanPowerWorkbook(powerPath, "新增客户", 12.3456, 1.1, 2.2, 3.3, 4.4);
+
+                var report = RunHainanStage1(baseLedgerPath, powerPath, outputDirectory);
+
+                Assert.IsTrue(report.TargetMonthAlreadyPresent);
+                using (var workbook = new XLWorkbook(report.Output))
+                {
+                    var worksheet = workbook.Worksheet(HainanLedgerLayout.MainSheetName);
+                    var targetStart = HainanLedgerLayout.MonthStartColumn(4);
+                    for (var offset = 0; offset < 5; offset++)
+                    {
+                        Assert.IsTrue(
+                            worksheet.Cell(4, targetStart + offset).IsEmpty(),
+                            "台账独有客户的既有目标月电量应在写入前清空，偏移：" + offset);
+                    }
+                }
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
 
         private static HainanStage1Report RunHainanStage1(string baseLedgerPath, string powerPath, string outputDirectory)
         {
@@ -170,11 +216,47 @@ namespace HainanSettlementTool.Excel.Tests
                 worksheet.Cell(4, 2).Value = "OLD-CODE";
                 worksheet.Cell(4, 3).Value = "既有客户";
                 worksheet.Cell(4, 10).Value = "负责人";
+                worksheet.Cell(4, 23).Value = "不得继承的合同值";
+                worksheet.Cell(4, 24).Value = "不得继承的税务值";
+                worksheet.Cell(4, 25).Value = "不得继承的代理值";
+                worksheet.Cell(4, 27).Value = "不得继承的人工值";
+                worksheet.Cell(4, marchStart).Value = 66;
+                worksheet.Cell(4, marchStart + 1).Value = 6;
+                worksheet.Cell(4, marchStart + 2).Value = 16;
+                worksheet.Cell(4, marchStart + 3).Value = 20;
+                worksheet.Cell(4, marchStart + 4).Value = 24;
+                worksheet.Cell(4, marchStart + 5).Value = 1.2;
+                worksheet.Cell(4, marchStart + 6).FormulaA1 = "=A4";
                 worksheet.Cell(5, 1).Value = "合计";
                 worksheet.Cell(5, 3).Value = "footer";
 
                 Directory.CreateDirectory(Path.GetDirectoryName(path));
                 workbook.SaveAs(path);
+            }
+        }
+
+        private static void SeedHainanTargetMonthPower(
+            string path,
+            int month,
+            double total,
+            double sharp,
+            double peak,
+            double flat,
+            double valley)
+        {
+            using (var workbook = new XLWorkbook(path))
+            {
+                var worksheet = workbook.Worksheet(HainanLedgerLayout.MainSheetName);
+                var start = HainanLedgerLayout.MonthStartColumn(month);
+                worksheet.Cell(1, start).Value = month + "月";
+                worksheet.Cell(4, start).Value = total;
+                worksheet.Cell(4, start + 1).Value = sharp;
+                worksheet.Cell(4, start + 2).Value = peak;
+                worksheet.Cell(4, start + 3).Value = flat;
+                worksheet.Cell(4, start + 4).Value = valley;
+                worksheet.Cell(4, start + 5).Value = 1.1;
+                worksheet.Cell(4, start + 6).FormulaA1 = "=A4";
+                workbook.Save();
             }
         }
 

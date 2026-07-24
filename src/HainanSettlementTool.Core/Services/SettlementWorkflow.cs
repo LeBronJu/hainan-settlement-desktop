@@ -90,14 +90,19 @@ namespace HainanSettlementTool.Core.Services
             }
 
             var report = _provinceStage1Service.CleanPowerData(options, log);
+            var detailSummary = report.Province == ProvinceCode.Guangdong
+                ? "客户数量：" + report.CustomerRows + "，原始明细行数：" + report.RawRows
+                : "客户数量：" + report.CustomerRows + "，户号数量：" + report.AccountRows;
             return new StageWorkflowResult<ProvinceStage1CleanResult>(
                 report,
                 new[]
                 {
-                    ProvinceDisplayNames.GetName(report.Province) + "阶段一电量清洗完成。",
+                    ProvinceDisplayNames.GetName(report.Province) + "本月电量整理完成。",
                     "电量处理表：" + report.OutputWorkbookPath,
-                    "报告：" + report.ReportPath,
-                    "客户数量：" + report.CustomerRows + "，户号数量：" + report.AccountRows,
+                    "检查报告：" + (string.IsNullOrWhiteSpace(report.HtmlReportPath)
+                        ? report.ReportPath
+                        : report.HtmlReportPath),
+                    detailSummary,
                     "合计电量：" + report.TotalPower.ToString("0.####") + " " + report.Unit
                 });
         }
@@ -124,6 +129,23 @@ namespace HainanSettlementTool.Core.Services
             }
 
             var report = _provinceStage1Service.UpdateLedger(options, log);
+            if (report.Province == ProvinceCode.Guangdong)
+            {
+                return new StageWorkflowResult<ProvinceStage1LedgerUpdateResult>(
+                    report,
+                    new[]
+                    {
+                        "广东本月台账已生成。",
+                        "电量表：" + report.OutputPowerWorkbookPath,
+                        "本月台账：" + report.OutputLedgerPath,
+                        "检查报告：" + report.HtmlReportPath,
+                        "已找到客户：" + report.MatchedRows + "，写入电量：" + report.UpdatedPowerRows,
+                        "新增客户：" + report.CreatedCustomerRows,
+                        "多计量点客户：" + report.MultiAccountRows,
+                        "合计电量：" + report.TotalPower.ToString("0.####") + " " + report.Unit
+                    });
+            }
+
             return new StageWorkflowResult<ProvinceStage1LedgerUpdateResult>(
                 report,
                 new[]

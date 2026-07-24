@@ -11,5 +11,7 @@ namespace HainanSettlementTool.Core.Models
         public const string PowerCustomerMissingInLedger = "PowerCustomerMissingInLedger";
         public const string LedgerCustomerMissingInPower = "LedgerCustomerMissingInPower";
         public const string PossibleAlias = "PossibleAlias";
+        public const string CustomerNameMismatch = "CustomerNameMismatch";
+        public const string CoefficientConflict = "CoefficientConflict";
     }
 }

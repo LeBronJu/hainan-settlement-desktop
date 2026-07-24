@@ -22,7 +22,7 @@ namespace HainanSettlementTool.Wpf
         private readonly MainWindowProvinceUiController _provinceUiController;
         private readonly MainWindowStage2WorkflowController _stage2WorkflowController;
         private readonly MainWindowHainanStage1WorkflowController _hainanStage1WorkflowController;
-        private readonly MainWindowChongqingStage1WorkflowController _chongqingStage1WorkflowController;
+        private readonly MainWindowProvinceStage1WorkflowController _provinceStage1WorkflowController;
         private readonly MainWindowHainanEmployeePowerRewardWorkflowController _hainanEmployeePowerRewardWorkflowController;
         private bool _isBusy;
         private bool _loadingInputs;
@@ -175,7 +175,7 @@ namespace HainanSettlementTool.Wpf
                 _dialogController,
                 SetBusy,
                 SaveInputs);
-            _chongqingStage1WorkflowController = new MainWindowChongqingStage1WorkflowController(
+            _provinceStage1WorkflowController = new MainWindowProvinceStage1WorkflowController(
                 this,
                 Dispatcher,
                 _inputController,
@@ -411,19 +411,13 @@ namespace HainanSettlementTool.Wpf
                 return;
             }
 
-            switch (profile.Province)
+            if (profile.Province == ProvinceCode.Hainan)
             {
-                case ProvinceCode.Hainan:
-                    await _hainanStage1WorkflowController.RunLedgerUpdateAsync();
-                    return;
-                case ProvinceCode.Chongqing:
-                    await _chongqingStage1WorkflowController.RunLedgerUpdateAsync();
-                    return;
-                default:
-                    ShowErrorMessage(profile.DisplayName + "暂未接入阶段一台账更新。");
-                    return;
+                await _hainanStage1WorkflowController.RunLedgerUpdateAsync();
+                return;
             }
 
+            await _provinceStage1WorkflowController.RunLedgerUpdateAsync();
         }
 
         private async void CleanPower_Click(object sender, RoutedEventArgs e)
@@ -441,19 +435,13 @@ namespace HainanSettlementTool.Wpf
                 return;
             }
 
-            switch (profile.Province)
+            if (profile.Province == ProvinceCode.Hainan)
             {
-                case ProvinceCode.Hainan:
-                    await _hainanStage1WorkflowController.CleanPowerAsync();
-                    return;
-                case ProvinceCode.Chongqing:
-                    await _chongqingStage1WorkflowController.CleanPowerAsync();
-                    return;
-                default:
-                    ShowErrorMessage(profile.DisplayName + "暂未接入只清洗电量数据。");
-                    return;
+                await _hainanStage1WorkflowController.CleanPowerAsync();
+                return;
             }
 
+            await _provinceStage1WorkflowController.CleanPowerAsync();
         }
 
         private async void RunStage2_Click(object sender, RoutedEventArgs e)

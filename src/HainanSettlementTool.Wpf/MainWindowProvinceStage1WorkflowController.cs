@@ -9,8 +9,26 @@ using HainanSettlementTool.Core.Services;
 
 namespace HainanSettlementTool.Wpf
 {
-    internal sealed class MainWindowChongqingStage1WorkflowController
+    internal sealed class MainWindowProvinceStage1WorkflowController
     {
+        private static readonly string[] CleanPowerStepNames =
+        {
+            "检查输入文件",
+            "读取本月电量",
+            "合并客户电量",
+            "生成电量表",
+            "生成检查报告"
+        };
+
+        private static readonly string[] LedgerUpdateStepNames =
+        {
+            "检查输入文件",
+            "读取台账和电量",
+            "整理本月台账",
+            "生成电量表",
+            "生成检查报告"
+        };
+
         private readonly Window _owner;
         private readonly Dispatcher _dispatcher;
         private readonly MainWindowInputController _inputController;
@@ -21,7 +39,7 @@ namespace HainanSettlementTool.Wpf
         private readonly Action<bool> _setBusy;
         private readonly Action _saveInputs;
 
-        public MainWindowChongqingStage1WorkflowController(
+        public MainWindowProvinceStage1WorkflowController(
             Window owner,
             Dispatcher dispatcher,
             MainWindowInputController inputController,
@@ -46,13 +64,27 @@ namespace HainanSettlementTool.Wpf
         public async Task CleanPowerAsync()
         {
             ProvinceStage1CleanOptions options;
+            string provinceName;
             try
             {
                 options = _inputController.CreateProvinceStage1CleanOptions();
+                provinceName = ProvinceDisplayNames.GetName(options.Province);
                 _saveInputs();
 
-                var message = "即将清洗重庆交易中心电量确认结算单。\n\n输出内容：用户电量汇总、户号明细、JSON校验报告\n输出文件夹：\n" + options.OutputDirectory;
-                if (!_dialogController.ConfirmAction("确认清洗重庆电量", "即将清洗重庆电量数据", message, "开始清洗"))
+                var outputDescription = options.Province == ProvinceCode.Guangdong
+                    ? "八列电量表和可直接打开的检查报告"
+                    : "用户电量表、户号明细和检查报告";
+                var message = "即将整理"
+                    + provinceName
+                    + "本月电量。\n\n将生成："
+                    + outputDescription
+                    + "\n输出文件夹：\n"
+                    + options.OutputDirectory;
+                if (!_dialogController.ConfirmAction(
+                    "确认整理" + provinceName + "电量",
+                    "即将整理" + provinceName + "本月电量",
+                    message,
+                    "开始整理"))
                 {
                     return;
                 }
@@ -65,10 +97,13 @@ namespace HainanSettlementTool.Wpf
 
             _setBusy(true);
             ResetResults();
-            _progressController.ResetProgress("正在清洗重庆电量...", "生成阶段一电量处理表");
+            _progressController.ResetProgress(
+                "正在整理" + provinceName + "电量...",
+                "生成本月电量表",
+                CleanPowerStepNames);
             _progressController.SetProgress(10, "检查输入文件");
             _progressController.SetStepRunning(0);
-            AddLog("开始清洗重庆阶段一电量数据。", "重庆");
+            AddLog("开始整理" + provinceName + "本月电量。", provinceName);
 
             try
             {
@@ -79,7 +114,7 @@ namespace HainanSettlementTool.Wpf
                     {
                         _progressController.SetStepDone(0);
                         _progressController.SetStepRunning(1);
-                        _progressController.SetProgress(35, "读取交易中心电量确认结算单");
+                        _progressController.SetProgress(35, "读取" + provinceName + "本月电量明细");
                     });
 
                     result = SettlementWorkflowFactory.Create().CleanProvinceStage1PowerData(options, LogThreadSafe);
@@ -89,11 +124,15 @@ namespace HainanSettlementTool.Wpf
                 _progressController.SetStepDone(2);
                 _progressController.SetStepDone(3);
                 _progressController.SetStepDone(4);
-                _progressController.SetProgress(100, "重庆电量清洗完成");
+                _progressController.SetProgress(100, provinceName + "本月电量整理完成");
                 LogSummary(result.SummaryLines);
 
                 _resultController.SetStage1Success(result.Report.CustomerRows + " 个客户");
-                _resultController.ShowCompletion("重庆电量清洗完成", "电量处理表、户号明细和校验报告已生成", options.OutputDirectory);
+                _resultController.ShowCompletion(
+                    provinceName + "本月电量已整理",
+                    "电量表和检查报告已生成",
+                    options.OutputDirectory,
+                    result.Report.HtmlReportPath);
             }
             catch (Exception ex)
             {
@@ -111,9 +150,11 @@ namespace HainanSettlementTool.Wpf
         public async Task RunLedgerUpdateAsync()
         {
             ProvinceStage1LedgerUpdateOptions options;
+            string provinceName;
             try
             {
                 options = _inputController.CreateProvinceStage1LedgerUpdateOptions();
+                provinceName = ProvinceDisplayNames.GetName(options.Province);
                 _saveInputs();
             }
             catch (Exception ex)
@@ -124,10 +165,13 @@ namespace HainanSettlementTool.Wpf
 
             _setBusy(true);
             ResetResults();
-            _progressController.ResetProgress("正在预检重庆台账...", "读取台账和电量明细");
+            _progressController.ResetProgress(
+                "正在检查" + provinceName + "本月资料...",
+                "读取台账和电量明细",
+                LedgerUpdateStepNames);
             _progressController.SetProgress(10, "检查输入文件");
             _progressController.SetStepRunning(0);
-            AddLog("开始预检重庆阶段一台账更新。", "重庆");
+            AddLog("开始检查" + provinceName + "本月台账资料。", provinceName);
 
             try
             {
@@ -135,20 +179,20 @@ namespace HainanSettlementTool.Wpf
                 ProvinceStage1LedgerUpdatePlan plan = null;
                 await Task.Run(() =>
                 {
-                    _dispatcher.Invoke(() => _progressController.SetProgress(22, "读取重庆台账和交易中心电量确认单"));
+                    _dispatcher.Invoke(() => _progressController.SetProgress(22, "读取" + provinceName + "台账和电量来源"));
                     plan = workflow.PlanProvinceStage1LedgerUpdate(options, LogThreadSafe);
                 });
 
-                _progressController.SetProgress(30, plan.RequiresConfirmation ? "预检发现需要确认的项目" : "预检完成");
+                _progressController.SetProgress(30, plan.RequiresConfirmation ? "发现需要查看的事项" : "检查完成");
                 if (!ConfirmLedgerUpdate(options, plan))
                 {
-                    AddLog("已取消重庆阶段一台账更新。", "重庆");
-                    _progressController.ResetProgress("等待执行", "已取消重庆台账更新");
+                    AddLog("已取消" + provinceName + "阶段一台账更新。", provinceName);
+                    _progressController.ResetProgress("等待执行", "已取消" + provinceName + "台账更新");
                     return;
                 }
 
                 _progressController.SetStepDone(0);
-                _progressController.SetProgress(40, "写入重庆台账副本");
+                _progressController.SetProgress(40, "生成" + provinceName + "本月台账");
                 StageWorkflowResult<ProvinceStage1LedgerUpdateResult> result = null;
                 await Task.Run(() =>
                 {
@@ -159,11 +203,33 @@ namespace HainanSettlementTool.Wpf
                 _progressController.SetStepDone(2);
                 _progressController.SetStepDone(3);
                 _progressController.SetStepDone(4);
-                _progressController.SetProgress(100, "重庆台账更新完成");
+                _progressController.SetProgress(100, provinceName + "本月台账已生成");
                 LogSummary(result.SummaryLines);
+                if (!string.IsNullOrWhiteSpace(result.Report.HtmlReportPath))
+                {
+                    AddLog("检查报告：" + result.Report.HtmlReportPath, "信息");
+                }
 
                 _resultController.SetStage1Success(result.Report.UpdatedPowerRows + " 个客户");
-                _resultController.ShowCompletion("重庆台账更新完成", "台账副本和更新报告已生成", options.OutputDirectory);
+                var hasFocusItems = ProvinceStage1ReviewGuide.Build(result.Report.Issues)
+                    .Exists(group => group.NeedsAttention);
+                if (hasFocusItems)
+                {
+                    _resultController.ShowReviewCompletion(
+                        provinceName + "本月台账已生成",
+                        "请打开检查报告，按“下一步”和“重点检查”完成复核",
+                        options.OutputDirectory,
+                        false,
+                        result.Report.HtmlReportPath);
+                }
+                else
+                {
+                    _resultController.ShowCompletion(
+                        provinceName + "本月台账已生成",
+                        "电量表、台账和检查报告已生成",
+                        options.OutputDirectory,
+                        result.Report.HtmlReportPath);
+                }
             }
             catch (Exception ex)
             {
@@ -180,14 +246,23 @@ namespace HainanSettlementTool.Wpf
 
         private bool ConfirmLedgerUpdate(ProvinceStage1LedgerUpdateOptions options, ProvinceStage1LedgerUpdatePlan plan)
         {
+            var provinceName = ProvinceDisplayNames.GetName(plan.Province);
             var message = new StringBuilder();
             message.AppendLine("结算月份：2026年" + options.Month + "月");
             message.AppendLine("匹配客户：" + plan.MatchedRows + " / " + plan.PowerCustomerRows);
-            message.AppendLine("多户号客户：" + plan.MultiAccountRows + " 行（仅提示，不写入B列）");
+            if (plan.Province == ProvinceCode.Guangdong)
+            {
+                message.AppendLine("多计量点客户：" + plan.MultiAccountRows + " 个（同编码电量已相加）");
+                message.AppendLine("新增客户：" + plan.CreatedCustomerRows + " 个（自动追加安全字段，其余资料待人工补齐）");
+            }
+            else
+            {
+                message.AppendLine("多户号客户：" + plan.MultiAccountRows + " 行（仅提示，不写入B列）");
+            }
             message.AppendLine("输出文件夹：");
             message.AppendLine(options.OutputDirectory);
 
-            if (plan.RequiresConfirmation)
+            if (plan.RequiresConfirmation || plan.Province == ProvinceCode.Guangdong)
             {
                 var dialog = new ProvinceStage1LedgerPreflightWindow(options, plan)
                 {
@@ -205,8 +280,12 @@ namespace HainanSettlementTool.Wpf
             }
 
             message.AppendLine();
-            message.AppendLine("未发现匹配异常。确认后会生成台账副本，不会覆盖原文件。");
-            return _dialogController.ConfirmAction("确认重庆台账更新", "即将写入重庆台账副本", message.ToString(), "开始写入");
+            message.AppendLine("没有需要额外处理的客户。确认后会生成新的台账文件，不会改原台账。");
+            return _dialogController.ConfirmAction(
+                "确认生成" + provinceName + "本月台账",
+                "即将生成" + provinceName + "本月台账",
+                message.ToString(),
+                "开始生成");
         }
 
         private void ResetResults()
