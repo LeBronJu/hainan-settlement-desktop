@@ -26,7 +26,7 @@ Then read completely, in order:
 3. `docs/README.md`
 4. The owning documents selected by the router
 
-The active development work is Guangdong Stage 1. Before reviewing or continuing it, also read:
+The latest completed release work is Guangdong Stage 1. Before reviewing or changing it, also read:
 
 - `CONTEXT.md`
 - `docs/architecture.md`
@@ -47,7 +47,7 @@ The active development work is Guangdong Stage 1. Before reviewing or continuing
 
 ## Git State
 
-- The `v1.4.0` tag points to the exact `main` merge commit used to build the formal package.
+- The `v1.4.0` tag points to exact release-source merge commit `02760d18b90235410908d4eb87b92f538eb8b8af`.
 - `codex/stage2-template-browser` is pushed and merged. Its main commits are `933de14` (open generated splits on the target month) and `f1ec9e3` (scalable Stage 2 template selection).
 - Guangdong Stage 1 research documentation was merged to `main` at `8fa2534`; the implementation and cross-province Stage 1 clearing fixes are released in `v1.4.0`.
 - Development branch `codex/guangdong-stage1` was created from `8fa2534`, committed, pushed, and merged for `v1.4.0`.
@@ -60,6 +60,7 @@ The active development work is Guangdong Stage 1. Before reviewing or continuing
 - Release: `https://github.com/LeBronJu/retail-power-settlement-desktop/releases/tag/v1.4.0`.
 - Formal asset: `RetailPowerSettlementTool-Win10-11-v1.4.0.zip`.
 - Local formal package: `dist/releases/RetailPowerSettlementTool-Win10-11-v1.4.0.zip`.
+- SHA-256: `66DA8810A4AD620323BA3AD30EAA2220DA911ADD9C27B64D77A27B3706E37C99`.
 - Only the maintained Win10/11 WPF entry is published. Win7/8 WinForms remains frozen.
 - `dist/` separates `test-packages/`, `releases/`, and `legacy-win7-8/`; local research/backtests belong under Git-ignored `local-validation/`.
 - Latest Guangdong Stage 1 development test package: `dist/test-packages/RetailPowerSettlementTool-Win10-11-Release-20260724-163923-947.zip`.
@@ -112,8 +113,8 @@ Other boundaries:
 - Documentation guardrails, build portability, and `git diff --check` passed.
 - Tests and builds used synthetic/local code inputs only. The five authorized real Guangdong workbooks and `outputs/` were not read during implementation or validation.
 - The formal package directory and ZIP contain the same 20 flat files and no workbook/CSV/JSON/log/HTML/PPTX/DOCX/PDF/image/PDB business material.
-- Packaged executable reports FileVersion `1.4.0.0` and passes a five-second hidden startup smoke.
-- The final formal-package SHA-256 and exact release-source commit are recorded after packaging below and in the GitHub Release.
+- Packaged executable reports FileVersion `1.4.0.0`, ProductVersion `1.4.0+02760d18b90235410908d4eb87b92f538eb8b8af`, and passes a five-second hidden startup smoke.
+- GitHub Release `v1.4.0` is published as Latest, is neither draft nor prerelease, and contains exactly the Win10/11 WPF asset. GitHub reports digest `sha256:66da8810a4ad620323ba3ad30eaa2220da911add9c27b64d77a27b3706e37c99`, matching the local package.
 
 Guangdong Stage 1 implementation:
 
