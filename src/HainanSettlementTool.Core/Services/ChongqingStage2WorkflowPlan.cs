@@ -28,7 +28,13 @@ namespace HainanSettlementTool.Core.Services
 
         public Stage2PreflightEvaluation Evaluation
         {
-            get { return Stage2PreflightPolicy.Evaluate(Preflight.Issues, Options.SummarySubjectDecisions); }
+            get
+            {
+                return Stage2PreflightPolicy.Evaluate(
+                    Preflight.Issues,
+                    Options.SummarySubjectDecisions,
+                    Options.TemplateDecisions);
+            }
         }
 
         public bool IsBlocked

@@ -122,7 +122,7 @@ MainWindowStage2WorkflowController
        -> Stage2BatchWorkspace.Publish（整批发布或回滚/失败留存）
 ```
 
-WPF 共用 `Stage2PreflightPresentationAdapter` 和 `Stage2PreflightWindow`，按 `(费用类型, 主体)` 把多条技术预检事实聚合成一张业务卡，收集支付方与可选分表模板决定，并控制确认按钮。完整文件路径和候选清单默认折叠；UI 不读取 workbook，也不重新解释税率、主体或模板规则。模板候选集和是否必选进入预检签名；操作员所选路径必须仍属于该冻结候选集。
+WPF 共用 `Stage2PreflightPresentationAdapter` 和 `Stage2PreflightWindow`，按 `(费用类型, 主体)` 把多条技术预检事实聚合成一张业务卡，收集支付方与可选分表模板决定，并控制确认按钮。模板候选浏览器把 Adapter 给出的完整候选集与当前可见批次分离：候选先随机洗牌、每批最多 5 个且同轮不重复，支持上一批、换一批、重新打乱，以及按主体/负责人/文件名对完整候选集执行空格分词 AND 搜索；已选模板不因换批失效。完整文件路径默认折叠；UI 不读取 workbook，也不重新解释税率、主体或模板规则。模板候选全集和是否必选进入预检签名；操作员所选路径必须仍属于该冻结全集。
 
 海南和重庆通过窄 Adapter 投影省份关系事实并消费共享结果；台账列位、月份块、单位、金额公式、模板/sheet/样式、汇总列位、支付方 sheet 和省份例外继续留在各自 Excel Module。`自营不产生代理/居间结算` 是共享业务语义，但哪个字段是自营标记、项目开发人是否只是内部归属、退补如何处理，仍由省份 Adapter 明确投影，不能在共享层用固定列位猜测。不要引入吸收两省全部差异的 `BaseStage2Generator`、弱类型大 options 或共享层省份 switch。详细规则和实施状态见 `docs/dev-notes/stage2-preflight-integrity-2026-07-22.md`。
 
@@ -182,7 +182,7 @@ Open XML 迁移顺序：
 
 - `HainanSettlementTool.Core.Tests`：覆盖阶段2金额规则、台账/分表差异问题、文件访问保护、共享阶段 workflow 摘要、阶段二预检取消/继续流程、海南员工电量奖励汇总校验、多省份阶段一清洗摘要和重庆阶段一台账更新摘要。
 - `HainanSettlementTool.Excel.Tests`：用合成 workbook / `.csv` / `.xlsx` 覆盖原始明细读取、户号冲突处理、阶段1台账写入、输出副本保护、阶段2分表新增客户、汇总表新增主体、模板页脚保护、海南员工电量奖励 workbook 读写、重庆电量清洗和阶段二写入，以及广东严格数字月份 sheet、目标月归一化、三类标题和重复运行。
-- `HainanSettlementTool.Wpf.Tests`：覆盖阶段二同主体预检卡聚合、不同费用类型隔离、模板选项紧凑显示和完整路径折叠。
+- `HainanSettlementTool.Wpf.Tests`：覆盖阶段二同主体预检卡聚合、不同费用类型隔离、模板选项紧凑显示、完整路径折叠，以及模板候选 5 个分批、轮内不重复、重新打乱、选择保持和全量关键词 AND 搜索。
 
 真实 workbook 不提交到仓库。必要时只能在用户明确授权后做本地 smoke，并删除临时输出。
 
@@ -305,7 +305,7 @@ Open XML 迁移顺序：
 
 已完成：
 
-- `ChongqingStage2Options` 表达台账、代理模板目录、可选居间模板目录、退补模板目录、汇总表模板、输出目录、预检签名/输入指纹，以及新增或存量缺失支付方主体的本次决策。
+- `ChongqingStage2Options` 表达台账、代理模板目录、可选居间模板目录、退补模板目录、汇总表模板、输出目录、预检签名/输入指纹，以及新增或存量缺失支付方主体和多份非精确同类分表模板的本次决策。
 - `ChongqingStage2PreflightReport` / `ChongqingStage2CheckIssue` 表达重庆阶段二四级预检问题，包括关系资料、主体聚合、模板/目标月、收款人、税率、存量与新增支付方、受管输出和人工复核项。
 - `ChongqingStage2Report` 表达代理费、居间费、退补电费三类结果摘要。
 - `ChongqingStage2Service` 负责输入校验、预检授权校验、支付方决策校验和调用 Excel gateway；正式文件只由整包 staging/publish 流程发布。

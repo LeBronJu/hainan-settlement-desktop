@@ -1,6 +1,6 @@
 # Handoff
 
-Last updated: 2026-07-23
+Last updated: 2026-07-24
 
 ## Project
 
@@ -33,6 +33,7 @@ For the current Stage 2 integrity work, also read:
 - `docs/dev-notes/stage2-preflight-integrity-2026-07-22.md`
 - `docs/hainan-stage2-current-behavior.md`
 - `docs/dev-notes/chongqing-stage2-analysis-2026-07-07.md`
+- `docs/dev-notes/stage2-template-candidate-browser-2026-07-23.md`
 
 ## Data Safety
 
@@ -46,12 +47,13 @@ For the current Stage 2 integrity work, also read:
 
 ## Git State
 
-- Current development branch: `codex/stage2-active-month-sheet`, created from clean `main` at `db696e2`.
-- The current branch contains the target-month active-sheet UX fix for Hainan/Chongqing formal Stage 2 splits and Guangdong independent month preparation, synthetic regression assertions, and the deferred template-browser/2027 research notes.
-- Current production baseline remains `main` / `v1.2.0`; this branch has not been merged, pushed, tagged, or released. A local timestamped Win10/11 test package has been built for user verification.
+- Current development branch: `codex/stage2-template-browser`, created from clean local `main` at `db696e2`.
+- Commit `933de14` on this branch brings in the already verified target-month active-sheet change from the previous branch. The current uncommitted work adds the shared Stage 2 template browser and enables Chongqing multi-candidate template decisions.
+- Current production baseline remains `main` / `v1.2.0`; this branch has not been committed for the new browser scope, pushed, merged, tagged, or released. A local timestamped Win10/11 test package has been built for user verification.
+- The previous `codex/stage2-active-month-sheet` commit was pushed as `488e6db` but remains unmerged; do not cherry-pick both `488e6db` and `933de14`, because they represent the same change.
 - `codex/stage2-preflight-integrity` was merged into `main` as `3e4c6f9` (`Merge Stage 2 integrity and v1.2.0 release`).
 - The main implementation commits are `ed9452a` (preflight/integrity), `8029a61` (new-subject preflight UX), `54549ab` (template display and Hainan loan status), `f495d5d` (readable reports and settlement fixes), and `ca0f26b` (release preparation).
-- The previously local-only Guangdong safety commits and the Stage 2 branch are now pushed through `origin/main`.
+- The previously local-only Guangdong safety commits and the v1.2.0 Stage 2 integrity branch are now pushed through `origin/main`.
 - Tag `v1.2.0` points to the exact merge commit used to build the formal package. The later main commit only records post-release handoff state.
 - Preserve the Window Separation / `outputs` exclusions in this handoff and do not revert them.
 - Future push, merge, tag, package, publication, or real-workbook read again requires new explicit user authorization.
@@ -63,7 +65,7 @@ For the current Stage 2 integrity work, also read:
 - Formal asset: `RetailPowerSettlementTool-Win10-11-v1.2.0.zip`; only the maintained Win10/11 WPF entry is published.
 - Local formal package: `dist/releases/RetailPowerSettlementTool-Win10-11-v1.2.0.zip`.
 - Formal package SHA-256: `2C914708542D8D6C56336AA3C3A852421617B4379F4FC21AA15345C63E85F3A3`.
-- The latest local Win10/11 test package is `dist/test-packages/RetailPowerSettlementTool-Win10-11-Release-20260723-180211-572.zip`; SHA-256 is `647A5B8BD6424BFDEDCD16060FC1E91AF8D9CADA72EBF0F83E29DE2357C70851`.
+- The latest local Win10/11 test package is `dist/test-packages/RetailPowerSettlementTool-Win10-11-Release-20260724-104552-717.zip`; SHA-256 is `0CFB4B0B64471236856309F583E1BF54B4C7BF4D5A71453C23E6FFF2FF55E05C`.
 - `dist/` now contains distributable artifacts grouped under `test-packages/`, `releases/`, and `legacy-win7-8/`; local backtests and smoke outputs belong under the Git-ignored `local-validation/` tree.
 
 ## Current Product State
@@ -77,9 +79,9 @@ Hainan / Chongqing Stage 2:
 - Existing payment party inherits from reliable fields/sheet membership. New or unresolved payment party requires an explicit Qingneng/Qinghui choice; there is no Qinghui default. Hainan Jingyan's confirmed Qingneng override remains.
 - New subject defaults are no delegation, payee equals subject, platform invoice, ledger withholding rate, 13% total rate, `H=J-I`, first owner, and target month, with review reminder.
 - Hainan and Chongqing use a shared four-level WPF preflight presentation, while province-specific workbook rules remain in separate Excel adapters. The window groups all issues for one `(settlement kind, subject)` into one card and folds full paths into technical details.
-- Hainan new subjects with several non-exact same-kind split templates now require an explicit template choice in the same card as the Qingneng/Qinghui choice; zero candidates and duplicate exact historical templates still block. The chosen template only supplies layout, and the new output keeps only the target-month sheet. Chongqing has not opted into this province rule and keeps its prior blocker behavior.
-- Large template-candidate UX is researched but not implemented. `docs/dev-notes/stage2-template-candidate-browser-2026-07-23.md` records the recommended 5-at-a-time non-repeating shuffle plus Excel-style full-catalog keyword search; the complete signed candidate set remains authoritative.
-- The shared WPF ComboBox template now forwards `ItemTemplateSelector`; selected template options therefore keep their friendly subject/owner/file label instead of falling back to the ViewModel type name.
+- Both provinces now turn several non-exact same-kind split templates into an explicit required choice; zero candidates, duplicate exact historical templates, and unreadable templates still block. The complete candidate set remains signed and fingerprinted, and the selected path is revalidated and actually used by the province writer.
+- The shared WPF browser shuffles the complete candidate set once per round, shows at most five per batch without repeats, supports previous/next and end-of-round reshuffle, and keeps an existing selection while browsing. Its full-catalog search uses case-insensitive whitespace-term AND matching across subject, owner, and file name, with Enter/double-click/Esc keyboard behavior.
+- Template display and search use province-neutral file stem, parent folder, and file-name metadata; WPF does not read workbook contents or decide province template eligibility.
 - Hainan borrowed-template output for a new subject keeps only the target-month sheet and removes legacy cell comments copied from the source subject. Exact matched templates for existing subjects keep their own comments.
 - The current development branch ensures the target-month sheet is visible and is the only active and selected tab in generated Hainan/Chongqing Stage 2 splits and normal Guangdong month-preparation outputs, so opening a new split goes directly to the settlement month instead of inheriting a hidden/template-month view. Summary workbooks remain unchanged.
 - Hainan loan remaining is written as `MAX(0, loan - deducted)`; when the program-owned current-month deduction first clears a positive balance and the completion month is blank, the concrete target settlement month is written as a date value and displayed as `yyyy年m月` (for example, a June 2026 run writes `2026年6月`). Existing completion months are preserved and historical missing months are not guessed.
@@ -105,18 +107,12 @@ Performance / UI support:
 
 Current branch, synthetic inputs only:
 
-- 2026-07-23 target-month active-sheet and research closeout: focused Hainan/Chongqing generation tests and all 12 Guangdong month-preparation tests passed; the full Debug solution test run passed Core 80/80, Excel 127/127, and WPF 4/4. Independent review then found hidden-target visibility and Guangdong idempotency-wording edges; both were addressed, 4 focused hidden/transition tests and all Excel 127/127 passed again, followed by a full Release solution build.
-- Core tests: 80/80 passed.
-- Excel tests: 127/127 passed.
-- WPF presentation/control tests: 4/4 passed.
-- Focused Hainan Stage 2 tests: 57/57 passed.
-- Focused Chongqing Stage 2 tests: 40/40 passed.
-- Full Debug and Release solution builds passed.
-- WPF Debug build passed with 0 warnings / 0 errors.
+- 2026-07-24 full Debug solution test run passed Core 83/83, Excel 129/129, and WPF 10/10; after independent review fixes, WPF Debug and Release both passed 11/11. New tests cover Chongqing required/invalid/conflicting template decisions, actual second-candidate copying, stable output planning, `3 / 7 / 13` candidate batches, round uniqueness/reshuffle, selection retention, cross-field AND search, shared Chongqing presentation, and Enter-key focus routing.
+- The inherited 2026-07-23 target-month active-sheet regressions remain included: Hainan/Chongqing generated splits and normal Guangdong month-preparation outputs reopen on the visible target month as the only active/selected sheet.
+- Full Release solution build passed with 0 warnings / 0 errors.
 - Build portability check passed.
 - Documentation guardrails and `git diff --check` passed.
-- Independent read-only diff review found no remaining P0/P1 in the current scope; its two P2 findings (card-count wording and whitespace-normalized subject keys) were addressed.
-- The latest `20260723-180211-572` Win10/11 test package includes the final hidden-target fix; its directory and ZIP each contain the same 20 files, no workbook/CSV/JSON/log data, and the packaged WPF executable remained running through a five-second hidden startup smoke. The executable file version remains the current production baseline `1.2.0.0`; this timestamped package is not a formal release.
+- The latest `20260724-104552-717` Win10/11 test package includes the target-month active-sheet and Hainan/Chongqing template-browser work. Its directory and ZIP each contain the same 20 files, no workbook/CSV/JSON/log/PPTX/DOCX/PDF data, and the packaged WPF executable remained running through a five-second hidden startup smoke. The executable file version remains the current production baseline `1.2.0.0`; this timestamped package is not a formal release.
 - The formal `v1.2.0` package repeats those checks: directory and ZIP each contain the same 20 files, no business-data file types, executable file version `1.2.0.0`, and a successful five-second hidden startup smoke.
 - One user-authorized generated Hainan summary workbook was inspected read-only for the reported loan-balance row. The later exact user-authorized new-agent split workbook was inspected read-only and contained one legacy comment at `6月!P6`; no surrounding business directory was scanned and the source workbook was not modified. Automated tests remained synthetic. No `outputs` material was read or produced.
 - For the later Chongqing self-operated regression, the user explicitly authorized one exact historical ledger. It was inspected and replayed read-only: all seven reported rows had project developer/owner attribution but no monthly proxy/intermediary parameters; the fixed reader reports zero self-operated blockers. No surrounding directory was scanned and the workbook was not modified.
@@ -124,6 +120,7 @@ Current branch, synthetic inputs only:
 ## Known Boundary
 
 - Chongqing refund templates that contain both a standard month sheet such as `2` and a copy-style sheet such as `2 (2)` remain a documented pre-existing technical risk. The current task does not change that rule; obtain business confirmation before choosing a new policy.
+- When several Chongqing refund templates are candidates, template-specific extra-deduction blocks cannot be compared before the operator chooses one; generation still uses the selected workbook and keeps the existing report-based manual review boundary for those blocks.
 - Hainan/Chongqing intentionally remain all-or-nothing for formal Stage 2 output. A future non-payable partial draft would require a separate design and explicit authorization.
 - Chongqing loan deduction remains template/manual-driven, so the Hainan automatic zero-clamp/completion-month behavior was intentionally not generalized there; doing so could hide a real manual over-deduction.
 - 2027 support is analyzed but intentionally deferred in `docs/dev-notes/settlement-year-2027-readiness-2026-07-23.md`. Year parameterization, January cross-year inheritance, and the planned 2027 Hainan ledger-format change require later confirmation before implementation.
@@ -132,10 +129,10 @@ Current branch, synthetic inputs only:
 
 ## Next Session
 
-1. Run the required reading gate from clean `main` and confirm it matches `origin/main` after the `v1.2.0` closeout.
-2. Preserve the `outputs/` exclusions and obtain new explicit authorization before any future merge, push, tag, release, or real-workbook read.
-3. Treat `v1.2.0` as the current production baseline; future settlement changes should start from a new `codex/` branch and synthetic regression tests.
-4. Do not resume Hainan/Chongqing performance work, add routing JSON, change the ledger format, or add partial formal summaries without a new explicit decision.
+1. Resume on `codex/stage2-template-browser`; inspect the uncommitted browser/backend/doc changes and the final review result before committing.
+2. Preserve the `outputs/` exclusions and obtain new explicit authorization before any push, merge, tag, package/release, or real-workbook read.
+3. Treat `v1.2.0` as the current production baseline until this branch is separately tested, committed, merged, and released.
+4. Do not resume Hainan/Chongqing performance work, implement 2027, add routing JSON, change the ledger format, or add partial formal summaries without a new explicit decision.
 
 ## Window Separation
 

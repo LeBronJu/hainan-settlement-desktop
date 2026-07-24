@@ -1442,7 +1442,7 @@ namespace HainanSettlementTool.Excel.Tests
         }
 
         [TestMethod]
-        public void AnalyzeSettlementBlocksAmbiguousSameKindBorrowTemplates()
+        public void AnalyzeSettlementRequiresSelectionForAmbiguousSameKindBorrowTemplates()
         {
             var root = CreateTempRoot();
             try
@@ -1466,10 +1466,118 @@ namespace HainanSettlementTool.Excel.Tests
                 var report = new ChongqingStage2Service(
                     new ClosedXmlSettlementExcelGateway()).Analyze(options);
 
-                Assert.IsTrue(report.Issues.Any(issue =>
-                    issue.Code == Stage2PreflightIssueKinds.AmbiguousBorrowTemplates
-                    && issue.Disposition == Stage2PreflightDisposition.Blocker
-                    && issue.Entity == "新增代理"));
+                var issue = report.Issues.Single(item =>
+                    item.Code == Stage2PreflightIssueKinds.AmbiguousBorrowTemplates
+                    && item.Entity == "新增代理");
+                Assert.AreEqual(Stage2PreflightDisposition.RequiredDecision, issue.Disposition);
+                Assert.IsTrue(issue.RequiresTemplateSelection);
+                CollectionAssert.AreEquivalent(
+                    new[] { Path.GetFullPath(first), Path.GetFullPath(second) },
+                    issue.AvailableTemplateFiles.Select(Path.GetFullPath).ToArray());
+                Assert.IsFalse(report.HasBlockingIssues);
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
+        public void GenerateSettlementUsesSelectedAmbiguousSameKindBorrowTemplate()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var options = CreateOptions(root);
+                WriteChongqingStage2Ledger(options.LedgerPath, includeIntermediary: false);
+                var first = Path.Combine(options.ProxyTemplateDirectory, "来源一", "代理一.xlsx");
+                var second = Path.Combine(options.ProxyTemplateDirectory, "来源二", "代理二.xlsx");
+                WriteProxyTemplate(first);
+                WriteProxyTemplate(second);
+                SetSplitTemplateEntity(first, ChongqingStage2SettlementKinds.Proxy, "其它代理一");
+                SetSplitTemplateEntity(second, ChongqingStage2SettlementKinds.Proxy, "其它代理二");
+                SetSplitTemplateMarker(first, "候选一");
+                SetSplitTemplateMarker(second, "候选二");
+                WriteRefundTemplate(Path.Combine(options.RefundTemplateDirectory, "测试负责人", "新增退补.xlsx"));
+                WriteSummaryTemplate(
+                    options.SummaryTemplatePath,
+                    "新增代理",
+                    ChongqingStage2SettlementKinds.Proxy,
+                    "新增退补",
+                    ChongqingStage2SettlementKinds.Refund);
+
+                var service = new ChongqingStage2Service(new ClosedXmlSettlementExcelGateway());
+                var preflight = service.Analyze(options);
+                options.ExpectedPreflightSignature = preflight.PreflightSignature;
+                options.ExpectedInputFingerprint = preflight.InputFingerprint;
+                options.TemplateDecisions.Add(new ChongqingStage2TemplateDecision
+                {
+                    SettlementKind = ChongqingStage2SettlementKinds.Proxy,
+                    Entity = "新增代理",
+                    TemplatePath = second
+                });
+
+                var report = service.Run(options, null);
+
+                var proxy = report.Groups.Single(group =>
+                    group.Kind == ChongqingStage2SettlementKinds.Proxy
+                    && group.Entity == "新增代理");
+                using (var workbook = new XLWorkbook(proxy.OutputFile))
+                {
+                    Assert.AreEqual("候选二", workbook.Worksheet("5").Cell("Z1").GetFormattedString());
+                    Assert.AreEqual(1, workbook.Worksheets.Count);
+                }
+                Assert.IsTrue(report.AuditIssues.Any(issue =>
+                    issue.Category == "本次分表模板选择"
+                    && string.Equals(
+                        Path.GetFullPath(issue.TemplateFile),
+                        Path.GetFullPath(second),
+                        StringComparison.OrdinalIgnoreCase)));
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
+        public void GenerateSettlementRejectsTemplateDecisionOutsidePreflightCandidates()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var options = CreateOptions(root);
+                WriteChongqingStage2Ledger(options.LedgerPath, includeIntermediary: false);
+                var first = Path.Combine(options.ProxyTemplateDirectory, "来源一", "代理一.xlsx");
+                var second = Path.Combine(options.ProxyTemplateDirectory, "来源二", "代理二.xlsx");
+                WriteProxyTemplate(first);
+                WriteProxyTemplate(second);
+                SetSplitTemplateEntity(first, ChongqingStage2SettlementKinds.Proxy, "其它代理一");
+                SetSplitTemplateEntity(second, ChongqingStage2SettlementKinds.Proxy, "其它代理二");
+                WriteRefundTemplate(Path.Combine(options.RefundTemplateDirectory, "测试负责人", "新增退补.xlsx"));
+                WriteSummaryTemplate(
+                    options.SummaryTemplatePath,
+                    "新增代理",
+                    ChongqingStage2SettlementKinds.Proxy,
+                    "新增退补",
+                    ChongqingStage2SettlementKinds.Refund);
+
+                var service = new ChongqingStage2Service(new ClosedXmlSettlementExcelGateway());
+                var preflight = service.Analyze(options);
+                options.ExpectedPreflightSignature = preflight.PreflightSignature;
+                options.ExpectedInputFingerprint = preflight.InputFingerprint;
+                options.TemplateDecisions.Add(new ChongqingStage2TemplateDecision
+                {
+                    SettlementKind = ChongqingStage2SettlementKinds.Proxy,
+                    Entity = "新增代理",
+                    TemplatePath = Path.Combine(root, "not-a-candidate.xlsx")
+                });
+
+                var exception = Assert.ThrowsException<InvalidOperationException>(() =>
+                    service.Run(options, null));
+
+                StringAssert.Contains(exception.Message, "不在本次预检候选范围内");
+                Assert.IsFalse(Directory.Exists(options.OutputDirectory));
             }
             finally
             {
@@ -1523,6 +1631,15 @@ namespace HainanSettlementTool.Excel.Tests
                 workbook.Worksheet("4").Cell("A2").Value = kind == ChongqingStage2SettlementKinds.Refund
                     ? "名称:" + entity
                     : "代理名称:" + entity;
+                workbook.Save();
+            }
+        }
+
+        private static void SetSplitTemplateMarker(string path, string marker)
+        {
+            using (var workbook = new XLWorkbook(path))
+            {
+                workbook.Worksheet("4").Cell("Z1").Value = marker;
                 workbook.Save();
             }
         }

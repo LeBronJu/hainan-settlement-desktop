@@ -233,6 +233,14 @@ namespace HainanSettlementTool.Excel
                     Entity = item.Entity,
                     PaymentParty = item.PaymentParty
                 }));
+            result.TemplateDecisions.AddRange(source.TemplateDecisions
+                .Where(item => item != null)
+                .Select(item => new ChongqingStage2TemplateDecision
+                {
+                    SettlementKind = item.SettlementKind,
+                    Entity = item.Entity,
+                    TemplatePath = item.TemplatePath
+                }));
             return result;
         }
 
@@ -356,6 +364,32 @@ namespace HainanSettlementTool.Excel
                     continue;
                 }
 
+                if (issue.RequiresTemplateSelection)
+                {
+                    var templateKey = ChongqingStage2Keys.SummaryKey(issue.Entity, issue.SettlementKind);
+                    var templateDecision = options.TemplateDecisions
+                        .Where(item => item != null)
+                        .Single(item =>
+                            ChongqingStage2Keys.SummaryKey(item.Entity, item.SettlementKind) == templateKey);
+                    auditIssues.Add(new ChongqingStage2CheckIssue
+                    {
+                        Code = Stage2PreflightIssueKinds.AmbiguousBorrowTemplates,
+                        Disposition = Stage2PreflightDisposition.Information,
+                        Severity = "信息",
+                        Category = "本次分表模板选择",
+                        Kind = issue.Kind,
+                        SettlementKind = issue.SettlementKind,
+                        Owner = issue.Owner,
+                        Entity = issue.Entity,
+                        LedgerRow = issue.LedgerRow,
+                        TemplateFile = templateDecision.TemplatePath,
+                        CurrentValue = "本次选择：" + Path.GetFileName(templateDecision.TemplatePath),
+                        Message = "操作员已在本次阶段二预检中明确选择新主体借用的分表模板。",
+                        Suggestion = "生成后请复核新分表样式；新文件只保留本月工作表。"
+                    });
+                    continue;
+                }
+
                 if (!issue.RequiresPaymentPartySelection)
                 {
                     continue;
@@ -464,7 +498,10 @@ namespace HainanSettlementTool.Excel
             ChongqingStage2Options options,
             ChongqingStage2PreflightReport report)
         {
-            var evaluation = Stage2PreflightPolicy.Evaluate(report.Issues, options.SummarySubjectDecisions);
+            var evaluation = Stage2PreflightPolicy.Evaluate(
+                report.Issues,
+                options.SummarySubjectDecisions,
+                options.TemplateDecisions);
             if (evaluation.HasBlockingIssues)
             {
                 throw new InvalidOperationException("重庆阶段二预检存在阻断项，请修正台账或模板后重新预检。");
@@ -472,7 +509,20 @@ namespace HainanSettlementTool.Excel
 
             if (!evaluation.CanContinue)
             {
-                throw new InvalidOperationException("重庆阶段二支付方选择尚未完成或存在冲突，请重新预检后再生成。");
+                var details = evaluation.DecisionResolutions
+                    .Where(item => item.Status != Stage2PaymentPartyDecisionStatus.Resolved)
+                    .Select(item => item.SettlementKind + " " + item.Entity + "：" + item.Message)
+                    .Concat(evaluation.TemplateDecisionResolutions
+                        .Where(item => item.Status != Stage2TemplateDecisionStatus.Resolved)
+                        .Select(item => item.SettlementKind + " " + item.Entity + "：" + item.Message))
+                    .Concat(evaluation.InvalidDefinitions)
+                    .Where(item => !string.IsNullOrWhiteSpace(item))
+                    .Distinct()
+                    .Take(10)
+                    .ToList();
+                throw new InvalidOperationException(
+                    "重庆阶段二支付方或分表模板选择尚未完成、已失效或存在冲突，请重新预检后再生成："
+                    + string.Join("；", details));
             }
         }
     }

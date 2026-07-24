@@ -82,6 +82,32 @@ namespace HainanSettlementTool.Core.Tests
         }
 
         [TestMethod]
+        public void RunRejectsTemplateDecisionWithoutPath()
+        {
+            var root = CreateTempRoot();
+            try
+            {
+                var service = new ChongqingStage2Service(new FakeChongqingStage2Gateway());
+                var options = CreateOptions(root);
+                options.TemplateDecisions.Add(new ChongqingStage2TemplateDecision
+                {
+                    SettlementKind = ChongqingStage2SettlementKinds.Proxy,
+                    Entity = "新增代理主体",
+                    TemplatePath = " "
+                });
+
+                var exception = Assert.ThrowsException<ArgumentException>(() =>
+                    service.Run(options, null));
+
+                StringAssert.Contains(exception.Message, "缺少模板文件路径");
+            }
+            finally
+            {
+                DeleteTempRoot(root);
+            }
+        }
+
+        [TestMethod]
         public void AnalyzeDoesNotAuthorizeDirectGeneration()
         {
             var root = CreateTempRoot();

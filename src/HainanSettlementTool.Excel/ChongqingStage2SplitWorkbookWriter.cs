@@ -284,20 +284,25 @@ namespace HainanSettlementTool.Excel
 
                 if (borrowCandidates.Count > 1)
                 {
-                    issues.Add(new ChongqingStage2CheckIssue
+                    var templateIssue = new ChongqingStage2CheckIssue
                     {
                         Code = Stage2PreflightIssueKinds.AmbiguousBorrowTemplates,
-                        Disposition = Stage2PreflightDisposition.Blocker,
-                        Severity = "阻断",
-                        Category = "同类借用模板不唯一",
+                        Disposition = Stage2PreflightDisposition.RequiredDecision,
+                        Severity = "必选",
+                        Category = "新增主体分表模板选择",
                         Kind = Stage2PreflightIssueKinds.AmbiguousBorrowTemplates,
                         SettlementKind = group.Kind,
                         Owner = group.Owner,
                         Entity = group.Entity,
-                        TemplateFile = string.Join("；", borrowCandidates.Select(candidate => candidate.Path)),
-                        Message = "未找到该主体的精确模板，但同费用类型有多个可借用候选，程序无法可靠选择。",
-                        Suggestion = "请为新主体准备唯一精确模板，或将借用范围整理为唯一可靠候选。"
-                    });
+                        CurrentValue = "找到 " + borrowCandidates.Count + " 个可借用的同类型模板",
+                        Message = group.Kind + "主体“" + group.Entity
+                            + "”是新增主体，需要选择一份同类型历史分表作为新分表的样式模板。",
+                        Suggestion = "请选择样式和版式最接近的一份历史分表；本次只借用模板，不会继承其他主体名称和历史明细。",
+                        RequiresTemplateSelection = true
+                    };
+                    templateIssue.AvailableTemplateFiles.AddRange(
+                        borrowCandidates.Select(candidate => candidate.Path));
+                    issues.Add(templateIssue);
                     continue;
                 }
 
@@ -424,7 +429,7 @@ namespace HainanSettlementTool.Excel
                     var borrowed = catalog.Candidates
                         .Where(candidate => candidate.Kind == group.Kind)
                         .ToList();
-                    if (borrowed.Count != 1)
+                    if (borrowed.Count == 0)
                     {
                         continue;
                     }
@@ -938,10 +943,12 @@ namespace HainanSettlementTool.Excel
 
             if (borrowSources.Count > 1)
             {
-                throw new InvalidOperationException("重庆" + ChongqingStage2ExcelUtil.KindShort(kind) + "借用模板不唯一，已停止生成。");
+                source = ResolveBorrowTemplate(options, kind, entity, borrowSources);
             }
-
-            source = borrowSources[0];
+            else
+            {
+                source = borrowSources[0];
+            }
 
             var folder = Path.Combine(ChongqingStage2ExcelUtil.OutputRootFor(options, kind), TextUtil.SafeFileName(owner));
             Directory.CreateDirectory(folder);
@@ -954,6 +961,38 @@ namespace HainanSettlementTool.Excel
             matchedTemplate = false;
             warnings.Add("新增" + kind + "分表主体：" + entity + "（负责人：" + owner + "），已借用同类模板生成，请人工复核抬头、签章和付款信息。");
             return targetPath;
+        }
+
+        private static string ResolveBorrowTemplate(
+            ChongqingStage2Options options,
+            string kind,
+            string entity,
+            IList<string> candidates)
+        {
+            var key = ChongqingStage2Keys.SummaryKey(entity, kind);
+            var decisions = options.TemplateDecisions
+                .Where(item => item != null
+                    && ChongqingStage2Keys.SummaryKey(item.Entity, item.SettlementKind) == key)
+                .ToList();
+            if (decisions.Count != 1)
+            {
+                throw new InvalidOperationException(
+                    kind + "主体“" + entity + "”没有唯一的本次分表模板选择。");
+            }
+
+            var selectedPath = Path.GetFullPath(decisions[0].TemplatePath);
+            var selected = candidates.SingleOrDefault(candidate =>
+                string.Equals(
+                    Path.GetFullPath(candidate),
+                    selectedPath,
+                    StringComparison.OrdinalIgnoreCase));
+            if (selected == null)
+            {
+                throw new InvalidOperationException(
+                    kind + "主体“" + entity + "”选择的分表模板不在本次预检候选范围内。");
+            }
+
+            return selected;
         }
 
         private static void WriteSplitSheet(

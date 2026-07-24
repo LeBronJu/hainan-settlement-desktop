@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using System.Windows.Threading;
 using HainanSettlementTool.Core.Services;
 
@@ -98,6 +99,57 @@ namespace HainanSettlementTool.Wpf
             Dispatcher.BeginInvoke(
                 new Action(UpdateConfirmButtonState),
                 DispatcherPriority.DataBind);
+        }
+
+        private void TemplateOption_Click(object sender, RoutedEventArgs e)
+        {
+            var row = FindIssueRow(sender as DependencyObject);
+            var option = (sender as FrameworkElement)?.DataContext
+                as Stage2PreflightTemplateOptionViewModel;
+            if (row?.TemplateBrowser == null || option == null)
+            {
+                return;
+            }
+
+            row.TemplateBrowser.SelectTemplate(option.Path);
+            ErrorText.Visibility = Visibility.Collapsed;
+            UpdateConfirmButtonState();
+        }
+
+        private void PreviousTemplateBatch_Click(object sender, RoutedEventArgs e)
+        {
+            var row = FindIssueRow(sender as DependencyObject);
+            row?.TemplateBrowser?.MovePrevious();
+        }
+
+        private void NextTemplateBatch_Click(object sender, RoutedEventArgs e)
+        {
+            var row = FindIssueRow(sender as DependencyObject);
+            row?.TemplateBrowser?.MoveNextOrReshuffle();
+        }
+
+        private void SearchTemplates_Click(object sender, RoutedEventArgs e)
+        {
+            var row = FindIssueRow(sender as DependencyObject);
+            if (row?.TemplateBrowser == null)
+            {
+                return;
+            }
+
+            var searchWindow = new Stage2TemplateSearchWindow(
+                row.TemplateBrowser.AllOptions,
+                row.TemplateBrowser.SelectedTemplatePath)
+            {
+                Owner = this
+            };
+            if (searchWindow.ShowDialog() != true || searchWindow.SelectedOption == null)
+            {
+                return;
+            }
+
+            row.TemplateBrowser.SelectTemplate(searchWindow.SelectedOption.Path);
+            ErrorText.Visibility = Visibility.Collapsed;
+            UpdateConfirmButtonState();
         }
 
         private void UpdateConfirmButtonState()
@@ -233,6 +285,24 @@ namespace HainanSettlementTool.Wpf
         private static string EffectiveSettlementKind(Stage2PreflightIssueItemViewModel row)
         {
             return string.IsNullOrWhiteSpace(row.SettlementKind) ? row.Kind : row.SettlementKind;
+        }
+
+        private static Stage2PreflightIssueItemViewModel FindIssueRow(DependencyObject origin)
+        {
+            var current = origin;
+            while (current != null)
+            {
+                var element = current as FrameworkElement;
+                var row = element?.DataContext as Stage2PreflightIssueItemViewModel;
+                if (row != null)
+                {
+                    return row;
+                }
+
+                current = VisualTreeHelper.GetParent(current);
+            }
+
+            return null;
         }
     }
 }
