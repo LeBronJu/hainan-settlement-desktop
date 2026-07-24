@@ -22,6 +22,7 @@
 | `docs/dev-notes/chongqing-stage2-analysis-2026-07-07.md` | 当前模块 note | 重庆阶段二结构、已实现行为、回测结论和长期人工复核边界。 |
 | `docs/dev-notes/stage2-preflight-integrity-2026-07-22.md` | 当前任务 note | 海南/重庆阶段二最终确认的主体聚合、关系校验、收款人、税率、支付方、统一预检 UI 和正式输出完整性改造。 |
 | `docs/dev-notes/stage2-template-candidate-browser-2026-07-23.md` | 当前模块 note | 海南/重庆大量分表模板候选的 5 个随机分批、Excel 式关键词搜索、安全签名边界和跨省复用实现。 |
+| `docs/dev-notes/guangdong-stage1-research-2026-07-24.md` | 当前任务 note | 广东阶段一官方输入 sheet、编码聚合、32 列月份块、首版安全边界、架构接入点和实施前待确认事项。当前仅研究，尚未实现。 |
 | `docs/dev-notes/guangdong-stage2-month-preparation-2026-07-10.md` | 当前模块 note | 广东代理/居间/退补分表标准月份 sheet 初始化规则、安全边界和验证结果。 |
 | `docs/dev-notes/excel-performance-openxml-research-2026-07-10.md` | 当前架构 note | Excel 批处理性能基线、Open XML SDK 风险、海南优先试点和渐进迁移门槛。 |
 | `docs/dev-notes/multi-province-code-quality-2026-07-08.md` | 当前任务 note | 多省份代码质量、海南命名中性化、大类拆分和执行连续性。 |
@@ -57,6 +58,7 @@
 | 海南/重庆阶段二预检、主体聚合或输出完整性 | `CONTEXT.md`、`docs/architecture.md`、`docs/dev-notes/stage2-preflight-integrity-2026-07-22.md`，再读对应省份 current-behavior/module note |
 | 阶段二大量模板候选搜索或随机分批 | `docs/architecture.md`、`docs/dev-notes/stage2-preflight-integrity-2026-07-22.md`、`docs/dev-notes/stage2-template-candidate-browser-2026-07-23.md` |
 | 新省份接入 | `CONTEXT.md`、`docs/architecture.md`、`docs/dev-notes/multi-province-readiness-2026-07-07.md` |
+| 广东阶段一设计或实现 | `CONTEXT.md`、`docs/architecture.md`、`docs/dev-notes/guangdong-stage1-research-2026-07-24.md`、`docs/dev-notes/multi-province-readiness-2026-07-07.md` |
 | 2027 年或跨年度结算支持 | `CONTEXT.md`、`docs/architecture.md`、`docs/dev-notes/settlement-year-2027-readiness-2026-07-23.md`，再读对应省份行为文档 |
 | 广东分表月份初始化 | `CONTEXT.md`、`docs/architecture.md`、`docs/dev-notes/guangdong-stage2-month-preparation-2026-07-10.md` |
 | WPF UI 或交互改动 | `docs/architecture.md`、`docs/dev-notes/multi-province-readiness-2026-07-07.md`；涉及 WinForms 时再读 `docs/dev-notes/win7-8-maintenance-mode-2026-06-29.md` |
